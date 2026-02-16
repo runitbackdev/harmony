@@ -29,7 +29,7 @@ clean:
 
 [private]
 build-wasm:
-  wasm-pack build {{wasm-crate}} --target web --out-dir {{wasm-out}}
+  wasm-pack build {{wasm-crate}} --target web  --scope harmony --out-dir {{wasm-out}}
 
 [private]
 build-web:

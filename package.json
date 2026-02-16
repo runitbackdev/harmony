@@ -6,6 +6,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
       "lefthook"
     ],
     "overrides": {
