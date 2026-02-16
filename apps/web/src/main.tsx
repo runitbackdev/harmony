@@ -4,10 +4,13 @@ import "./index.css";
 import App from "./App.tsx";
 import { Profiler, Stats } from "@harmony/profiler";
 
-import init, { hello_world } from "@harmony/wasm";
+import MatrixWorker from "./workers/matrix.shared-worker.ts?sharedworker";
 
-await init();
-hello_world();
+const worker = new MatrixWorker();
+
+worker.port.onmessage = (event) => {
+  console.log(event.data);
+};
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
