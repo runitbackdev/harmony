@@ -1,0 +1,29 @@
+[package]
+name = "wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+matrix-sdk-ui = { git = "https://github.com/matrix-org/matrix-rust-sdk", branch = "main", features = [
+  "js",
+  "unstable-msc4274",
+  "native-tls",
+] }
+matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk", branch = "main", default-features = false, features = [
+  "indexeddb",
+  "e2e-encryption",
+  "automatic-room-key-forwarding",
+  "js",
+  "unstable-msc4274",
+  "native-tls",
+] }
+
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1"
