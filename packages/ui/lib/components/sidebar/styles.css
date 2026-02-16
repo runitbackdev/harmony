@@ -1,0 +1,101 @@
+:root {
+  --sidebar-bg: var(--bg-surface);
+  --sidebar-text: var(--fg-muted);
+  --sidebar-text-active: var(--fg-default);
+  --sidebar-item-bg: transparent;
+  --sidebar-item-hover-bg: var(--bg-hover);
+  --sidebar-item-active-bg: var(--bg-card);
+  --sidebar-border: 1px solid var(--border-subtle);
+  --sidebar-width: 240px;
+  --sidebar-section-text: var(--fg-subtle);
+}
+
+[data-component="sidebar"] {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-right: var(--sidebar-border);
+  overflow-y: auto;
+
+  [data-part="header"] {
+    padding: 12px;
+    border-bottom: var(--sidebar-border);
+  }
+
+  [data-part="header-title"] {
+    font-size: var(--text-body);
+    font-weight: 600;
+    font-family: var(--font-body);
+    color: var(--sidebar-text-active);
+  }
+
+  [data-part="section-label"] {
+    padding: 8px 12px 4px;
+    font-size: var(--text-small);
+    font-weight: 600;
+    font-family: var(--font-body);
+    color: var(--sidebar-section-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  [data-part="list"] {
+    flex: 1;
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  [data-part="item"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-body);
+    font-family: var(--font-body);
+    color: var(--sidebar-text);
+    background: var(--sidebar-item-bg);
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-default);
+    text-decoration: none;
+    border: none;
+
+    &:hover {
+      background: var(--sidebar-item-hover-bg);
+    }
+
+    &[data-active] {
+      background: var(--sidebar-item-active-bg);
+      color: var(--sidebar-text-active);
+    }
+
+    &[data-unread] {
+      color: var(--sidebar-text-active);
+      font-weight: 500;
+    }
+  }
+
+  [data-part="item-prefix"] {
+    color: var(--sidebar-section-text);
+    flex-shrink: 0;
+  }
+
+  [data-part="badge"] {
+    margin-left: auto;
+    font-size: var(--text-small);
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: var(--radius-badge);
+    background: var(--badge-bg);
+    color: var(--badge-text);
+
+    &[data-mention] {
+      background: var(--badge-mention-bg);
+      color: var(--badge-mention-text);
+    }
+  }
+}

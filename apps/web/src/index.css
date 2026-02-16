@@ -1,3 +1,6 @@
 @import "tailwindcss";
+@import "@harmony/ui/styles";
 
 @source inline("font-bold italic line-through underline font-mono");
+
+/* These design tokens are meant to be consumed by users creating custom themes. So, we want to keep them nice and organized. */

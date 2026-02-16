@@ -1,0 +1,48 @@
+:root {
+  --bg-app: var(--color-neutral-950);
+  --bg-surface: var(--color-neutral-900);
+  --bg-elevated: var(--color-neutral-850);
+  --bg-card: var(--color-neutral-800);
+  --bg-hover: var(--color-neutral-750);
+  --bg-active: var(--color-neutral-700);
+
+  --fg-default: var(--color-neutral-100);
+  --fg-muted: var(--color-neutral-400);
+  --fg-subtle: var(--color-neutral-500);
+  --fg-on-accent: var(--color-neutral-950);
+
+  --border-default: var(--color-neutral-700);
+  --border-subtle: var(--color-neutral-800);
+  --border-strong: var(--color-neutral-600);
+
+  --accent-default: var(--color-accent-500);
+  --accent-hover: var(--color-accent-600);
+  --accent-text: var(--color-accent-400);
+  --accent-subtle-bg: var(--color-accent-900);
+
+  --status-success: var(--color-success-500);
+  --status-success-bg: var(--color-success-900);
+  --status-warning: var(--color-warning-500);
+  --status-warning-bg: var(--color-warning-900);
+  --status-error: var(--color-error-500);
+  --status-error-bg: var(--color-error-900);
+  --status-info: var(--color-info-500);
+  --status-info-bg: var(--color-info-900);
+
+  --focus-ring: var(--color-accent-500);
+  --focus-ring-offset: var(--bg-app);
+
+  --radius-button: var(--radius-md);
+  --radius-input: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-dialog: var(--radius-xl);
+  --radius-avatar: var(--radius-full);
+  --radius-badge: var(--radius-full);
+
+  --font-body: var(--font-sans);
+  --font-code: var(--font-mono);
+  --text-body: var(--font-size-sm);
+  --text-heading: var(--font-size-lg);
+  --text-small: var(--font-size-xs);
+  --text-tiny: var(--font-size-2xs);
+}
