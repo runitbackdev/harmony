@@ -1,0 +1,28 @@
+{
+  "name": "@harmony/composer",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/stats.js": "^0.17.4",
+    "stats.js": "^0.17.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@lexical/extension": "^0.40.0",
+    "@lexical/history": "^0.40.0",
+    "@lexical/link": "^0.40.0",
+    "@lexical/list": "^0.40.0",
+    "@lexical/markdown": "^0.40.0",
+    "@lexical/react": "^0.40.0",
+    "@lexical/rich-text": "^0.40.0",
+    "@lexical/tailwind": "^0.40.0",
+    "lexical": "^0.40.0"
+  }
+}
