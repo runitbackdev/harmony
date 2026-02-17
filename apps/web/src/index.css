@@ -1,6 +1,8 @@
 @import "tailwindcss";
-@import "@harmony/ui/styles";
+
+@import "@skeletonlabs/skeleton";
+@import "@skeletonlabs/skeleton-react";
+@import "@skeletonlabs/skeleton/themes/cerberus";
 
 @source inline("font-bold italic line-through underline font-mono");
-
-/* These design tokens are meant to be consumed by users creating custom themes. So, we want to keep them nice and organized. */
+@source "../../../packages/ui/lib/components";

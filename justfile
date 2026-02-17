@@ -14,7 +14,7 @@ build: build-wasm build-web
 
 build-wasm-dev:
   wasm-pack build {{wasm-crate}} --target web --dev --scope harmony --out-dir {{wasm-out}}
-
+  
 check:
   cargo check --workspace
   cargo clippy --workspace
