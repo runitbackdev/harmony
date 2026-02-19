@@ -2,6 +2,9 @@ import type { AuthLoginErrorCode } from "@harmony/protocol";
 import type { HandlerFor, HandlerMap } from "../types";
 import { login, logout, restoreSession } from "@harmony/wasm";
 
+const HOMESERVER =
+  import.meta.env.VITE_HOMESERVER_URL ?? "https://chat.lycanthropy.dev";
+
 type WasmError = { code: string; message: string };
 
 const MESSAGE_MAP: Record<
@@ -41,7 +44,7 @@ function toAuthError(error: unknown): {
 const handleLogin: HandlerFor<"h.auth.login"> = async (message, send) => {
   try {
     const session = await login({
-      homeserver: "https://chat.lycanthropy.dev",
+      homeserver: HOMESERVER,
       ...message,
     });
 
@@ -61,7 +64,7 @@ const handleRestore: HandlerFor<"h.auth.restore"> = async (message, send) => {
 
   try {
     await restoreSession({
-      homeserver: "https://chat.lycanthropy.dev",
+      homeserver: HOMESERVER,
       ...session,
     });
 
