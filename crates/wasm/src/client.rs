@@ -22,6 +22,10 @@ pub fn set(client: Client) -> Result<(), HarmonyError> {
     })
 }
 
+pub fn clear() {
+    CLIENT.set(None);
+}
+
 #[allow(unused)]
 pub fn get() -> Option<Client> {
     CLIENT.with(|inner| inner.borrow().clone())

@@ -1,0 +1,15 @@
+{
+  "name": "@harmony/core",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@harmony/protocol": "workspace:*",
+    "@harmony/wasm": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  },
+  "exports": {
+    ".": "./lib/index.ts"
+  }
+}

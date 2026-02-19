@@ -1,20 +1,24 @@
 wasm-crate := "crates/wasm"
 wasm-out := "../../packages/wasm"
 
-setup:
+setup: check-deps
   rustup target add wasm32-unknown-unknown
-  cargo install wasm-pack typos-cli committed
+  command -v wasm-pack >/dev/null || cargo install wasm-pack
+  command -v typos >/dev/null || cargo install typos-cli
+  command -v committed >/dev/null || cargo install committed
+  just build-wasm-dev
   pnpm install
   pnpm lefthook install
 
 dev:
+  @test -d packages/wasm || just build-wasm-dev
   pnpm --filter web dev
 
 build: build-wasm build-web
 
 build-wasm-dev:
   wasm-pack build {{wasm-crate}} --target web --dev --scope harmony --out-dir {{wasm-out}}
-  
+
 check:
   cargo check --workspace
   cargo clippy --workspace
@@ -29,6 +33,12 @@ clean:
   cargo clean
   rm -rf packages/wasm
   pnpm --filter web exec rm -rf dist
+
+[private]
+check-deps:
+  @command -v rustup >/dev/null || (echo "error: rustup not found — install from https://rustup.rs" && exit 1)
+  @command -v cargo >/dev/null || (echo "error: cargo not found — install rust via rustup" && exit 1)
+  @command -v pnpm >/dev/null || (echo "error: pnpm not found — install from https://pnpm.io" && exit 1)
 
 [private]
 build-wasm:

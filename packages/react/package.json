@@ -1,0 +1,21 @@
+{
+  "name": "@harmony/react",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@harmony/core": "workspace:*",
+    "@harmony/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "exports": {
+    ".": "./lib/index.ts"
+  }
+}

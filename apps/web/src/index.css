@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
 
 @import "@skeletonlabs/skeleton";
 @import "@skeletonlabs/skeleton-react";
@@ -6,3 +7,11 @@
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";
+
+.select,
+.input,
+.textarea,
+.input-group {
+  background-color: var(--color-surface-50-950);
+  color: var(--color-surface-950-50);
+}
