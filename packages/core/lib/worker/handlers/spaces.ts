@@ -27,8 +27,6 @@ const handleSubscribe: HandlerFor<"h.spaces.subscribe"> = async (
 
   const [spaces, stream] = await subscribeSpaces();
 
-  console.log(spaces, stream);
-
   spacesReader = stream.getReader();
   send.respond({ type: "h.spaces.subscribed", spaces: spaces });
 
