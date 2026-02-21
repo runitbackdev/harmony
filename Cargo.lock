@@ -3932,6 +3932,7 @@ name = "wasm"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "futures-util",
  "getrandom 0.3.4",
  "js-sys",
  "matrix-sdk",
@@ -3946,6 +3947,8 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
+ "web-sys",
 ]
 
 [[package]]

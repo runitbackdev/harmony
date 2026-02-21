@@ -17,7 +17,7 @@ pre-commit:
 
     - name: lint
       glob: "*.{ts,tsx}"
-      run: pnpm --filter web lint
+      run: pnpm lint
 
     - name: typos
       run: typos {staged_files}

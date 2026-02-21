@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import StatsImpl from "stats.js";
 
-export function Stats() {
-  if (!import.meta.env.DEV) return null;
-
+function StatsInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -11,7 +9,6 @@ export function Stats() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.shiftKey && event.key === "~") setVisible((val) => !val);
     }
-
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
@@ -53,4 +50,9 @@ export function Stats() {
       }}
     />
   );
+}
+
+export function Stats() {
+  if (!import.meta.env.DEV) return null;
+  return <StatsInner />;
 }

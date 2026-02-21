@@ -1,18 +1,22 @@
 import type { WorkerInbound } from "@harmony/protocol";
+import type { PortRegistry } from "./ports";
 import type { HandlerMap, Send } from "./types";
 
-export function createDispatcher(handlers: HandlerMap) {
+type Handler = (message: WorkerInbound, send: Send) => Promise<void>;
+
+export function createDispatcher(handlers: HandlerMap, ports: PortRegistry) {
   return async (port: MessagePort, message: WorkerInbound) => {
     const isRequest = "id" in message;
 
     const send: Send = {
+      port,
       respond(payload) {
         if (isRequest) {
           port.postMessage({ ...payload, id: message.id });
         }
       },
-      stream(payload) {
-        port.postMessage(payload);
+      broadcast(payload) {
+        ports.broadcast(payload);
       },
     };
 
@@ -31,7 +35,7 @@ export function createDispatcher(handlers: HandlerMap) {
     }
 
     try {
-      await (handler as Function)(message, send);
+      await (handler as Handler)(message, send);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

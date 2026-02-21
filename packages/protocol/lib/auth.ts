@@ -1,4 +1,4 @@
-import type { Command, Request, Response, Stream } from "./base";
+import type { Command, Request, Response } from "./base";
 
 export type Session = {
   userId: string;
@@ -31,8 +31,6 @@ export type AuthError = Response<
     message: string;
   }
 >;
-
-export type AuthTokenExpired = Stream<"h.auth.token_expired">;
 
 export type AuthRequest = AuthLogin | AuthRestore;
 export type AuthResponse = AuthLoggedIn | AuthError;

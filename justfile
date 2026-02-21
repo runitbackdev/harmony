@@ -22,7 +22,7 @@ build-wasm-dev:
 check:
   cargo check --workspace
   cargo clippy --workspace
-  pnpm --filter web lint
+  pnpm lint
   typos
 
 fmt:

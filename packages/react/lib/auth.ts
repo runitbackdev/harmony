@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 export function useLogin() {
   const [status, setStatus] = useState<"idle" | "pending" | "error">("idle");
-  const [error, setError] = useState<{ code: String; message: String } | null>(
+  const [error, setError] = useState<{ code: string; message: string } | null>(
     null,
   );
 

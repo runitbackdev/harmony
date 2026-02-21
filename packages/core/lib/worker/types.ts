@@ -6,11 +6,12 @@ import type {
   WorkerOutbound,
 } from "@harmony/protocol";
 
-type WithoutId<T> = T extends any ? Omit<T, "id"> : never;
+type WithoutId<T> = T extends object ? Omit<T, "id"> : never;
 
 export type Send = {
+  port: MessagePort;
   respond: (payload: WithoutId<WorkerOutbound>) => void;
-  stream: (payload: StreamMessage) => void;
+  broadcast: (payload: StreamMessage) => void;
 };
 
 export type HandlerFor<T extends WorkerInbound["type"]> = (

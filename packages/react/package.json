@@ -4,16 +4,15 @@
   "type": "module",
   "dependencies": {
     "@harmony/core": "workspace:*",
-    "@harmony/protocol": "workspace:*"
+    "@harmony/protocol": "workspace:*",
+    "valtio": "^2.3.0"
   },
   "devDependencies": {
-    "vite": "^7.3.1",
     "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3"
+    "vite": "^7.3.1"
   },
   "peerDependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.0"
   },
   "exports": {
     ".": "./lib/index.ts"

@@ -4,7 +4,7 @@ use matrix_sdk::{
     ruma::{OwnedDeviceId, OwnedUserId},
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, instrument};
+use tracing::{info, instrument};
 use tsify_next::Tsify;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -31,13 +31,12 @@ pub struct SessionData {
 
 #[instrument(skip_all, fields(homeserver = %request.homeserver, username = %request.username))]
 pub async fn login_impl(request: &LoginRequest) -> Result<SessionData, HarmonyError> {
-    debug!("building client");
     let auth_client = Client::builder()
         .homeserver_url(&request.homeserver)
+        .indexeddb_store("harmony", None)
         .build()
         .await?;
 
-    debug!("sending login request");
     auth_client
         .matrix_auth()
         .login_username(&request.username, &request.password)
@@ -88,6 +87,7 @@ pub async fn restore_impl(request: &RestoreRequest) -> Result<SessionData, Harmo
 
     let auth_client = Client::builder()
         .homeserver_url(&request.homeserver)
+        .indexeddb_store("harmony", None)
         .build()
         .await?;
 

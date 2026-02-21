@@ -4,5 +4,5 @@
     "lib": ["ES2022", "DOM", "WebWorker"]
   },
   "types": ["vite/client"],
-  "include": ["lib"]
+  "include": ["lib", "core.d.ts"]
 }

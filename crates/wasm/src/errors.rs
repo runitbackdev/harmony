@@ -22,6 +22,9 @@ pub enum HarmonyError {
 
     #[error("{0}")]
     MatrixError(#[from] matrix_sdk::Error),
+
+    #[error("{0}")]
+    Sync(String),
 }
 
 impl HarmonyError {
@@ -29,10 +32,10 @@ impl HarmonyError {
         match self {
             Self::AuthFailed => "invalid_credentials",
             Self::InvalidUserId => "invalid_user_id",
-            Self::ClientAlreadyInitialized => "unknown",
             Self::ClientBuildError(_) => "server_not_found",
             Self::HttpError(e) => classify_api_error(e.client_api_error_kind()),
             Self::MatrixError(e) => classify_api_error(e.client_api_error_kind()),
+            Self::Sync(_) | Self::ClientAlreadyInitialized => "unknown",
         }
     }
 }

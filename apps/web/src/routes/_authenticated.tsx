@@ -1,6 +1,17 @@
 import { clearSession, getSession, setSession } from "@/auth/session";
-import { restoreSession, useLogout } from "@harmony/react";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  restoreSession,
+  useLogout,
+  useSync,
+  useSyncStatus,
+} from "@harmony/react";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated")({
   component: RouteComponent,
@@ -20,12 +31,22 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function RouteComponent() {
+  useSync();
+  const status = useSyncStatus();
   const logout = useLogout();
   const navigate = useNavigate();
 
   return (
-    <div>
-      Hello "/_authenticated"!
+    <div className="flex flex-col gap-4">
+      <div>Sync: {status ?? "idle"}</div>
+
+      <nav className="flex gap-2">
+        <Link to="/">Home</Link>
+        <Link to="/settings">Settings</Link>
+      </nav>
+
+      <Outlet />
+
       <button
         type="button"
         onClick={() => {
