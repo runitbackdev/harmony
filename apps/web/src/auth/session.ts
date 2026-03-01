@@ -20,6 +20,16 @@ export function setSession(session: Session) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
-export function clearSession() {
+export async function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
+
+  const [registrations, cacheKeys] = await Promise.all([
+    navigator.serviceWorker.getRegistrations(),
+    caches.keys(),
+  ]);
+
+  await Promise.all([
+    ...registrations.map((r) => r.unregister()),
+    ...cacheKeys.map((k) => caches.delete(k)),
+  ]);
 }

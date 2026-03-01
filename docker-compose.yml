@@ -1,0 +1,17 @@
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: harmony-synapse
+    environment:
+      SYNAPSE_CONFIG_PATH: /config/homeserver.yaml
+      UID: "0"
+      GID: "0"
+    volumes:
+      - ./synapse/homeserver.yaml:/config/homeserver.yaml:ro
+      - ./synapse/log.config:/config/log.config:ro
+      - synapse-data:/data
+    ports:
+      - "8008:8008"
+
+volumes:
+  synapse-data:

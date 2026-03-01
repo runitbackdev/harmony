@@ -7,7 +7,7 @@
     "@harmony/wasm": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^7.3.1"
+    "vite": "catalog:"
   },
   "exports": {
     ".": "./lib/index.ts"

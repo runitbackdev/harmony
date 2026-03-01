@@ -1,3 +1,4 @@
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { useEffect, useRef, useState } from "react";
 import StatsImpl from "stats.js";
 
@@ -5,13 +6,9 @@ function StatsInner() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.shiftKey && event.key === "~") setVisible((val) => !val);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useHotkey({ key: "~", shift: true }, () => {
+    setVisible((val) => !val);
+  });
 
   useEffect(() => {
     const container = containerRef.current;

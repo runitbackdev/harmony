@@ -6,13 +6,11 @@
     ".": "./lib/index.ts"
   },
   "devDependencies": {
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@types/stats.js": "^0.17.4",
-    "stats.js": "^0.17.0"
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "catalog:"
   },
   "dependencies": {
     "@lexical/extension": "^0.40.0",

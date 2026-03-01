@@ -34,6 +34,7 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#local-synapse">Local Synapse</a></li>
     <li><a href="#project-structure">Project Structure</a></li>
     <li><a href="#contributing">Contributing</a></li>
 <li><a href="#license">License</a></li>
@@ -65,6 +66,7 @@ Matrix has a UX problem — most clients feel like they were built for protocol 
 - [Rust](https://rustup.rs) (via rustup)
 - [pnpm](https://pnpm.io)
 - [just](https://github.com/casey/just) (command runner)
+- [Docker](https://docs.docker.com/get-docker/) (optional, for local Synapse)
 
 ### Setup
 
@@ -92,6 +94,46 @@ just dev
 | `just check` | Run cargo check, clippy, eslint, typos |
 | `just fmt`   | Format Rust and TypeScript files       |
 | `just clean` | Remove build artifacts                 |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Local Synapse
+
+A local [Synapse](https://github.com/element-hq/synapse) homeserver is included for development and testing. Requires [Docker](https://docs.docker.com/get-docker/).
+
+Start Synapse:
+
+```sh
+just synapse
+```
+
+Seed test data (users, rooms, messages):
+
+```sh
+just synapse-seed
+```
+
+Run the app against the local homeserver:
+
+```sh
+just dev-local
+```
+
+| Command              | Description                           |
+| -------------------- | ------------------------------------- |
+| `just synapse`       | Start local Synapse (port 8008)       |
+| `just synapse-seed`  | Create test users, rooms, and messages|
+| `just synapse-stop`  | Stop Synapse                          |
+| `just synapse-reset` | Stop Synapse and delete all data      |
+| `just dev-local`     | Dev server pointed at local Synapse   |
+
+### Test Accounts
+
+| User    | Password      | Role  |
+| ------- | ------------- | ----- |
+| alice   | password123   | Admin |
+| bob     | password123   | User  |
+| charlie | password123   | User  |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

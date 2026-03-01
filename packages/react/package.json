@@ -8,11 +8,11 @@
     "valtio": "^2.3.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.7",
-    "vite": "^7.3.1"
+    "@types/react": "catalog:",
+    "vite": "catalog:"
   },
   "peerDependencies": {
-    "react": "^19.2.0"
+    "react": "catalog:"
   },
   "exports": {
     ".": "./lib/index.ts"

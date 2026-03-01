@@ -79,19 +79,26 @@ const handleRestore: HandlerFor<"h.auth.restore"> = async (message, send) => {
   }
 };
 
-const STORE_NAMES = ["harmony::matrix-sdk-crypto"];
+async function deleteDatabase(name: string) {
+  const request = indexedDB.deleteDatabase(name);
 
-function deleteDatabase(name: string) {
-  indexedDB.deleteDatabase(name);
+  return new Promise<void>((resolve, reject) => {
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
 }
 
 const handleLogout: HandlerFor<"h.auth.logout"> = async () => {
   await logout();
 
-  // NOTE: inherently these databases are meant to be single account. So,
-  // for now, before we have multiple accounts,
-  // we just need to nuke them on logout.
-  STORE_NAMES.map(deleteDatabase);
+  const databases = await indexedDB.databases();
+
+  const promises = databases
+    .map((db) => db.name)
+    .filter((name): name is string => name !== undefined)
+    .map(deleteDatabase);
+
+  await Promise.all(promises);
 };
 
 export const authHandlers: HandlerMap = {

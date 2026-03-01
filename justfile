@@ -12,7 +12,7 @@ setup: check-deps
 
 dev:
   @test -d packages/wasm || just build-wasm-dev
-  pnpm --filter web dev
+  VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
 
 build: build-wasm build-web
 
@@ -33,6 +33,17 @@ clean:
   cargo clean
   rm -rf packages/wasm
   pnpm --filter web exec rm -rf dist
+
+synapse:
+  docker compose up -d synapse
+
+synapse-stop:
+  docker compose down
+
+setup-users:
+  docker exec harmony-synapse register_new_matrix_user -u admin -p admin -c /config/homeserver.yaml --admin
+  docker exec harmony-synapse register_new_matrix_user -u alice -p alice -c /config/homeserver.yaml --no-admin
+  docker exec harmony-synapse register_new_matrix_user -u bob -p bob -c /config/homeserver.yaml --no-admin
 
 [private]
 check-deps:

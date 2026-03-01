@@ -10,7 +10,6 @@ import {
   Link,
   Outlet,
   redirect,
-  useNavigate,
 } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -34,7 +33,6 @@ function RouteComponent() {
   useSync();
   const status = useSyncStatus();
   const logout = useLogout();
-  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,10 +47,11 @@ function RouteComponent() {
 
       <button
         type="button"
-        onClick={() => {
-          logout()
-            .then(clearSession)
-            .finally(() => navigate({ to: "/login" }));
+        onClick={async () => {
+          await logout();
+          await clearSession();
+
+          window.location.href = "/login";
         }}
       >
         Logout

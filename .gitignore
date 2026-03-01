@@ -3,3 +3,5 @@
 **/dist
 packages/wasm
 node_modules
+
+.vscode

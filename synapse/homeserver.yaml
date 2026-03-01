@@ -1,0 +1,41 @@
+server_name: "localhost"
+public_baseurl: "http://localhost:8008"
+pid_file: /data/homeserver.pid
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: false
+    resources:
+      - names: [client, federation]
+        compress: false
+
+database:
+  name: sqlite3
+  args:
+    database: /data/homeserver.db
+
+log_config: "/config/log.config"
+media_store_path: /data/media_store
+uploads_path: /data/uploads
+signing_key_path: "/data/localhost.signing.key"
+
+registration_shared_secret: "harmony-dev-secret"
+enable_registration: true
+enable_registration_without_verification: true
+
+macaroon_secret_key: "harmony-dev-macaroon-secret"
+form_secret: "harmony-dev-form-secret"
+
+rc_login:
+  address:
+    per_second: 100
+    burst_count: 100
+  account:
+    per_second: 100
+    burst_count: 100
+
+report_stats: false
+suppress_key_server_warning: true
+serve_server_wellknown: true
