@@ -1,6 +1,7 @@
 use futures_util::StreamExt;
 use matrix_sdk::ruma::{
     api::client::room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
+    events::space::child::SpaceChildEventContent,
     room::RoomType,
     serde::Raw,
 };
@@ -67,6 +68,30 @@ pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
     Ok(spaces)
 }
 
+async fn create_channel(
+    space: &matrix_sdk::Room,
+    name: &str,
+) -> Result<matrix_sdk::Room, HarmonyError> {
+    let server_name = space
+        .client()
+        .user_id()
+        .ok_or(HarmonyError::ClientNotReady)?
+        .server_name()
+        .to_owned();
+
+    let mut request = CreateRoomRequest::new();
+    request.name = Some(name.to_owned());
+    let channel = space.client().create_room(request).await?;
+
+    let mut child_content = SpaceChildEventContent::new(vec![server_name]);
+    child_content.suggested = true;
+    space
+        .send_state_event_for_key(channel.room_id(), child_content)
+        .await?;
+
+    Ok(channel)
+}
+
 pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
 
@@ -78,10 +103,11 @@ pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
     request.creation_content =
         Some(Raw::new(&creation_content).map_err(|_| HarmonyError::SerializationFailed)?);
 
-    let room = client.create_room(request).await?;
+    let space = client.create_room(request).await?;
+    create_channel(&space, "general").await?;
 
     Ok(SpaceData {
-        room_id: room.room_id().to_string(),
+        room_id: space.room_id().to_string(),
         display_name: name.to_owned(),
     })
 }
