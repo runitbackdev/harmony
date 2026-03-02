@@ -1,16 +1,7 @@
 import { clearSession, getSession, setSession } from "@/auth/session";
-import {
-  restoreSession,
-  useLogout,
-  useSync,
-  useSyncStatus,
-} from "@harmony/react";
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  redirect,
-} from "@tanstack/react-router";
+import { initialize, restoreSession } from "@harmony/react";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Suspense } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: RouteComponent,
@@ -26,36 +17,14 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     setSession(result.session);
+    initialize();
   },
 });
 
 function RouteComponent() {
-  useSync();
-  const status = useSyncStatus();
-  const logout = useLogout();
-
   return (
-    <div className="flex flex-col gap-4">
-      <div>Sync: {status ?? "idle"}</div>
-
-      <nav className="flex gap-2">
-        <Link to="/">Home</Link>
-        <Link to="/settings">Settings</Link>
-      </nav>
-
+    <Suspense fallback={<div>Loading...</div>}>
       <Outlet />
-
-      <button
-        type="button"
-        onClick={async () => {
-          await logout();
-          await clearSession();
-
-          window.location.href = "/login";
-        }}
-      >
-        Logout
-      </button>
-    </div>
+    </Suspense>
   );
 }

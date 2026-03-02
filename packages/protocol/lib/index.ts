@@ -8,6 +8,7 @@ import type {
 import type { ErrorResponse } from "./error";
 import type {
   SpacesCommand,
+  SpacesCreated,
   SpacesRequest,
   SpacesResponse,
   SpacesSubscribed,
@@ -34,6 +35,7 @@ export type ResponseMap = {
   "h.auth.restore": AuthLoggedIn | AuthError;
   "h.sync.start": SyncStarted;
   "h.spaces.subscribe": SpacesSubscribed;
+  "h.spaces.create": SpacesCreated;
 };
 
 export type CommandMessage = AuthCommand | SyncCommand | SpacesCommand;

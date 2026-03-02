@@ -1,6 +1,6 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { getSpaces, subscribeSpaces } from "@harmony/wasm";
+import { getSpaces, subscribeSpaces, createSpace } from "@harmony/wasm";
 import type { ListDiff, SpaceSummary } from "@harmony/protocol";
 
 const spacePorts = new Set<MessagePort>();
@@ -46,6 +46,14 @@ const handleUnsubscribe: HandlerFor<"h.spaces.unsubscribe"> = async (
   }
 };
 
+const handleCreate: HandlerFor<"h.spaces.create"> = async (message, send) => {
+  const { name } = message;
+
+  const space = await createSpace(name);
+
+  send.respond({ type: "h.spaces.created", space });
+};
+
 export function removeSpacesSubscriber(port: MessagePort) {
   spacePorts.delete(port);
 
@@ -57,6 +65,7 @@ export function removeSpacesSubscriber(port: MessagePort) {
 export const spacesHandlers: HandlerMap = {
   "h.spaces.subscribe": handleSubscribe,
   "h.spaces.unsubscribe": handleUnsubscribe,
+  "h.spaces.create": handleCreate,
 };
 
 declare module "@harmony/wasm" {

@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 use crate::{
     auth::{LoginRequest, RestoreRequest, SessionData, login_impl, logout_impl, restore_impl},
     errors::HarmonyError,
-    spaces::{SpaceData, get_spaces_impl, subscribe_spaces_impl},
+    spaces::{SpaceData, create_space_impl, get_spaces_impl, subscribe_spaces_impl},
     sync::{start_sync_impl, stop_sync_impl},
 };
 
@@ -71,4 +71,9 @@ pub async fn subscribe_spaces() -> Result<JsValue, JsValue> {
 #[wasm_bindgen(js_name = getSpaces)]
 pub async fn get_spaces() -> Result<Vec<SpaceData>, HarmonyError> {
     get_spaces_impl().await
+}
+
+#[wasm_bindgen(js_name = createSpace)]
+pub async fn create_space(name: &str) -> Result<SpaceData, HarmonyError> {
+    create_space_impl(name).await
 }

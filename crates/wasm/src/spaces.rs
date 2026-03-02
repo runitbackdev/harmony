@@ -1,4 +1,9 @@
 use futures_util::StreamExt;
+use matrix_sdk::ruma::{
+    api::client::room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
+    room::RoomType,
+    serde::Raw,
+};
 use matrix_sdk_ui::spaces::SpaceService;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
@@ -60,4 +65,23 @@ pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
         .collect();
 
     Ok(spaces)
+}
+
+pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+
+    let mut creation_content = CreationContent::new();
+    creation_content.room_type = Some(RoomType::Space);
+
+    let mut request = CreateRoomRequest::new();
+    request.name = Some(name.to_owned());
+    request.creation_content =
+        Some(Raw::new(&creation_content).map_err(|_| HarmonyError::SerializationFailed)?);
+
+    let room = client.create_room(request).await?;
+
+    Ok(SpaceData {
+        room_id: room.room_id().to_string(),
+        display_name: name.to_owned(),
+    })
 }

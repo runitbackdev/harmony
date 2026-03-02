@@ -2,7 +2,7 @@ import { getSession, setSession } from "@/auth/session";
 import { useLogin } from "@harmony/react";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
+import * as v from "valibot";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/login")({
   },
 });
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const loginSchema = v.object({
+  username: v.pipe(v.string(), v.minLength(1, "Username is required")),
+  password: v.pipe(v.string(), v.minLength(1, "Password is required")),
 });
 
 function Login() {

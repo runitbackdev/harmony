@@ -18,7 +18,13 @@ export type SpacesUpdate = Stream<
   { spaces: ListDiff<SpaceSummary>[] }
 >;
 
-export type SpacesRequest = SpacesSubscribe;
-export type SpacesResponse = SpacesSubscribed;
+export type SpacesCreate = Request<"h.spaces.create", { name: string }>;
+export type SpacesCreated = Response<
+  "h.spaces.created",
+  { space: SpaceSummary }
+>;
+
+export type SpacesRequest = SpacesSubscribe | SpacesCreate;
+export type SpacesResponse = SpacesSubscribed | SpacesCreated;
 export type SpacesCommand = SpacesUnsubscribe;
 export type SpacesStream = SpacesUpdate;

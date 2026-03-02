@@ -1,13 +1,13 @@
 import { harmony } from "@harmony/core";
 import { type SyncStatusKind } from "@harmony/protocol";
 import { useEffect, useState } from "react";
+import { proxy } from "valtio";
 
-export function useSync() {
-  useEffect(() => {
-    harmony.sync.start();
+export const syncState = proxy({ ready: null as Promise<void> | null });
 
-    return () => harmony.sync.stop();
-  }, []);
+export function startSync() {
+  if (syncState.ready) return;
+  syncState.ready = harmony.sync.start();
 }
 
 export function useSyncStatus() {

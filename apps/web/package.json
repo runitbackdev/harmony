@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@harmony/profiler": "workspace:*",
-    "@harmony/react": "workspace:*",
     "@harmony/protocol": "workspace:*",
+    "@harmony/react": "workspace:*",
     "@harmony/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-form": "^1.28.3",
@@ -21,7 +21,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "^4.1.18",
-    "zod": "^4.3.6"
+    "valibot": "^1.2.0"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^4.12.0",

@@ -1,27 +1,27 @@
 import { harmony } from "@harmony/core";
 import { applyListDiff, type SpaceSummary } from "@harmony/protocol";
-import { useEffect } from "react";
-import { proxy, useSnapshot } from "valtio";
+import { createSubscription } from "./subscription";
 
-const spacesState = proxy({ spaces: [] as SpaceSummary[] });
-
-export function useSpaces() {
-  const snap = useSnapshot(spacesState);
-
-  useEffect(() => {
-    const unsubscribe = harmony.on("h.spaces.update", ({ spaces }) => {
-      for (const diff of spaces) applyListDiff(spacesState.spaces, diff);
+export const spaces = createSubscription<SpaceSummary>((items) =>
+  harmony.spaces.subscribe().then(({ spaces: initial }) => {
+    const unsub = harmony.on("h.spaces.update", ({ spaces: diffs }) => {
+      for (const diff of diffs) applyListDiff(items, diff);
     });
 
-    harmony.spaces.subscribe().then(({ spaces }) => {
-      spacesState.spaces = spaces;
-    });
-
-    return () => {
-      unsubscribe();
-      harmony.spaces.unsubscribe();
+    return {
+      initial,
+      cleanup: () => {
+        unsub();
+        harmony.spaces.unsubscribe();
+      },
     };
-  }, []);
+  }),
+);
 
-  return snap.spaces;
+export const useSpaces = spaces.useValue;
+
+export async function createSpace(name: string) {
+  const { space } = await harmony.spaces.create(name);
+
+  return space;
 }

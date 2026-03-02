@@ -14,6 +14,12 @@ pub enum HarmonyError {
     #[error("Client already initialized")]
     ClientAlreadyInitialized,
 
+    #[error("Client not ready")]
+    ClientNotReady,
+
+    #[error("serialization failed")]
+    SerializationFailed,
+
     #[error("{0}")]
     ClientBuildError(#[from] ClientBuildError),
 
@@ -35,6 +41,8 @@ impl HarmonyError {
             Self::ClientBuildError(_) => "server_not_found",
             Self::HttpError(e) => classify_api_error(e.client_api_error_kind()),
             Self::MatrixError(e) => classify_api_error(e.client_api_error_kind()),
+            Self::ClientNotReady => "client_not_ready",
+            Self::SerializationFailed => "serialization_failed",
             Self::Sync(_) | Self::ClientAlreadyInitialized => "unknown",
         }
     }

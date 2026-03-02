@@ -1,9 +1,11 @@
-import type { SpacesSubscribed } from "@harmony/protocol";
+import type { SpacesCreated, SpacesSubscribed } from "@harmony/protocol";
 import type { WorkerConnection } from "./connection";
 
 export type SpacesApi = {
   subscribe: () => Promise<SpacesSubscribed>;
   unsubscribe: () => void;
+
+  create: (name: string) => Promise<SpacesCreated>;
 };
 
 export function createSpacesApi(connection: WorkerConnection): SpacesApi {
@@ -14,6 +16,10 @@ export function createSpacesApi(connection: WorkerConnection): SpacesApi {
 
     unsubscribe() {
       connection.command("h.spaces.unsubscribe", {});
+    },
+
+    async create(name: string) {
+      return connection.request("h.spaces.create", { name });
     },
   };
 }
