@@ -1,7 +1,6 @@
 import { clearSession, getSession, setSession } from "@/auth/session";
 import { initialize, restoreSession } from "@harmony/react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { Suspense } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: RouteComponent,
@@ -17,14 +16,11 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     setSession(result.session);
-    initialize();
   },
+  loader: () => initialize(),
+  pendingComponent: () => <div>Loading...</div>,
 });
 
 function RouteComponent() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <Outlet />
-    </Suspense>
-  );
+  return <Outlet />;
 }

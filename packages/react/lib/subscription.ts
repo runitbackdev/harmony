@@ -1,4 +1,3 @@
-import { use } from "react";
 import { proxy, useSnapshot } from "valtio";
 
 type Subscriber<T> = (items: T[]) => Promise<{
@@ -15,12 +14,14 @@ export function createSubscription<T>(subscribe: Subscriber<T>) {
   let cleanup: (() => void) | null = null;
 
   function start() {
-    if (state.ready) return;
+    if (state.ready) return state.ready;
 
     state.ready = subscribe(state.items).then((result) => {
       state.items.splice(0, state.items.length, ...result.initial);
       cleanup = result.cleanup;
     });
+
+    return state.ready;
   }
 
   function stop() {
@@ -32,7 +33,6 @@ export function createSubscription<T>(subscribe: Subscriber<T>) {
 
   function useValue(): T[] {
     const snap = useSnapshot(state);
-    if (snap.ready) use(snap.ready);
     return snap.items as T[];
   }
 

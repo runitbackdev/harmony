@@ -1,7 +1,7 @@
 import { spaces } from "./spaces";
 import { startSync } from "./sync";
 
-export function initialize() {
+export async function initialize() {
   startSync();
-  spaces.start();
+  await spaces.start();
 }
