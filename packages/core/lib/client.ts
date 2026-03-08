@@ -1,6 +1,7 @@
 import type { StreamMap } from "@harmony/protocol";
 import { createAuthApi, type AuthApi } from "./auth";
 import { createRoomsApi, type RoomsApi } from "./rooms";
+import { createTimelineApi, type TimelineApi } from "./timeline";
 import { createSpacesApi, type SpacesApi } from "./spaces";
 import { createSyncApi, type SyncApi } from "./sync";
 import { WorkerConnection } from "./connection";
@@ -14,6 +15,7 @@ export class Harmony {
   rooms: RoomsApi;
   spaces: SpacesApi;
   sync: SyncApi;
+  timeline: TimelineApi;
 
   constructor() {
     const worker = new Worker({ name: "harmony-sync" });
@@ -23,6 +25,7 @@ export class Harmony {
     this.rooms = createRoomsApi(this.connection);
     this.spaces = createSpacesApi(this.connection);
     this.sync = createSyncApi(this.connection);
+    this.timeline = createTimelineApi(this.connection);
   }
 
   on<T extends keyof StreamMap>(

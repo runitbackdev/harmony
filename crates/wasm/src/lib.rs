@@ -8,6 +8,7 @@ use crate::{
     rooms::{RoomData, get_space_rooms_impl, subscribe_space_rooms_impl},
     spaces::{SpaceData, create_space_impl, get_spaces_impl, subscribe_spaces_impl},
     sync::{start_sync_impl, stop_sync_impl},
+    timeline::{TimelineEventData, get_timeline_impl, subscribe_timeline_impl},
 };
 
 mod auth;
@@ -18,6 +19,7 @@ mod rooms;
 mod spaces;
 mod subscription;
 mod sync;
+mod timeline;
 
 #[wasm_bindgen(start)]
 pub fn init() {
@@ -88,4 +90,14 @@ pub async fn subscribe_space_rooms(space_id: &str) -> Result<JsValue, JsValue> {
 #[wasm_bindgen(js_name = getSpaceRooms)]
 pub fn get_space_rooms(space_id: &str) -> Result<Vec<RoomData>, HarmonyError> {
     get_space_rooms_impl(space_id)
+}
+
+#[wasm_bindgen(js_name = subscribeTimeline)]
+pub async fn subscribe_timeline(room_id: &str) -> Result<JsValue, JsValue> {
+    subscribe_timeline_impl(room_id).await?.try_into()
+}
+
+#[wasm_bindgen(js_name = getTimeline)]
+pub async fn get_timeline(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
+    get_timeline_impl(room_id).await
 }

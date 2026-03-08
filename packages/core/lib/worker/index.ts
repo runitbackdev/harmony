@@ -4,6 +4,10 @@ import { PortRegistry } from "./ports";
 import { authHandlers } from "./handlers/auth";
 import { roomsHandlers, removeRoomsSubscriber } from "./handlers/rooms";
 import { spacesHandlers, removeSpacesSubscriber } from "./handlers/spaces";
+import {
+  timelineHandlers,
+  removeTimelineSubscriber,
+} from "./handlers/timeline";
 import { syncHandlers, removeSyncSubscriber } from "./handlers/sync";
 import init, { configureTracing, stopSync } from "@harmony/wasm";
 
@@ -17,6 +21,7 @@ const dispatch = createDispatcher(
     ...syncHandlers,
     ...spacesHandlers,
     ...roomsHandlers,
+    ...timelineHandlers,
   },
   ports,
 );
@@ -25,6 +30,7 @@ ports.onPortRemoved((port) => {
   removeSyncSubscriber(port);
   removeSpacesSubscriber(port);
   removeRoomsSubscriber(port);
+  removeTimelineSubscriber(port);
 });
 
 ports.onAllDisconnected(() => {

@@ -28,6 +28,13 @@ import type {
   SyncStarted,
   SyncStatus,
 } from "./sync";
+import type {
+  TimelineCommand,
+  TimelineRequest,
+  TimelineResponse,
+  TimelineSubscribed,
+  TimelineUpdate,
+} from "./timeline";
 
 export type * from "./base";
 export type * from "./error";
@@ -35,6 +42,7 @@ export type * from "./auth";
 export type * from "./sync";
 export type * from "./spaces";
 export type * from "./rooms";
+export type * from "./timeline";
 export type * from "./diff";
 export { applyListDiff } from "./diff";
 
@@ -45,18 +53,21 @@ export type ResponseMap = {
   "h.spaces.subscribe": SpacesSubscribed;
   "h.spaces.create": SpacesCreated;
   "h.rooms.subscribe": RoomsSubscribed;
+  "h.timeline.subscribe": TimelineSubscribed;
 };
 
 export type CommandMessage =
   | AuthCommand
   | SyncCommand
   | SpacesCommand
-  | RoomsCommand;
+  | RoomsCommand
+  | TimelineCommand;
 
 export type StreamMap = {
   "h.sync.status": SyncStatus;
   "h.spaces.update": SpacesUpdate;
   "h.rooms.update": RoomsUpdate;
+  "h.timeline.update": TimelineUpdate;
 };
 
 export type StreamMessage = StreamMap[keyof StreamMap];
@@ -70,10 +81,13 @@ export type WorkerInbound =
   | SpacesRequest
   | SpacesCommand
   | RoomsRequest
-  | RoomsCommand;
+  | RoomsCommand
+  | TimelineRequest
+  | TimelineCommand;
 export type WorkerOutbound =
   | ErrorResponse
   | AuthResponse
   | SyncResponse
   | SpacesResponse
-  | RoomsResponse;
+  | RoomsResponse
+  | TimelineResponse;

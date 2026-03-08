@@ -17,6 +17,9 @@ pub enum HarmonyError {
     #[error("Client not ready")]
     ClientNotReady,
 
+    #[error("Room not found")]
+    RoomNotFound,
+
     #[error("serialization failed")]
     SerializationFailed,
 
@@ -28,6 +31,9 @@ pub enum HarmonyError {
 
     #[error("{0}")]
     MatrixError(#[from] matrix_sdk::Error),
+
+    #[error("{0}")]
+    TimelineError(#[from] matrix_sdk_ui::timeline::Error),
 
     #[error("{0}")]
     Sync(String),
@@ -42,8 +48,9 @@ impl HarmonyError {
             Self::HttpError(e) => classify_api_error(e.client_api_error_kind()),
             Self::MatrixError(e) => classify_api_error(e.client_api_error_kind()),
             Self::ClientNotReady => "client_not_ready",
+            Self::RoomNotFound => "room_not_found",
             Self::SerializationFailed => "serialization_failed",
-            Self::Sync(_) | Self::ClientAlreadyInitialized => "unknown",
+            Self::TimelineError(_) | Self::Sync(_) | Self::ClientAlreadyInitialized => "unknown",
         }
     }
 }

@@ -1,4 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { Sidebar } from "@harmony/ui";
 import { subscribeRooms, useRooms } from "@harmony/react";
 import { Hash } from "lucide-react";
@@ -34,19 +39,34 @@ function PendingSkeleton() {
 
 function RouteComponent() {
   const rooms = useRooms();
+  const navigate = useNavigate();
+  const { spaceId, roomId } = useParams({ strict: false });
 
   return (
-    <Sidebar>
-      <Sidebar.Header data-sidebar="header">Channels</Sidebar.Header>
-      <div className="flex-1 overflow-y-auto">
-        <Sidebar.List>
-          {rooms.map((room) => (
-            <Sidebar.Item key={room.roomId} icon={<Hash size={16} />}>
-              {room.displayName}
-            </Sidebar.Item>
-          ))}
-        </Sidebar.List>
-      </div>
-    </Sidebar>
+    <>
+      <Sidebar>
+        <Sidebar.Header data-sidebar="header">Channels</Sidebar.Header>
+        <div className="flex-1 overflow-y-auto">
+          <Sidebar.List>
+            {rooms.map((room) => (
+              <Sidebar.Item
+                key={room.roomId}
+                icon={<Hash size={16} />}
+                active={roomId === room.roomId}
+                onClick={() =>
+                  navigate({
+                    to: "/$spaceId/$roomId",
+                    params: { spaceId: spaceId!, roomId: room.roomId },
+                  })
+                }
+              >
+                {room.displayName}
+              </Sidebar.Item>
+            ))}
+          </Sidebar.List>
+        </div>
+      </Sidebar>
+      <Outlet />
+    </>
   );
 }
