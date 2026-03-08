@@ -1,5 +1,6 @@
 import type { StreamMap } from "@harmony/protocol";
 import { createAuthApi, type AuthApi } from "./auth";
+import { createRoomsApi, type RoomsApi } from "./rooms";
 import { createSpacesApi, type SpacesApi } from "./spaces";
 import { createSyncApi, type SyncApi } from "./sync";
 import { WorkerConnection } from "./connection";
@@ -10,6 +11,7 @@ export class Harmony {
   private connection: WorkerConnection;
 
   auth: AuthApi;
+  rooms: RoomsApi;
   spaces: SpacesApi;
   sync: SyncApi;
 
@@ -18,6 +20,7 @@ export class Harmony {
 
     this.connection = new WorkerConnection(worker);
     this.auth = createAuthApi(this.connection);
+    this.rooms = createRoomsApi(this.connection);
     this.spaces = createSpacesApi(this.connection);
     this.sync = createSyncApi(this.connection);
   }

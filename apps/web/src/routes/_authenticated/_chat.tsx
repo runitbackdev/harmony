@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Rail } from "@harmony/ui";
 import { Home, Plus, X } from "lucide-react";
@@ -20,6 +25,8 @@ const createSpaceSchema = v.object({
 
 function RouteComponent() {
   const spaces = useSpaces();
+  const navigate = useNavigate();
+  const { spaceId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
 
   const form = useForm({
@@ -46,8 +53,15 @@ function RouteComponent() {
             {spaces.map((space) => (
               <Rail.Item
                 key={space.roomId}
+                active={spaceId === space.roomId}
                 data-rail="server"
                 data-server={space.roomId}
+                onClick={() =>
+                  navigate({
+                    to: "/$spaceId",
+                    params: { spaceId: space.roomId },
+                  })
+                }
               >
                 <span className="text-xs font-semibold">
                   {space.displayName[0]}

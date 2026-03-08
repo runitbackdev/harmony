@@ -16,6 +16,19 @@ thread_local! {
     static SPACE_SERVICE: RefCell<Option<Rc<SpaceService>>> = const { RefCell::new(None) };
 }
 
+pub async fn get_service() -> Result<Rc<SpaceService>, HarmonyError> {
+    let existing = SPACE_SERVICE.with(|inner| inner.borrow().clone());
+
+    if let Some(service) = existing {
+        return Ok(service);
+    }
+
+    let client = client::get().ok_or(HarmonyError::AuthFailed)?;
+    let service = Rc::new(SpaceService::new(client).await);
+    SPACE_SERVICE.with(|inner| *inner.borrow_mut() = Some(service.clone()));
+    Ok(service)
+}
+
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
@@ -32,16 +45,7 @@ fn convert_space(space: &matrix_sdk_ui::spaces::SpaceRoom) -> SpaceData {
 }
 
 pub async fn subscribe_spaces_impl() -> Result<Subscription<SpaceData>, HarmonyError> {
-    let service = SPACE_SERVICE.with(|inner| inner.borrow().clone());
-
-    let service = if let Some(srvc) = service {
-        srvc
-    } else {
-        let client = client::get().ok_or(HarmonyError::AuthFailed)?;
-        let srvc = Rc::new(SpaceService::new(client).await);
-        SPACE_SERVICE.with(|inner| *inner.borrow_mut() = Some(srvc.clone()));
-        srvc
-    };
+    let service = get_service().await?;
 
     let (initial_values, incoming) = service.subscribe_to_top_level_joined_spaces().await;
     let initial = initial_values.iter().map(convert_space).collect();
@@ -52,11 +56,7 @@ pub async fn subscribe_spaces_impl() -> Result<Subscription<SpaceData>, HarmonyE
 }
 
 pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
-    let service = SPACE_SERVICE.with(|inner| inner.borrow().clone());
-
-    let Some(service) = service else {
-        return Ok(vec![]);
-    };
+    let service = get_service().await?;
 
     let spaces = service
         .top_level_joined_spaces()

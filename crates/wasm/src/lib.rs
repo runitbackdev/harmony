@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 use crate::{
     auth::{LoginRequest, RestoreRequest, SessionData, login_impl, logout_impl, restore_impl},
     errors::HarmonyError,
+    rooms::{RoomData, get_space_rooms_impl, subscribe_space_rooms_impl},
     spaces::{SpaceData, create_space_impl, get_spaces_impl, subscribe_spaces_impl},
     sync::{start_sync_impl, stop_sync_impl},
 };
@@ -13,6 +14,7 @@ mod auth;
 mod client;
 mod diff;
 mod errors;
+mod rooms;
 mod spaces;
 mod subscription;
 mod sync;
@@ -76,4 +78,14 @@ pub async fn get_spaces() -> Result<Vec<SpaceData>, HarmonyError> {
 #[wasm_bindgen(js_name = createSpace)]
 pub async fn create_space(name: &str) -> Result<SpaceData, HarmonyError> {
     create_space_impl(name).await
+}
+
+#[wasm_bindgen(js_name = subscribeSpaceRooms)]
+pub async fn subscribe_space_rooms(space_id: &str) -> Result<JsValue, JsValue> {
+    subscribe_space_rooms_impl(space_id).await?.try_into()
+}
+
+#[wasm_bindgen(js_name = getSpaceRooms)]
+pub fn get_space_rooms(space_id: &str) -> Result<Vec<RoomData>, HarmonyError> {
+    get_space_rooms_impl(space_id)
 }
