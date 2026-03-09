@@ -5,8 +5,11 @@ use wasm_bindgen::prelude::*;
 use crate::{
     auth::{LoginRequest, RestoreRequest, SessionData, login_impl, logout_impl, restore_impl},
     errors::HarmonyError,
-    rooms::{RoomData, get_space_rooms_impl, subscribe_space_rooms_impl},
-    spaces::{SpaceData, create_space_impl, get_spaces_impl, subscribe_spaces_impl},
+    rooms::{RoomData, set_room_filter_impl, subscribe_room_list_impl},
+    spaces::{
+        SpaceData, create_room_impl, create_space_impl, get_spaces_impl,
+        subscribe_space_filters_impl, subscribe_spaces_impl,
+    },
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{TimelineEventData, get_timeline_impl, subscribe_timeline_impl},
 };
@@ -82,14 +85,24 @@ pub async fn create_space(name: &str) -> Result<SpaceData, HarmonyError> {
     create_space_impl(name).await
 }
 
-#[wasm_bindgen(js_name = subscribeSpaceRooms)]
-pub async fn subscribe_space_rooms(space_id: &str) -> Result<JsValue, JsValue> {
-    subscribe_space_rooms_impl(space_id).await?.try_into()
+#[wasm_bindgen(js_name = createRoom)]
+pub async fn create_room(space_id: &str, name: &str) -> Result<RoomData, HarmonyError> {
+    create_room_impl(space_id, name).await
 }
 
-#[wasm_bindgen(js_name = getSpaceRooms)]
-pub fn get_space_rooms(space_id: &str) -> Result<Vec<RoomData>, HarmonyError> {
-    get_space_rooms_impl(space_id)
+#[wasm_bindgen(js_name = subscribeRoomList)]
+pub async fn subscribe_room_list() -> Result<web_sys::ReadableStream, HarmonyError> {
+    subscribe_room_list_impl().await
+}
+
+#[wasm_bindgen(js_name = setRoomFilter)]
+pub fn set_room_filter(room_ids: Vec<String>) -> Result<(), HarmonyError> {
+    set_room_filter_impl(room_ids)
+}
+
+#[wasm_bindgen(js_name = subscribeSpaceFilters)]
+pub async fn subscribe_space_filters() -> Result<JsValue, JsValue> {
+    subscribe_space_filters_impl().await?.try_into()
 }
 
 #[wasm_bindgen(js_name = subscribeTimeline)]

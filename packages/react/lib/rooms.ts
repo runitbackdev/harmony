@@ -3,17 +3,13 @@ import { applyListDiff, type RoomSummary } from "@harmony/protocol";
 import { createKeyedSubscription } from "./subscription";
 
 const rooms = createKeyedSubscription<string, RoomSummary>((spaceId, items) =>
-  harmony.rooms.subscribe(spaceId).then(({ rooms: initial }) => {
-    const unsub = harmony.on(
-      "h.rooms.update",
-      ({ spaceId: sid, rooms: diffs }) => {
-        if (sid !== spaceId) return;
-        for (const diff of diffs) applyListDiff(items, diff);
-      },
-    );
+  harmony.rooms.subscribe(spaceId).then(() => {
+    const unsub = harmony.on("h.rooms.update", ({ rooms: diffs }) => {
+      for (const diff of diffs) applyListDiff(items, diff);
+    });
 
     return {
-      initial,
+      initial: [],
       cleanup: () => {
         unsub();
         harmony.rooms.unsubscribe(spaceId);
@@ -24,3 +20,8 @@ const rooms = createKeyedSubscription<string, RoomSummary>((spaceId, items) =>
 
 export const useRooms = rooms.useValue;
 export const subscribeRooms = rooms.start;
+
+export async function createRoom(spaceId: string, name: string) {
+  const { room } = await harmony.rooms.create(spaceId, name);
+  return room;
+}

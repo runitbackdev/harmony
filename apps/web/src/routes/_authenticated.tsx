@@ -16,8 +16,6 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     setSession(result.session);
-  },
-  loader: async () => {
     await initialize();
   },
   pendingComponent: () => (

@@ -37,8 +37,13 @@ export function createDispatcher(handlers: HandlerMap, ports: PortRegistry) {
     try {
       await (handler as Handler)(message, send);
     } catch (error) {
+      console.error(`Handler ${message.type} threw:`, error);
       const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+        error instanceof Error
+          ? error.message
+          : typeof error === "object"
+            ? JSON.stringify(error)
+            : String(error);
 
       if (isRequest) {
         send.respond({

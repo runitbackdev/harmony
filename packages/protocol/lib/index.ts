@@ -8,6 +8,7 @@ import type {
 import type { ErrorResponse } from "./error";
 import type {
   RoomsCommand,
+  RoomsCreated,
   RoomsRequest,
   RoomsResponse,
   RoomsSubscribed,
@@ -53,6 +54,7 @@ export type ResponseMap = {
   "h.spaces.subscribe": SpacesSubscribed;
   "h.spaces.create": SpacesCreated;
   "h.rooms.subscribe": RoomsSubscribed;
+  "h.rooms.create": RoomsCreated;
   "h.timeline.subscribe": TimelineSubscribed;
 };
 

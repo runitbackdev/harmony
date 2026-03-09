@@ -1,18 +1,67 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { getSpaceRooms, subscribeSpaceRooms } from "@harmony/wasm";
+import {
+  createRoom,
+  setRoomFilter,
+  subscribeRoomList,
+  subscribeSpaceFilters,
+} from "@harmony/wasm";
+import { applyListDiff } from "@harmony/protocol";
 import type { ListDiff, RoomSummary } from "@harmony/protocol";
 
-type SpaceSubscription = {
-  ports: Set<MessagePort>;
-  reader: ReadableStreamDefaultReader<ListDiff<RoomSummary>[]> | null;
+type SpaceFilterData = {
+  spaceId: string;
+  level: number;
+  descendants: string[];
 };
 
-const subscriptions = new Map<string, SpaceSubscription>();
+const subscribedPorts = new Set<MessagePort>();
+let roomListReader: ReadableStreamDefaultReader<
+  ListDiff<RoomSummary>[]
+> | null = null;
+let spaceFiltersReader: ReadableStreamDefaultReader<
+  ListDiff<SpaceFilterData>[]
+> | null = null;
+let currentSpaceId: string | null = null;
+const spaceFilters: SpaceFilterData[] = [];
 
-function cancelStream(sub: SpaceSubscription) {
-  sub.reader?.cancel().catch(() => {});
-  sub.reader = null;
+function descendantsForSpace(spaceId: string): string[] {
+  const filter = spaceFilters.find(
+    (sf) => sf.level === 0 && sf.spaceId === spaceId,
+  );
+  return filter?.descendants ?? [];
+}
+
+function broadcastRoomUpdate(rooms: ListDiff<RoomSummary>[]) {
+  for (const port of subscribedPorts) {
+    port.postMessage({ type: "h.rooms.update", rooms });
+  }
+}
+
+async function initializeIfNeeded() {
+  if (roomListReader) return;
+
+  const roomListStream = await subscribeRoomList();
+  roomListReader = roomListStream.getReader();
+
+  pipe(roomListReader, (roomDiffs) => {
+    broadcastRoomUpdate(roomDiffs);
+  });
+
+  const [initialFilters, filtersStream] = await subscribeSpaceFilters();
+  spaceFilters.push(...initialFilters);
+  spaceFiltersReader = filtersStream.getReader();
+
+  pipe(spaceFiltersReader, (filterDiffs) => {
+    for (const diff of filterDiffs) {
+      applyListDiff(spaceFilters, diff);
+    }
+
+    if (currentSpaceId) {
+      const descendants = descendantsForSpace(currentSpaceId);
+      setRoomFilter(descendants);
+    }
+  });
 }
 
 const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (
@@ -20,65 +69,45 @@ const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (
   send,
 ) => {
   const { spaceId } = message;
-  let sub = subscriptions.get(spaceId);
+  subscribedPorts.add(send.port);
 
-  if (sub) {
-    sub.ports.add(send.port);
-    const rooms = getSpaceRooms(spaceId);
-    send.respond({ type: "h.rooms.subscribed", rooms });
-    return;
-  }
+  await initializeIfNeeded();
 
-  sub = { ports: new Set([send.port]), reader: null };
-  subscriptions.set(spaceId, sub);
+  currentSpaceId = spaceId;
+  const descendants = descendantsForSpace(spaceId);
+  setRoomFilter(descendants);
 
-  const [rooms, stream] = await subscribeSpaceRooms(spaceId);
-  sub.reader = stream.getReader();
-
-  send.respond({ type: "h.rooms.subscribed", rooms });
-
-  pipe(sub.reader, (rooms) => {
-    for (const port of sub.ports) {
-      port.postMessage({ type: "h.rooms.update", spaceId, rooms });
-    }
-  });
+  send.respond({ type: "h.rooms.subscribed" });
 };
 
 const handleUnsubscribe: HandlerFor<"h.rooms.unsubscribe"> = async (
-  message,
+  _message,
   send,
 ) => {
-  const { spaceId } = message;
-  const sub = subscriptions.get(spaceId);
-  if (!sub) return;
-
-  sub.ports.delete(send.port);
-
-  if (sub.ports.size === 0) {
-    cancelStream(sub);
-    subscriptions.delete(spaceId);
-  }
+  subscribedPorts.delete(send.port);
 };
 
 export function removeRoomsSubscriber(port: MessagePort) {
-  for (const [spaceId, sub] of subscriptions) {
-    sub.ports.delete(port);
-
-    if (sub.ports.size === 0) {
-      cancelStream(sub);
-      subscriptions.delete(spaceId);
-    }
-  }
+  subscribedPorts.delete(port);
 }
+
+const handleCreate: HandlerFor<"h.rooms.create"> = async (message, send) => {
+  const { spaceId, name } = message;
+  const room = await createRoom(spaceId, name);
+  send.respond({ type: "h.rooms.created", room });
+};
 
 export const roomsHandlers: HandlerMap = {
   "h.rooms.subscribe": handleSubscribe,
   "h.rooms.unsubscribe": handleUnsubscribe,
+  "h.rooms.create": handleCreate,
 };
 
 declare module "@harmony/wasm" {
-  export function subscribeSpaceRooms(
-    spaceId: string,
-  ): Promise<[RoomData[], ReadableStream]>;
-  export function getSpaceRooms(spaceId: string): RoomData[];
+  export function subscribeRoomList(): Promise<ReadableStream>;
+  export function setRoomFilter(roomIds: string[]): void;
+  export function subscribeSpaceFilters(): Promise<
+    [SpaceFilterData[], ReadableStream]
+  >;
+  export function createRoom(spaceId: string, name: string): Promise<RoomData>;
 }

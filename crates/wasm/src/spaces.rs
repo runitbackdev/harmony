@@ -1,5 +1,6 @@
 use futures_util::StreamExt;
 use matrix_sdk::ruma::{
+    RoomId,
     api::client::room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
     events::space::child::SpaceChildEventContent,
     room::RoomType,
@@ -10,7 +11,10 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
 use tsify_next::Tsify;
 
-use crate::{client, diff::serialize_diffs, errors::HarmonyError, subscription::Subscription};
+use crate::{
+    client, diff::serialize_diffs, errors::HarmonyError, rooms::RoomData,
+    subscription::Subscription,
+};
 
 thread_local! {
     static SPACE_SERVICE: RefCell<Option<Rc<SpaceService>>> = const { RefCell::new(None) };
@@ -35,6 +39,23 @@ pub async fn get_service() -> Result<Rc<SpaceService>, HarmonyError> {
 pub struct SpaceData {
     pub room_id: String,
     pub display_name: String,
+}
+
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceFilterData {
+    pub space_id: String,
+    pub level: u8,
+    pub descendants: Vec<String>,
+}
+
+fn convert_space_filter(filter: &matrix_sdk_ui::spaces::SpaceFilter) -> SpaceFilterData {
+    SpaceFilterData {
+        space_id: filter.space_room.room_id.to_string(),
+        level: filter.level,
+        descendants: filter.descendants.iter().map(ToString::to_string).collect(),
+    }
 }
 
 fn convert_space(space: &matrix_sdk_ui::spaces::SpaceRoom) -> SpaceData {
@@ -68,6 +89,17 @@ pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
     Ok(spaces)
 }
 
+pub async fn subscribe_space_filters_impl() -> Result<Subscription<SpaceFilterData>, HarmonyError> {
+    let service = get_service().await?;
+
+    let (initial_values, incoming) = service.subscribe_to_space_filters().await;
+    let initial = initial_values.iter().map(convert_space_filter).collect();
+    let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_space_filter));
+    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
+
+    Ok(Subscription { initial, stream })
+}
+
 async fn create_channel(
     space: &matrix_sdk::Room,
     name: &str,
@@ -90,6 +122,23 @@ async fn create_channel(
         .await?;
 
     Ok(channel)
+}
+
+pub async fn create_room_impl(space_id: &str, name: &str) -> Result<RoomData, HarmonyError> {
+    let room_id: &RoomId =
+        <&RoomId>::try_from(space_id).map_err(|_| HarmonyError::InvalidUserId)?;
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let space = client
+        .get_room(room_id)
+        .ok_or(HarmonyError::ClientNotReady)?;
+
+    let channel = create_channel(&space, name).await?;
+
+    Ok(RoomData {
+        room_id: channel.room_id().to_string(),
+        display_name: name.to_owned(),
+        room_type: None,
+    })
 }
 
 pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {

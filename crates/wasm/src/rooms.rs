@@ -1,16 +1,18 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 use futures_util::StreamExt;
 use matrix_sdk::ruma::OwnedRoomId;
-use matrix_sdk_ui::spaces::room_list::{SpaceRoomList, SpaceRoomListPaginationState};
+use matrix_sdk_ui::room_list_service::filters::new_filter_identifiers;
+use matrix_sdk_ui::room_list_service::{RoomList, RoomListDynamicEntriesController, RoomListItem};
 use serde::{Deserialize, Serialize};
 use tsify_next::Tsify;
 
-use crate::{diff::serialize_diffs, errors::HarmonyError, spaces, subscription::Subscription};
+use crate::{diff::convert_diffs, errors::HarmonyError, sync};
+
+type ControllerCell = RefCell<Option<RoomListDynamicEntriesController>>;
 
 thread_local! {
-    static ROOM_LISTS: RefCell<HashMap<OwnedRoomId, SpaceRoomList>> = RefCell::new(HashMap::new());
+    static CONTROLLER: ControllerCell = const { RefCell::new(None) };
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -22,56 +24,52 @@ pub struct RoomData {
     pub room_type: Option<String>,
 }
 
-fn convert_room(room: &matrix_sdk_ui::spaces::SpaceRoom) -> RoomData {
+fn convert_room_list_item(item: &RoomListItem) -> RoomData {
     RoomData {
-        room_id: room.room_id.to_string(),
-        display_name: room.display_name.clone(),
-        room_type: room.room_type.as_ref().map(ToString::to_string),
+        room_id: item.room_id().to_string(),
+        display_name: item
+            .cached_display_name()
+            .map(|n| n.to_string())
+            .unwrap_or_default(),
+        room_type: item.room_type().map(|t| t.to_string()),
     }
 }
 
-pub async fn subscribe_space_rooms_impl(
-    space_id: &str,
-) -> Result<Subscription<RoomData>, HarmonyError> {
-    let service = spaces::get_service().await?;
-    let room_id: OwnedRoomId = space_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+pub async fn subscribe_room_list_impl() -> Result<web_sys::ReadableStream, HarmonyError> {
+    let rls = sync::get_room_list_service().ok_or(HarmonyError::ClientNotReady)?;
+    let room_list = rls
+        .all_rooms()
+        .await
+        .map_err(|err| HarmonyError::Sync(err.to_string()))?;
 
-    let room_list = service.space_room_list(room_id.clone()).await;
+    // Leak the RoomList so the entries stream (which borrows it) can be 'static.
+    // This is fine — we only subscribe once for the app's lifetime.
+    let room_list: &'static RoomList = Box::leak(Box::new(room_list));
 
-    loop {
-        room_list.paginate().await?;
-        if matches!(
-            room_list.pagination_state(),
-            SpaceRoomListPaginationState::Idle { end_reached: true }
-        ) {
-            break;
-        }
-    }
+    let (entries, controller) = room_list.entries_with_dynamic_adapters(100);
+    CONTROLLER.with(|cell| *cell.borrow_mut() = Some(controller));
 
-    let (initial_values, incoming) = room_list.subscribe_to_room_updates();
-
-    ROOM_LISTS.with(|lists| lists.borrow_mut().insert(room_id, room_list));
-
-    let initial = initial_values.iter().map(convert_room).collect();
-    let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_room));
-    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
-
-    Ok(Subscription { initial, stream })
-}
-
-pub fn get_space_rooms_impl(space_id: &str) -> Result<Vec<RoomData>, HarmonyError> {
-    let room_id: OwnedRoomId = space_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
-
-    let rooms = ROOM_LISTS.with(|lists| {
-        lists
-            .borrow()
-            .get(&room_id)
-            .map(|list| list.rooms().into_iter().map(|r| convert_room(&r)).collect())
+    let updates = entries.map(|diffs| {
+        let list_diffs = convert_diffs(diffs, convert_room_list_item);
+        serde_wasm_bindgen::to_value(&list_diffs)
+            .map_err(|err| wasm_bindgen::JsValue::from_str(&err.to_string()))
     });
 
-    Ok(rooms.unwrap_or_default())
+    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
+    Ok(stream)
+}
+
+pub fn set_room_filter_impl(room_ids: Vec<String>) -> Result<(), HarmonyError> {
+    CONTROLLER.with(|cell| {
+        let controller = cell.borrow();
+        let controller = controller.as_ref().ok_or(HarmonyError::ClientNotReady)?;
+
+        let owned_ids: Vec<OwnedRoomId> = room_ids
+            .into_iter()
+            .filter_map(|id| id.try_into().ok())
+            .collect();
+
+        controller.set_filter(Box::new(new_filter_identifiers(owned_ids)));
+        Ok(())
+    })
 }

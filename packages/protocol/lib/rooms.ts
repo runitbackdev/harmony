@@ -7,11 +7,14 @@ export type RoomSummary = {
   roomType: string | null;
 };
 
+export type SpaceFilterSummary = {
+  spaceId: string;
+  level: number;
+  descendants: string[];
+};
+
 export type RoomsSubscribe = Request<"h.rooms.subscribe", { spaceId: string }>;
-export type RoomsSubscribed = Response<
-  "h.rooms.subscribed",
-  { rooms: RoomSummary[] }
->;
+export type RoomsSubscribed = Response<"h.rooms.subscribed">;
 export type RoomsUnsubscribe = Command<
   "h.rooms.unsubscribe",
   { spaceId: string }
@@ -19,10 +22,16 @@ export type RoomsUnsubscribe = Command<
 
 export type RoomsUpdate = Stream<
   "h.rooms.update",
-  { spaceId: string; rooms: ListDiff<RoomSummary>[] }
+  { rooms: ListDiff<RoomSummary>[] }
 >;
 
-export type RoomsRequest = RoomsSubscribe;
-export type RoomsResponse = RoomsSubscribed;
+export type RoomsCreate = Request<
+  "h.rooms.create",
+  { spaceId: string; name: string }
+>;
+export type RoomsCreated = Response<"h.rooms.created", { room: RoomSummary }>;
+
+export type RoomsRequest = RoomsSubscribe | RoomsCreate;
+export type RoomsResponse = RoomsSubscribed | RoomsCreated;
 export type RoomsCommand = RoomsUnsubscribe;
 export type RoomsStream = RoomsUpdate;

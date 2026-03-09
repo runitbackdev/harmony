@@ -5,9 +5,10 @@ import { proxy } from "valtio";
 
 export const syncState = proxy({ ready: null as Promise<void> | null });
 
-export function startSync() {
-  if (syncState.ready) return;
+export async function startSync() {
+  if (syncState.ready) return syncState.ready;
   syncState.ready = harmony.sync.start();
+  return syncState.ready;
 }
 
 export function useSyncStatus() {
