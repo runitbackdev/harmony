@@ -29,3 +29,8 @@ export const subscribeTimeline = timeline.start;
 export async function sendMessage(roomId: string, body: string) {
   await harmony.timeline.send(roomId, body);
 }
+
+export async function paginateTimeline(roomId: string, count = 50) {
+  const result = await harmony.timeline.paginate(roomId, count);
+  return result.hitStart;
+}

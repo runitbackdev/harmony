@@ -1,6 +1,7 @@
 export { Dialog } from "./dialog";
-export { MessageEvent } from "./message-event";
-export { MessageList } from "./message-list";
+export { MessageEvent } from "./message_event";
+export { MessageList } from "./message_list";
 export { Rail } from "./rail";
 export { Sidebar } from "./sidebar";
-export { SystemEvent } from "./system-event";
+export { SystemEvent } from "./system_event";
+export { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";

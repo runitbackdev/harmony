@@ -1,6 +1,11 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { getTimeline, sendMessage, subscribeTimeline } from "@harmony/wasm";
+import {
+  getTimeline,
+  paginateBackwards,
+  sendMessage,
+  subscribeTimeline,
+} from "@harmony/wasm";
 import type { ListDiff, TimelineEvent } from "@harmony/protocol";
 
 const roomPorts = new Map<string, Set<MessagePort>>();
@@ -78,10 +83,20 @@ const handleSend: HandlerFor<"h.timeline.send"> = async (message, send) => {
   send.respond({ type: "h.timeline.sent" });
 };
 
+const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (
+  message,
+  send,
+) => {
+  const { roomId, count } = message;
+  const hitStart = await paginateBackwards(roomId, count);
+  send.respond({ type: "h.timeline.paginated", hitStart });
+};
+
 export const timelineHandlers: HandlerMap = {
   "h.timeline.subscribe": handleSubscribe,
   "h.timeline.unsubscribe": handleUnsubscribe,
   "h.timeline.send": handleSend,
+  "h.timeline.paginate": handlePaginate,
 };
 
 declare module "@harmony/wasm" {
@@ -90,4 +105,8 @@ declare module "@harmony/wasm" {
   ): Promise<[TimelineEvent[], ReadableStream]>;
   export function getTimeline(roomId: string): Promise<TimelineEvent[]>;
   export function sendMessage(roomId: string, body: string): Promise<void>;
+  export function paginateBackwards(
+    roomId: string,
+    count: number,
+  ): Promise<boolean>;
 }

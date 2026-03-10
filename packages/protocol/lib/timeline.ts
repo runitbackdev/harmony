@@ -47,12 +47,27 @@ export type TimelineSend = Request<
 >;
 export type TimelineSent = Response<"h.timeline.sent", Record<string, never>>;
 
+export type TimelinePaginate = Request<
+  "h.timeline.paginate",
+  { roomId: string; count: number }
+>;
+export type TimelinePaginated = Response<
+  "h.timeline.paginated",
+  { hitStart: boolean }
+>;
+
 export type TimelineUpdate = Stream<
   "h.timeline.update",
   { roomId: string; events: ListDiff<TimelineEvent>[] }
 >;
 
-export type TimelineRequest = TimelineSubscribe | TimelineSend;
-export type TimelineResponse = TimelineSubscribed | TimelineSent;
+export type TimelineRequest =
+  | TimelineSubscribe
+  | TimelineSend
+  | TimelinePaginate;
+export type TimelineResponse =
+  | TimelineSubscribed
+  | TimelineSent
+  | TimelinePaginated;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

@@ -1,6 +1,11 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { sendMessage, subscribeTimeline, useTimeline } from "@harmony/react";
+import {
+  paginateTimeline,
+  sendMessage,
+  subscribeTimeline,
+  useTimeline,
+} from "@harmony/react";
 import { MessageList } from "@harmony/ui";
 import type { SendState, TimelineContent } from "@harmony/protocol";
 
@@ -43,6 +48,8 @@ function TimelineView() {
   const events = useTimeline();
   const inputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState(false);
+
+  const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
 
   function handleSubmit() {
     const input = inputRef.current;
@@ -94,7 +101,11 @@ function TimelineView() {
           </ul>
         </div>
       ) : (
-        <MessageList events={events} className="px-4 pb-4" />
+        <MessageList
+          events={events}
+          onLoadMore={handleLoadMore}
+          className="px-4 pb-4"
+        />
       )}
 
       <form

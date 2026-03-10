@@ -211,15 +211,30 @@ pub async fn subscribe_timeline_impl(
         .await?;
 
     let timeline = Rc::new(timeline);
-    let (initial_items, incoming) = timeline.subscribe().await;
 
-    TIMELINES.with(|timelines| timelines.borrow_mut().insert(parsed_id, timeline));
+    TIMELINES.with(|timelines| timelines.borrow_mut().insert(parsed_id, timeline.clone()));
+
+    let _ = timeline.paginate_backwards(50).await;
+
+    let (initial_items, incoming) = timeline.subscribe().await;
 
     let initial = initial_items.iter().map(convert_item).collect();
     let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_item));
     let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
 
     Ok(Subscription { initial, stream })
+}
+
+pub async fn paginate_backwards_impl(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    let hit_start = timeline.paginate_backwards(count).await?;
+    Ok(hit_start)
 }
 
 pub async fn send_message_impl(room_id: &str, body: &str) -> Result<(), HarmonyError> {

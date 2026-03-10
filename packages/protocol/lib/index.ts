@@ -31,6 +31,7 @@ import type {
 } from "./sync";
 import type {
   TimelineCommand,
+  TimelinePaginated,
   TimelineRequest,
   TimelineResponse,
   TimelineSent,
@@ -58,6 +59,7 @@ export type ResponseMap = {
   "h.rooms.create": RoomsCreated;
   "h.timeline.subscribe": TimelineSubscribed;
   "h.timeline.send": TimelineSent;
+  "h.timeline.paginate": TimelinePaginated;
 };
 
 export type CommandMessage =

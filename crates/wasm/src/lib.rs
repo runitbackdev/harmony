@@ -11,7 +11,10 @@ use crate::{
         subscribe_space_filters_impl, subscribe_spaces_impl,
     },
     sync::{start_sync_impl, stop_sync_impl},
-    timeline::{TimelineEventData, get_timeline_impl, send_message_impl, subscribe_timeline_impl},
+    timeline::{
+        TimelineEventData, get_timeline_impl, paginate_backwards_impl, send_message_impl,
+        subscribe_timeline_impl,
+    },
 };
 
 mod auth;
@@ -113,6 +116,11 @@ pub async fn subscribe_timeline(room_id: &str) -> Result<JsValue, JsValue> {
 #[wasm_bindgen(js_name = sendMessage)]
 pub async fn send_message(room_id: &str, body: &str) -> Result<(), HarmonyError> {
     send_message_impl(room_id, body).await
+}
+
+#[wasm_bindgen(js_name = paginateBackwards)]
+pub async fn paginate_backwards(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
+    paginate_backwards_impl(room_id, count).await
 }
 
 #[wasm_bindgen(js_name = getTimeline)]
