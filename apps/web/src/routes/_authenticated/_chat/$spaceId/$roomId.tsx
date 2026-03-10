@@ -1,12 +1,8 @@
 import { useRef, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { sendMessage, subscribeTimeline, useTimeline } from "@harmony/react";
-import { MessageEvent, SystemEvent } from "@harmony/ui";
-import type {
-  SendState,
-  TimelineContent,
-  TimelineEvent,
-} from "@harmony/protocol";
+import { MessageList } from "@harmony/ui";
+import type { SendState, TimelineContent } from "@harmony/protocol";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
@@ -14,6 +10,8 @@ export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   },
   component: TimelineView,
 });
+
+// #region Debug
 
 function formatContent(content: TimelineContent): string {
   switch (content.type) {
@@ -32,36 +30,11 @@ function formatContent(content: TimelineContent): string {
   }
 }
 
-function formatSystemContent(event: TimelineEvent): string | null {
-  switch (event.content.type) {
-    case "membershipChange": {
-      const name = event.senderName ?? event.sender ?? "Someone";
-      return `${name} ${event.content.change}`;
-    }
-    case "profileChange": {
-      const name = event.senderName ?? event.sender ?? "Someone";
-      const change = event.content.displayNameChange ?? "updated their profile";
-      return `${name} ${change}`;
-    }
-    case "state":
-      return `State event: ${event.content.eventType}`;
-    default:
-      return null;
-  }
-}
-
 function isPending(sendState: SendState | null): boolean {
   return sendState?.state === "notSentYet";
 }
 
-function isGrouped(events: TimelineEvent[], index: number): boolean {
-  if (index === 0) return false;
-  const prev = events[index - 1];
-  const curr = events[index];
-  if (prev.content.type !== "message" || curr.content.type !== "message")
-    return false;
-  return prev.sender === curr.sender;
-}
+// #endregion
 
 function TimelineView() {
   const { roomId } = useParams({
@@ -88,14 +61,14 @@ function TimelineView() {
         <button
           type="button"
           onClick={() => setDebug((d) => !d)}
-          className="text-xs text-surface-500 hover:text-surface-950-50 transition-colors"
+          className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
         >
           {debug ? "pretty" : "debug"}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
-        {debug ? (
+      {debug ? (
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
           <ul className="space-y-1 font-mono text-sm text-surface-950-50">
             {events.map((event, i) => (
               <li
@@ -110,39 +83,19 @@ function TimelineView() {
                   {event.senderName ?? event.sender}
                 </span>{" "}
                 {formatContent(event.content)}
+                {event.sendState && (
+                  <span className="text-surface-400">
+                    {" "}
+                    [{event.sendState.state}]
+                  </span>
+                )}
               </li>
             ))}
           </ul>
-        ) : (
-          <div>
-            {events
-              .filter((e) => e.content.type !== "virtual")
-              .map((event, i, filtered) => {
-                if (event.content.type === "message") {
-                  return (
-                    <MessageEvent
-                      key={event.id ?? i}
-                      sender={event.senderName ?? event.sender ?? "Unknown"}
-                      body={event.content.body}
-                      timestamp={event.timestamp}
-                      pending={isPending(event.sendState)}
-                      grouped={isGrouped(filtered, i)}
-                    />
-                  );
-                }
-
-                const systemText = formatSystemContent(event);
-                if (systemText) {
-                  return (
-                    <SystemEvent key={event.id ?? i} content={systemText} />
-                  );
-                }
-
-                return null;
-              })}
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <MessageList events={events} className="px-4 pb-4" />
+      )}
 
       <form
         onSubmit={(e) => {
