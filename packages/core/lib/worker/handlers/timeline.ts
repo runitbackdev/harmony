@@ -1,6 +1,6 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { getTimeline, subscribeTimeline } from "@harmony/wasm";
+import { getTimeline, sendMessage, subscribeTimeline } from "@harmony/wasm";
 import type { ListDiff, TimelineEvent } from "@harmony/protocol";
 
 const roomPorts = new Map<string, Set<MessagePort>>();
@@ -72,9 +72,16 @@ export function removeTimelineSubscriber(port: MessagePort) {
   }
 }
 
+const handleSend: HandlerFor<"h.timeline.send"> = async (message, send) => {
+  const { roomId, body } = message;
+  await sendMessage(roomId, body);
+  send.respond({ type: "h.timeline.sent" });
+};
+
 export const timelineHandlers: HandlerMap = {
   "h.timeline.subscribe": handleSubscribe,
   "h.timeline.unsubscribe": handleUnsubscribe,
+  "h.timeline.send": handleSend,
 };
 
 declare module "@harmony/wasm" {
@@ -82,4 +89,5 @@ declare module "@harmony/wasm" {
     roomId: string,
   ): Promise<[TimelineEvent[], ReadableStream]>;
   export function getTimeline(roomId: string): Promise<TimelineEvent[]>;
+  export function sendMessage(roomId: string, body: string): Promise<void>;
 }

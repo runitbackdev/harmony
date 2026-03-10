@@ -13,6 +13,11 @@ export type TimelineContent =
   | { type: "virtual"; kind: string }
   | { type: "unknown" };
 
+export type SendState =
+  | { state: "notSentYet" }
+  | { state: "sent" }
+  | { state: "sendingFailed"; error: string; isRecoverable: boolean };
+
 export type TimelineEvent = {
   id: string | null;
   sender: string | null;
@@ -20,6 +25,7 @@ export type TimelineEvent = {
   senderAvatar: string | null;
   timestamp: number;
   content: TimelineContent;
+  sendState: SendState | null;
 };
 
 export type TimelineSubscribe = Request<
@@ -35,12 +41,18 @@ export type TimelineUnsubscribe = Command<
   { roomId: string }
 >;
 
+export type TimelineSend = Request<
+  "h.timeline.send",
+  { roomId: string; body: string }
+>;
+export type TimelineSent = Response<"h.timeline.sent", Record<string, never>>;
+
 export type TimelineUpdate = Stream<
   "h.timeline.update",
   { roomId: string; events: ListDiff<TimelineEvent>[] }
 >;
 
-export type TimelineRequest = TimelineSubscribe;
-export type TimelineResponse = TimelineSubscribed;
+export type TimelineRequest = TimelineSubscribe | TimelineSend;
+export type TimelineResponse = TimelineSubscribed | TimelineSent;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

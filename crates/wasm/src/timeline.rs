@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 use matrix_sdk::ruma::OwnedRoomId;
+use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
+use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 use matrix_sdk_ui::timeline::{
-    MembershipChange, TimelineDetails, TimelineItem, TimelineItemContent, TimelineItemKind,
-    VirtualTimelineItem,
+    EventSendState, MembershipChange, TimelineDetails, TimelineItem, TimelineItemContent,
+    TimelineItemKind, VirtualTimelineItem,
 };
 use serde::Serialize;
 use tsify_next::Tsify;
@@ -21,6 +23,19 @@ thread_local! {
 
 #[derive(Tsify, Serialize)]
 #[tsify(into_wasm_abi)]
+#[serde(tag = "state", rename_all = "camelCase")]
+pub enum SendState {
+    NotSentYet,
+    Sent,
+    #[serde(rename_all = "camelCase")]
+    SendingFailed {
+        error: String,
+        is_recoverable: bool,
+    },
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct TimelineEventData {
     pub id: Option<String>,
@@ -29,6 +44,7 @@ pub struct TimelineEventData {
     pub sender_avatar: Option<String>,
     pub timestamp: f64,
     pub content: TimelineContent,
+    pub send_state: Option<SendState>,
 }
 
 #[derive(Tsify, Serialize)]
@@ -77,6 +93,18 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 _ => (None, None),
             };
 
+            let send_state = event.send_state().map(|state| match state {
+                EventSendState::NotSentYet { .. } => SendState::NotSentYet,
+                EventSendState::Sent { .. } => SendState::Sent,
+                EventSendState::SendingFailed {
+                    error,
+                    is_recoverable,
+                } => SendState::SendingFailed {
+                    error: error.to_string(),
+                    is_recoverable: *is_recoverable,
+                },
+            });
+
             TimelineEventData {
                 id: event.event_id().map(ToString::to_string),
                 sender: Some(event.sender().to_string()),
@@ -84,6 +112,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 sender_avatar,
                 timestamp: event.timestamp().0.into(),
                 content: convert_content(event.content()),
+                send_state,
             }
         }
 
@@ -101,6 +130,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 sender_avatar: None,
                 timestamp: 0.0,
                 content: TimelineContent::Virtual { kind },
+                send_state: None,
             }
         }
     }
@@ -183,7 +213,7 @@ pub async fn subscribe_timeline_impl(
     let timeline = Rc::new(timeline);
     let (initial_items, incoming) = timeline.subscribe().await;
 
-    TIMELINES.with(|t| t.borrow_mut().insert(parsed_id, timeline));
+    TIMELINES.with(|timelines| timelines.borrow_mut().insert(parsed_id, timeline));
 
     let initial = initial_items.iter().map(convert_item).collect();
     let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_item));
@@ -192,12 +222,29 @@ pub async fn subscribe_timeline_impl(
     Ok(Subscription { initial, stream })
 }
 
+pub async fn send_message_impl(room_id: &str, body: &str) -> Result<(), HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    timeline
+        .send(AnyMessageLikeEventContent::RoomMessage(
+            RoomMessageEventContent::text_plain(body),
+        ))
+        .await?;
+
+    Ok(())
+}
+
 pub async fn get_timeline_impl(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
         .map_err(|_| HarmonyError::InvalidUserId)?;
 
-    let timeline = TIMELINES.with(|t| t.borrow().get(&parsed_id).cloned());
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
 
     let Some(timeline) = timeline else {
         return Ok(vec![]);

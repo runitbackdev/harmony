@@ -33,6 +33,7 @@ import type {
   TimelineCommand,
   TimelineRequest,
   TimelineResponse,
+  TimelineSent,
   TimelineSubscribed,
   TimelineUpdate,
 } from "./timeline";
@@ -56,6 +57,7 @@ export type ResponseMap = {
   "h.rooms.subscribe": RoomsSubscribed;
   "h.rooms.create": RoomsCreated;
   "h.timeline.subscribe": TimelineSubscribed;
+  "h.timeline.send": TimelineSent;
 };
 
 export type CommandMessage =

@@ -11,7 +11,7 @@ use crate::{
         subscribe_space_filters_impl, subscribe_spaces_impl,
     },
     sync::{start_sync_impl, stop_sync_impl},
-    timeline::{TimelineEventData, get_timeline_impl, subscribe_timeline_impl},
+    timeline::{TimelineEventData, get_timeline_impl, send_message_impl, subscribe_timeline_impl},
 };
 
 mod auth;
@@ -108,6 +108,11 @@ pub async fn subscribe_space_filters() -> Result<JsValue, JsValue> {
 #[wasm_bindgen(js_name = subscribeTimeline)]
 pub async fn subscribe_timeline(room_id: &str) -> Result<JsValue, JsValue> {
     subscribe_timeline_impl(room_id).await?.try_into()
+}
+
+#[wasm_bindgen(js_name = sendMessage)]
+pub async fn send_message(room_id: &str, body: &str) -> Result<(), HarmonyError> {
+    send_message_impl(room_id, body).await
 }
 
 #[wasm_bindgen(js_name = getTimeline)]
