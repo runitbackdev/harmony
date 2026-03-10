@@ -1,3 +1,5 @@
 export { Dialog } from "./dialog";
-export { Sidebar } from "./sidebar";
+export { MessageEvent } from "./message-event";
 export { Rail } from "./rail";
+export { Sidebar } from "./sidebar";
+export { SystemEvent } from "./system-event";
