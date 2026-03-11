@@ -1,6 +1,7 @@
 export async function pipe<T>(
   reader: ReadableStreamDefaultReader<T>,
   onChunk: (chunk: T) => void,
+  onError?: (error: unknown) => void,
 ) {
   try {
     while (true) {
@@ -8,7 +9,7 @@ export async function pipe<T>(
       if (done) break;
       onChunk(value);
     }
-  } catch {
-    // reader was cancelled
+  } catch (error) {
+    onError?.(error);
   }
 }

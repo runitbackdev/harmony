@@ -4,6 +4,8 @@
 @import "@skeletonlabs/skeleton";
 @import "@skeletonlabs/skeleton-react";
 @import "@skeletonlabs/skeleton/themes/cerberus";
+@import "@skeletonlabs/skeleton/themes/mona";
+@import "@skeletonlabs/skeleton/themes/vox";
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";

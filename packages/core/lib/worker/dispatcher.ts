@@ -11,8 +11,14 @@ export function createDispatcher(handlers: HandlerMap, ports: PortRegistry) {
     const send: Send = {
       port,
       respond(payload) {
-        if (isRequest) {
+        if (!isRequest) return;
+        try {
           port.postMessage({ ...payload, id: message.id });
+        } catch (error) {
+          console.warn(
+            "[dispatcher] failed to respond, port likely closed:",
+            error,
+          );
         }
       },
       broadcast(payload) {

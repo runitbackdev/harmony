@@ -30,13 +30,21 @@ const FALLBACK = {
   message: "Something went wrong. Please try again.",
 };
 
+function isWasmError(error: unknown): error is WasmError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as WasmError).code === "string"
+  );
+}
+
 function toAuthError(error: unknown): {
   code: AuthLoginErrorCode;
   message: string;
 } {
-  const wasmErr = error as WasmError;
-  if (wasmErr?.code) {
-    return MESSAGE_MAP[wasmErr.code] ?? FALLBACK;
+  if (isWasmError(error)) {
+    return MESSAGE_MAP[error.code] ?? FALLBACK;
   }
   return FALLBACK;
 }
@@ -93,12 +101,18 @@ const handleLogout: HandlerFor<"h.auth.logout"> = async () => {
 
   const databases = await indexedDB.databases();
 
-  const promises = databases
-    .map((db) => db.name)
-    .filter((name): name is string => name !== undefined)
-    .map(deleteDatabase);
+  const results = await Promise.allSettled(
+    databases
+      .map((db) => db.name)
+      .filter((name): name is string => name !== undefined)
+      .map(deleteDatabase),
+  );
 
-  await Promise.all(promises);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("[auth] failed to delete database:", result.reason);
+    }
+  }
 };
 
 export const authHandlers: HandlerMap = {

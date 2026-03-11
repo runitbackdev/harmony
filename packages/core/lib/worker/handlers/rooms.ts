@@ -44,24 +44,30 @@ async function initializeIfNeeded() {
   const roomListStream = await subscribeRoomList();
   roomListReader = roomListStream.getReader();
 
-  pipe(roomListReader, (roomDiffs) => {
-    broadcastRoomUpdate(roomDiffs);
-  });
+  pipe(
+    roomListReader,
+    (roomDiffs) => broadcastRoomUpdate(roomDiffs),
+    (error) => console.error("[rooms] room list stream error:", error),
+  );
 
   const [initialFilters, filtersStream] = await subscribeSpaceFilters();
   spaceFilters.push(...initialFilters);
   spaceFiltersReader = filtersStream.getReader();
 
-  pipe(spaceFiltersReader, (filterDiffs) => {
-    for (const diff of filterDiffs) {
-      applyListDiff(spaceFilters, diff);
-    }
+  pipe(
+    spaceFiltersReader,
+    (filterDiffs) => {
+      for (const diff of filterDiffs) {
+        applyListDiff(spaceFilters, diff);
+      }
 
-    if (currentSpaceId) {
-      const descendants = descendantsForSpace(currentSpaceId);
-      setRoomFilter(descendants);
-    }
-  });
+      if (currentSpaceId) {
+        const descendants = descendantsForSpace(currentSpaceId);
+        setRoomFilter(descendants);
+      }
+    },
+    (error) => console.error("[rooms] space filters stream error:", error),
+  );
 }
 
 const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (

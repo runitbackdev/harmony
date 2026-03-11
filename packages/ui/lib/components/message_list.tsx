@@ -118,7 +118,7 @@ function MessageList({
       data-scope="message-list"
       data-part="root"
       ref={containerRef}
-      className={cn("flex-1 overflow-y-auto [overflow-anchor:auto]", className)}
+      className={cn("flex-1 overflow-y-auto", className)}
       {...props}
     >
       <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />

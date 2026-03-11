@@ -7,7 +7,7 @@ export function useStickToBottom(
   containerRef: React.RefObject<HTMLDivElement | null>,
   itemCount: number,
 ) {
-  const isAtBottom = useRef(true);
+  const atBottom = useRef(true);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -16,7 +16,7 @@ export function useStickToBottom(
     function handleScroll() {
       const container = containerRef.current;
       if (!container) return;
-      isAtBottom.current =
+      atBottom.current =
         container.scrollHeight - container.scrollTop - container.clientHeight <
         AT_BOTTOM_THRESHOLD;
     }
@@ -27,7 +27,7 @@ export function useStickToBottom(
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !isAtBottom.current) return;
+    if (!container || !atBottom.current) return;
     container.scrollTop = container.scrollHeight;
   }, [containerRef, itemCount]);
 }
@@ -47,9 +47,13 @@ export function useLoadMoreOnScroll(
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          onLoadMore().then((hitStart) => {
-            if (hitStart) setReachedStart(true);
-          });
+          onLoadMore()
+            .then((hitStart) => {
+              if (hitStart) setReachedStart(true);
+            })
+            .catch((error) => {
+              console.error("[scroll] load more failed:", error);
+            });
         }
       },
       { root: container, rootMargin: LOAD_MORE_MARGIN },

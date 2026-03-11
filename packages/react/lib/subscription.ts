@@ -12,11 +12,15 @@ export function createSubscription<T>(subscribe: Subscriber<T>) {
   });
 
   let cleanup: (() => void) | null = null;
+  let generation = 0;
 
   function start() {
     if (state.ready) return state.ready;
 
+    const gen = ++generation;
+
     state.ready = subscribe(state.items).then((result) => {
+      if (gen !== generation) return;
       state.items.splice(0, state.items.length, ...result.initial);
       cleanup = result.cleanup;
     });
@@ -25,6 +29,7 @@ export function createSubscription<T>(subscribe: Subscriber<T>) {
   }
 
   function stop() {
+    generation++;
     cleanup?.();
     cleanup = null;
     state.items = [];
@@ -57,8 +62,10 @@ export function createKeyedSubscription<K, T>(
   });
 
   let cleanup: (() => void) | null = null;
+  let generation = 0;
 
   function stop() {
+    generation++;
     cleanup?.();
     cleanup = null;
     state.items = [];
@@ -73,7 +80,10 @@ export function createKeyedSubscription<K, T>(
     cleanup = null;
     state.key = key;
 
+    const gen = ++generation;
+
     state.ready = subscribe(key, state.items).then((result) => {
+      if (gen !== generation) return;
       state.items.splice(0, state.items.length, ...result.initial);
       cleanup = result.cleanup;
     });

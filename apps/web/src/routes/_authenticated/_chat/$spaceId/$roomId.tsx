@@ -7,7 +7,7 @@ import {
   useTimeline,
 } from "@harmony/react";
 import { MessageList } from "@harmony/ui";
-import type { SendState, TimelineContent } from "@harmony/protocol";
+import type { TimelineContent } from "@harmony/protocol";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
@@ -33,10 +33,6 @@ function formatContent(content: TimelineContent): string {
     case "unknown":
       return "unknown";
   }
-}
-
-function isPending(sendState: SendState | null): boolean {
-  return sendState?.state === "notSentYet";
 }
 
 // #endregion
@@ -81,7 +77,7 @@ function TimelineView() {
               <li
                 key={event.id ?? i}
                 className={
-                  isPending(event.sendState)
+                  event.sendState?.state === "notSentYet"
                     ? "opacity-50 transition-opacity duration-300"
                     : "transition-opacity duration-300"
                 }

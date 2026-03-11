@@ -45,9 +45,11 @@ const handleSubscribe: HandlerFor<"h.timeline.subscribe"> = async (
 
   send.respond({ type: "h.timeline.subscribed", events });
 
-  pipe(reader, (events) => {
-    send.broadcast({ type: "h.timeline.update", roomId, events });
-  });
+  pipe(
+    reader,
+    (events) => send.broadcast({ type: "h.timeline.update", roomId, events }),
+    (error) => console.error(`[timeline] stream error for ${roomId}:`, error),
+  );
 };
 
 const handleUnsubscribe: HandlerFor<"h.timeline.unsubscribe"> = async (

@@ -7,7 +7,12 @@ export const syncState = proxy({ ready: null as Promise<void> | null });
 
 export async function startSync() {
   if (syncState.ready) return syncState.ready;
-  syncState.ready = harmony.sync.start();
+
+  syncState.ready = harmony.sync.start().catch((error) => {
+    syncState.ready = null;
+    throw error;
+  });
+
   return syncState.ready;
 }
 

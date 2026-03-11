@@ -24,6 +24,7 @@ export class WorkerConnection {
   private pending = new Map<string, PendingRequest>();
   private emitter = new Emitter<StreamMap>();
   private currentId = 0;
+  private handleUnload: () => void;
 
   constructor(worker: SharedWorker) {
     this.port = worker.port;
@@ -32,9 +33,15 @@ export class WorkerConnection {
     };
     this.port.start();
 
-    window.addEventListener("beforeunload", () => {
+    this.handleUnload = () => {
       this.port.postMessage({ type: "h.connection.close" });
-    });
+    };
+    window.addEventListener("beforeunload", this.handleUnload);
+  }
+
+  dispose() {
+    window.removeEventListener("beforeunload", this.handleUnload);
+    this.handleUnload();
   }
 
   request<T extends keyof ResponseMap>(

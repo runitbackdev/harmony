@@ -25,6 +25,7 @@ const timeline = createKeyedSubscription<string, TimelineEvent>(
 
 export const useTimeline = timeline.useValue;
 export const subscribeTimeline = timeline.start;
+export const unsubscribeTimeline = timeline.stop;
 
 export async function sendMessage(roomId: string, body: string) {
   await harmony.timeline.send(roomId, body);

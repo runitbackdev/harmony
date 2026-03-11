@@ -30,9 +30,11 @@ const handleSubscribe: HandlerFor<"h.spaces.subscribe"> = async (
   spacesReader = stream.getReader();
   send.respond({ type: "h.spaces.subscribed", spaces: spaces });
 
-  pipe(spacesReader, (spaces) => {
-    send.broadcast({ type: "h.spaces.update", spaces });
-  });
+  pipe(
+    spacesReader,
+    (spaces) => send.broadcast({ type: "h.spaces.update", spaces }),
+    (error) => console.error("[spaces] stream error:", error),
+  );
 };
 
 const handleUnsubscribe: HandlerFor<"h.spaces.unsubscribe"> = async (
