@@ -1,25 +1,16 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useRef } from "react";
 import type { HTMLAttributes } from "react";
 import type { TimelineEvent } from "@harmony/protocol";
-import { Virtuoso } from "react-virtuoso";
 import { cn } from "../utils";
+import { useLoadMoreOnScroll, useStickToBottom } from "../hooks/scroll";
 import { MessageEvent } from "./message_event";
 import { SystemEvent } from "./system_event";
 import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
 
-const FIRST_ITEM_INDEX = 100_000;
-const DEFAULT_ITEM_HEIGHT = 40;
-const OVERSCAN_TOP = 1000;
-const OVERSCAN_BOTTOM = 400;
-const GROUP_INTERVAL_MS = 5 * 60 * 1000;
-const AT_BOTTOM_THRESHOLD = 50;
+const GROUP_INTERVAL_MS = 8 * 60 * 1000;
+const INTRINSIC_ITEM_HEIGHT = "auto 40px";
 
-// #region MessageList
-
-interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
-  events: TimelineEvent[];
-  onLoadMore?: () => Promise<boolean>;
-}
+// #region Helpers
 
 function formatSystemContent(event: TimelineEvent): string | null {
   switch (event.content.type) {
@@ -39,26 +30,68 @@ function formatSystemContent(event: TimelineEvent): string | null {
   }
 }
 
-function isGrouped(events: TimelineEvent[], index: number): boolean {
-  if (index === 0) return false;
-  const prev = events[index - 1];
-  const curr = events[index];
-  if (prev.content.type !== "message" || curr.content.type !== "message")
-    return false;
-  if (prev.sender !== curr.sender) return false;
-  if (curr.timestamp - prev.timestamp >= GROUP_INTERVAL_MS) return false;
-  return true;
-}
+function computeGrouping(events: TimelineEvent[]) {
+  const grouped: boolean[] = [];
+  let groupStartTime = 0;
 
-function parseVirtualKind(kind: string): { type: string; value?: string } {
-  if (kind.startsWith("date_divider:")) {
-    return { type: "date_divider", value: kind.slice("date_divider:".length) };
+  for (let i = 0; i < events.length; i++) {
+    const curr = events[i];
+    const prev = i > 0 ? events[i - 1] : null;
+    const sameGroup =
+      prev?.content.type === "message" &&
+      curr.content.type === "message" &&
+      prev.sender === curr.sender &&
+      curr.timestamp - groupStartTime < GROUP_INTERVAL_MS;
+
+    if (!sameGroup) groupStartTime = curr.timestamp;
+    grouped.push(sameGroup);
   }
-  return { type: kind };
+  return grouped;
 }
 
 function isPending(event: TimelineEvent): boolean {
   return event.sendState?.state === "notSentYet";
+}
+
+// #endregion
+
+// #region MessageList
+
+interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
+  events: TimelineEvent[];
+  onLoadMore?: () => Promise<boolean>;
+}
+
+function renderEvent(event: TimelineEvent, grouped: boolean) {
+  if (event.content.type === "virtual") {
+    const kind = event.content.kind;
+    if (kind.startsWith("date_divider:")) {
+      return (
+        <DateDivider timestamp={Number(kind.slice("date_divider:".length))} />
+      );
+    }
+    if (kind === "read_marker") return <ReadMarker />;
+    if (kind === "timeline_start") return <TimelineStart />;
+    return null;
+  }
+
+  if (event.content.type === "message") {
+    return (
+      <MessageEvent
+        sender={event.senderName ?? event.sender ?? "Unknown"}
+        body={event.content.body}
+        timestamp={event.timestamp}
+        avatar={event.senderAvatar}
+        pending={isPending(event)}
+        grouped={grouped}
+      />
+    );
+  }
+
+  const systemText = formatSystemContent(event);
+  if (systemText) return <SystemEvent content={systemText} />;
+
+  return null;
 }
 
 function MessageList({
@@ -67,82 +100,39 @@ function MessageList({
   className,
   ...props
 }: MessageListProps) {
-  const [reachedStart, setReachedStart] = useState(false);
-  const [initialCount, setInitialCount] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(
     () => events.filter((event) => event.content.type !== "unknown"),
     [events],
   );
 
-  if (initialCount === null && filtered.length > 0) {
-    setInitialCount(filtered.length);
-  }
+  const grouping = useMemo(() => computeGrouping(filtered), [filtered]);
 
-  const firstItemIndex =
-    FIRST_ITEM_INDEX - (filtered.length - (initialCount ?? filtered.length));
-
-  const handleStartReached = useCallback(async () => {
-    if (reachedStart || !onLoadMore) return;
-    const hitStart = await onLoadMore();
-    if (hitStart) setReachedStart(true);
-  }, [reachedStart, onLoadMore]);
+  useStickToBottom(containerRef, filtered.length);
+  useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
 
   return (
     <div
       data-scope="message-list"
       data-part="root"
-      className={cn("flex-1", className)}
+      ref={containerRef}
+      className={cn("flex-1 overflow-y-auto [overflow-anchor:auto]", className)}
       {...props}
     >
-      <Virtuoso
-        data={filtered}
-        firstItemIndex={firstItemIndex}
-        initialTopMostItemIndex={Math.max(0, filtered.length - 1)}
-        followOutput="auto"
-        alignToBottom
-        atBottomThreshold={AT_BOTTOM_THRESHOLD}
-        defaultItemHeight={DEFAULT_ITEM_HEIGHT}
-        increaseViewportBy={{ top: OVERSCAN_TOP, bottom: OVERSCAN_BOTTOM }}
-        startReached={handleStartReached}
-        computeItemKey={(index, event) => event.id ?? `pending-${index}`}
-        itemContent={(index, event) => {
-          const dataIndex = index - firstItemIndex;
-
-          if (event.content.type === "virtual") {
-            const virtual = parseVirtualKind(event.content.kind);
-            switch (virtual.type) {
-              case "date_divider":
-                return <DateDivider timestamp={Number(virtual.value)} />;
-              case "read_marker":
-                return <ReadMarker />;
-              case "timeline_start":
-                return <TimelineStart />;
-              default:
-                return null;
-            }
-          }
-
-          if (event.content.type === "message") {
-            return (
-              <MessageEvent
-                sender={event.senderName ?? event.sender ?? "Unknown"}
-                body={event.content.body}
-                timestamp={event.timestamp}
-                pending={isPending(event)}
-                grouped={isGrouped(filtered, dataIndex)}
-              />
-            );
-          }
-
-          const systemText = formatSystemContent(event);
-          if (systemText) {
-            return <SystemEvent content={systemText} />;
-          }
-
-          return null;
-        }}
-      />
+      <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />
+      {filtered.map((event, i) => (
+        <div
+          key={event.id ?? `pending-${i}`}
+          style={{
+            contentVisibility: "auto",
+            containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
+          }}
+        >
+          {renderEvent(event, grouping[i])}
+        </div>
+      ))}
     </div>
   );
 }

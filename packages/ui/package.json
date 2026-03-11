@@ -16,7 +16,6 @@
   "dependencies": {
     "@harmony/protocol": "workspace:*",
     "clsx": "^2.1.1",
-    "react-virtuoso": "^4.18.3",
     "tailwind-merge": "^3.4.1"
   }
 }
