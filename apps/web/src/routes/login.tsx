@@ -1,5 +1,6 @@
 import { getSession, setSession } from "@/auth/session";
 import { useLogin } from "@harmony/react";
+import { TextField } from "@harmony/ui";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import * as v from "valibot";
@@ -60,42 +61,28 @@ function Login() {
         >
           <form.Field name="username">
             {(field) => (
-              <label className="label">
-                <span className="label-text text-sm">Username</span>
-                <input
-                  className="input"
-                  type="text"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  autoFocus
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-error-500 text-xs">
-                    {field.state.meta.errors[0]?.message}
-                  </p>
-                )}
-              </label>
+              <TextField
+                label="Username"
+                type="text"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+                error={field.state.meta.errors[0]?.message}
+                autoFocus
+              />
             )}
           </form.Field>
 
           <form.Field name="password">
             {(field) => (
-              <label className="label">
-                <span className="label-text text-sm">Password</span>
-                <input
-                  className="input"
-                  type="password"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-error-500 text-xs">
-                    {field.state.meta.errors[0]?.message}
-                  </p>
-                )}
-              </label>
+              <TextField
+                label="Password"
+                type="password"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+                error={field.state.meta.errors[0]?.message}
+              />
             )}
           </form.Field>
 

@@ -110,6 +110,7 @@ type CloseTriggerProps = ComponentProps<typeof SkeletonDialog.CloseTrigger>;
 function CloseTrigger({ className, ...props }: CloseTriggerProps) {
   return (
     <SkeletonDialog.CloseTrigger
+      aria-label="Close"
       className={cn(
         "absolute top-4 right-4 text-surface-500 hover:text-surface-950-50 cursor-pointer transition-colors",
         className,

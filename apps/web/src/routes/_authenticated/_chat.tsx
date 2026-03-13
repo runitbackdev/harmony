@@ -6,7 +6,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Rail } from "@harmony/ui";
+import { Dialog, Rail, TextField } from "@harmony/ui";
 import { Home, Plus, X } from "lucide-react";
 import { createSpace, useSpaces } from "@harmony/react";
 import * as v from "valibot";
@@ -42,7 +42,7 @@ function RouteComponent() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Rail>
-        <Rail.Item active data-rail="home">
+        <Rail.Item active label="Home" data-rail="home">
           <Home size={20} />
         </Rail.Item>
 
@@ -54,6 +54,7 @@ function RouteComponent() {
               <Rail.Item
                 key={space.roomId}
                 active={spaceId === space.roomId}
+                label={space.displayName}
                 data-rail="server"
                 data-server={space.roomId}
                 onClick={() =>
@@ -73,7 +74,11 @@ function RouteComponent() {
           </>
         )}
 
-        <Rail.Item data-rail="add-server" onClick={() => setCreateOpen(true)}>
+        <Rail.Item
+          label="Create space"
+          data-rail="add-server"
+          onClick={() => setCreateOpen(true)}
+        >
           <Plus size={20} />
         </Rail.Item>
       </Rail>
@@ -97,22 +102,15 @@ function RouteComponent() {
             >
               <form.Field name="name">
                 {(field) => (
-                  <label className="label">
-                    <span className="label-text text-sm">Name</span>
-                    <input
-                      className="input"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      autoFocus
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-error-500 text-xs">
-                        {field.state.meta.errors[0]?.message}
-                      </p>
-                    )}
-                  </label>
+                  <TextField
+                    label="Name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    error={field.state.meta.errors[0]?.message}
+                    autoFocus
+                  />
                 )}
               </form.Field>
 

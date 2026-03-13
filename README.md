@@ -164,6 +164,10 @@ harmony/
 3. Commit your changes using [Conventional Commits](https://www.conventionalcommits.org) (e.g. `feat: add voice channels`)
 4. Push to the branch and open a Pull Request
 
+### AI Usage
+
+We use AI tools during development and welcome contributions that do too. What we don't welcome is slop — auto-generated code dumped without understanding, review, or care. If you use AI, treat it like any other tool: understand what it produces, clean it up, and make sure it meets the same quality bar as everything else.
+
 ### Git Hooks
 
 Running `just` sets up [Lefthook](https://github.com/evilmartians/lefthook) git hooks that run automatically:

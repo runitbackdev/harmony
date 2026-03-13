@@ -6,7 +6,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Sidebar } from "@harmony/ui";
+import { Dialog, Sidebar, TextField } from "@harmony/ui";
 import { createRoom, subscribeRooms, useRooms } from "@harmony/react";
 import { Hash, Plus, X } from "lucide-react";
 import * as v from "valibot";
@@ -91,6 +91,7 @@ function RouteComponent() {
           <button
             className="btn preset-tonal-surface w-full gap-2 text-sm"
             onClick={() => setCreateOpen(true)}
+            aria-label="Create channel"
           >
             <Plus size={16} />
             Create Channel
@@ -117,22 +118,15 @@ function RouteComponent() {
             >
               <form.Field name="name">
                 {(field) => (
-                  <label className="label">
-                    <span className="label-text text-sm">Name</span>
-                    <input
-                      className="input"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      autoFocus
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-error-500 text-xs">
-                        {field.state.meta.errors[0]?.message}
-                      </p>
-                    )}
-                  </label>
+                  <TextField
+                    label="Name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    error={field.state.meta.errors[0]?.message}
+                    autoFocus
+                  />
                 )}
               </form.Field>
 

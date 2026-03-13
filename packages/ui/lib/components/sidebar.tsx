@@ -64,7 +64,7 @@ function SectionLabel({ children, className, ...props }: SectionLabelProps) {
       data-scope="sidebar"
       data-part="section-label"
       className={cn(
-        "px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide",
+        "px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-surface-500",
         className,
       )}
       {...props}
@@ -78,21 +78,20 @@ function SectionLabel({ children, className, ...props }: SectionLabelProps) {
 
 // #region List
 
-interface ListProps extends HTMLAttributes<HTMLDivElement> {
+interface ListProps extends HTMLAttributes<HTMLUListElement> {
   children: ReactNode;
 }
 
 function List({ children, className, ...props }: ListProps) {
   return (
-    <div
+    <ul
       data-scope="sidebar"
       data-part="list"
-      role="list"
-      className={cn("flex flex-col gap-px p-1 px-2", className)}
+      className={cn("flex flex-col gap-px p-1 px-2 list-none", className)}
       {...props}
     >
       {children}
-    </div>
+    </ul>
   );
 }
 
@@ -118,37 +117,38 @@ function Item({
   ...props
 }: ItemProps) {
   return (
-    <button
-      data-scope="sidebar"
-      data-part="item"
-      data-state={active ? "active" : undefined}
-      data-unread={unread || undefined}
-      role="listitem"
-      className={cn(
-        "flex items-center gap-2 px-2 py-1.5 rounded-container text-sm",
-        "text-surface-600-400 cursor-pointer transition-colors",
-        "hover:bg-surface-300-700",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
-        active && "bg-surface-200-800 text-surface-950-50",
-        unread && "text-surface-950-50 font-medium",
-        className,
-      )}
-      {...props}
-    >
-      {icon && (
-        <span
-          data-scope="sidebar"
-          data-part="item-icon"
-          className="text-surface-500"
-        >
-          {icon}
+    <li data-scope="sidebar" data-part="item-wrapper">
+      <button
+        data-scope="sidebar"
+        data-part="item"
+        data-state={active ? "active" : undefined}
+        data-unread={unread || undefined}
+        className={cn(
+          "flex w-full items-center gap-2 px-2 py-1.5 rounded-container text-sm",
+          "text-surface-600-400 cursor-pointer transition-colors",
+          "hover:bg-surface-300-700",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
+          active && "bg-surface-200-800 text-surface-950-50",
+          unread && "text-surface-950-50 font-medium",
+          className,
+        )}
+        {...props}
+      >
+        {icon && (
+          <span
+            data-scope="sidebar"
+            data-part="item-icon"
+            className="text-surface-500"
+          >
+            {icon}
+          </span>
+        )}
+        <span data-scope="sidebar" data-part="item-label" className="truncate">
+          {children}
         </span>
-      )}
-      <span data-scope="sidebar" data-part="item-label" className="truncate">
-        {children}
-      </span>
-      {badge}
-    </button>
+        {badge}
+      </button>
+    </li>
   );
 }
 

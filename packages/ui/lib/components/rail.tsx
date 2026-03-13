@@ -31,6 +31,7 @@ interface ItemProps extends HTMLAttributes<HTMLButtonElement> {
   active?: boolean;
   unread?: boolean;
   mentionCount?: number;
+  label: string;
   children: ReactNode;
 }
 
@@ -38,6 +39,7 @@ function Item({
   active,
   unread,
   mentionCount,
+  label,
   children,
   className,
   ...props
@@ -48,6 +50,7 @@ function Item({
       data-part="item"
       data-state={active ? "active" : undefined}
       data-unread={unread || undefined}
+      aria-label={label}
       className={cn(
         "relative flex items-center justify-center size-10 rounded-xl",
         "bg-surface-300-700 text-surface-600-400 cursor-pointer transition-all",

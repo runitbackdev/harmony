@@ -1,12 +1,14 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   paginateTimeline,
   sendMessage,
   subscribeTimeline,
+  useRooms,
   useTimeline,
 } from "@harmony/react";
 import { MessageList } from "@harmony/ui";
+import { Hash } from "lucide-react";
 import type { TimelineContent } from "@harmony/protocol";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
@@ -41,9 +43,15 @@ function TimelineView() {
   const { roomId } = useParams({
     from: "/_authenticated/_chat/$spaceId/$roomId",
   });
+  const rooms = useRooms();
+  const room = rooms.find((r) => r.roomId === roomId);
   const events = useTimeline();
   const inputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState(false);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [roomId]);
 
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
 
@@ -60,15 +68,21 @@ function TimelineView() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center justify-end px-4 pt-2">
-        <button
-          type="button"
-          onClick={() => setDebug((d) => !d)}
-          className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
-        >
-          {debug ? "pretty" : "debug"}
-        </button>
-      </div>
+      <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
+        <Hash size={16} className="text-surface-500" />
+        <h2 className="text-sm font-semibold text-surface-950-50">
+          {room?.displayName ?? "Unknown"}
+        </h2>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={() => setDebug((d) => !d)}
+            className="ml-auto text-xs text-surface-500 transition-colors hover:text-surface-950-50"
+          >
+            {debug ? "pretty" : "debug"}
+          </button>
+        )}
+      </header>
 
       {debug ? (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -114,6 +128,7 @@ function TimelineView() {
         <input
           ref={inputRef}
           type="text"
+          aria-label="Send a message"
           placeholder="Send a message..."
           className="w-full rounded bg-surface-100-900 px-3 py-2 text-sm text-surface-950-50 placeholder:text-surface-500 focus:outline-none"
         />

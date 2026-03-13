@@ -14,6 +14,8 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 function getInitials(sender: string) {
+  const parts = sender.split(/[\s_-]+/);
+  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
   return sender.charAt(0).toUpperCase();
 }
 
