@@ -33,9 +33,7 @@ function DateDivider({ timestamp, className, ...props }: DateDividerProps) {
       {...props}
     >
       <div className="h-px flex-1 bg-surface-300-700" />
-      <span className="text-xs font-medium text-surface-500">
-        {formatDate(timestamp)}
-      </span>
+      <span className="text-xs font-medium text-surface-500">{formatDate(timestamp)}</span>
       <div className="h-px flex-1 bg-surface-300-700" />
     </div>
   );
@@ -64,10 +62,7 @@ function ReadMarker({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 
 // #region TimelineStart
 
-function TimelineStart({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+function TimelineStart({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       data-scope="timeline-divider"

@@ -5,10 +5,7 @@ export type SyncStarted = Response<"h.sync.started">;
 export type SyncStop = Command<"h.sync.stop">;
 
 export type SyncStatusKind = "syncing" | "reconnecting" | "error" | "stopped";
-export type SyncStatus = Stream<
-  "h.sync.status",
-  { status: SyncStatusKind; message?: string }
->;
+export type SyncStatus = Stream<"h.sync.status", { status: SyncStatusKind; message?: string }>;
 
 export type SyncRequest = SyncStart;
 export type SyncResponse = SyncStarted;

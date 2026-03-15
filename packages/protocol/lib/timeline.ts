@@ -28,46 +28,22 @@ export type TimelineEvent = {
   sendState: SendState | null;
 };
 
-export type TimelineSubscribe = Request<
-  "h.timeline.subscribe",
-  { roomId: string }
->;
-export type TimelineSubscribed = Response<
-  "h.timeline.subscribed",
-  { events: TimelineEvent[] }
->;
-export type TimelineUnsubscribe = Command<
-  "h.timeline.unsubscribe",
-  { roomId: string }
->;
+export type TimelineSubscribe = Request<"h.timeline.subscribe", { roomId: string }>;
+export type TimelineSubscribed = Response<"h.timeline.subscribed", { events: TimelineEvent[] }>;
+export type TimelineUnsubscribe = Command<"h.timeline.unsubscribe", { roomId: string }>;
 
-export type TimelineSend = Request<
-  "h.timeline.send",
-  { roomId: string; body: string }
->;
-export type TimelineSent = Response<"h.timeline.sent", Record<string, never>>;
+export type TimelineSend = Request<"h.timeline.send", { roomId: string; body: string }>;
+export type TimelineSent = Response<"h.timeline.sent">;
 
-export type TimelinePaginate = Request<
-  "h.timeline.paginate",
-  { roomId: string; count: number }
->;
-export type TimelinePaginated = Response<
-  "h.timeline.paginated",
-  { hitStart: boolean }
->;
+export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
+export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
 
 export type TimelineUpdate = Stream<
   "h.timeline.update",
   { roomId: string; events: ListDiff<TimelineEvent>[] }
 >;
 
-export type TimelineRequest =
-  | TimelineSubscribe
-  | TimelineSend
-  | TimelinePaginate;
-export type TimelineResponse =
-  | TimelineSubscribed
-  | TimelineSent
-  | TimelinePaginated;
+export type TimelineRequest = TimelineSubscribe | TimelineSend | TimelinePaginate;
+export type TimelineResponse = TimelineSubscribed | TimelineSent | TimelinePaginated;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

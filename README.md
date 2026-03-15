@@ -119,21 +119,21 @@ Run the app against the local homeserver:
 just dev-local
 ```
 
-| Command              | Description                           |
-| -------------------- | ------------------------------------- |
-| `just synapse`       | Start local Synapse (port 8008)       |
-| `just synapse-seed`  | Create test users, rooms, and messages|
-| `just synapse-stop`  | Stop Synapse                          |
-| `just synapse-reset` | Stop Synapse and delete all data      |
-| `just dev-local`     | Dev server pointed at local Synapse   |
+| Command              | Description                            |
+| -------------------- | -------------------------------------- |
+| `just synapse`       | Start local Synapse (port 8008)        |
+| `just synapse-seed`  | Create test users, rooms, and messages |
+| `just synapse-stop`  | Stop Synapse                           |
+| `just synapse-reset` | Stop Synapse and delete all data       |
+| `just dev-local`     | Dev server pointed at local Synapse    |
 
 ### Test Accounts
 
-| User    | Password      | Role  |
-| ------- | ------------- | ----- |
-| alice   | password123   | Admin |
-| bob     | password123   | User  |
-| charlie | password123   | User  |
+| User    | Password    | Role  |
+| ------- | ----------- | ----- |
+| alice   | password123 | Admin |
+| bob     | password123 | User  |
+| charlie | password123 | User  |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

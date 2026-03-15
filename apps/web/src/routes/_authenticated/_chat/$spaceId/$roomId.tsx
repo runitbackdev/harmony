@@ -63,7 +63,7 @@ function TimelineView() {
     if (!body) return;
 
     input.value = "";
-    sendMessage(roomId, body);
+    void sendMessage(roomId, body);
   }
 
   return (
@@ -96,26 +96,17 @@ function TimelineView() {
                     : "transition-opacity duration-300"
                 }
               >
-                <span className="text-surface-500">
-                  {event.senderName ?? event.sender}
-                </span>{" "}
+                <span className="text-surface-500">{event.senderName ?? event.sender}</span>{" "}
                 {formatContent(event.content)}
                 {event.sendState && (
-                  <span className="text-surface-400">
-                    {" "}
-                    [{event.sendState.state}]
-                  </span>
+                  <span className="text-surface-400"> [{event.sendState.state}]</span>
                 )}
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <MessageList
-          events={events}
-          onLoadMore={handleLoadMore}
-          className="px-4 pb-4"
-        />
+        <MessageList events={events} onLoadMore={handleLoadMore} className="px-4 pb-4" />
       )}
 
       <form

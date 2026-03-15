@@ -6,9 +6,9 @@ pre-commit:
       run: cargo fmt --all
       stage_fixed: true
 
-    - name: prettier
+    - name: format
       glob: "*.{ts,tsx}"
-      run: pnpm prettier --write {staged_files}
+      run: vp check --fix --no-lint {staged_files}
       stage_fixed: true
 
     - name: clippy
@@ -17,7 +17,7 @@ pre-commit:
 
     - name: lint
       glob: "*.{ts,tsx}"
-      run: pnpm lint
+      run: vp check --no-fmt
 
     - name: typos
       run: typos {staged_files}

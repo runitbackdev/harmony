@@ -4,18 +4,14 @@ import { getSpaces, subscribeSpaces, createSpace } from "@harmony/wasm";
 import type { ListDiff, SpaceSummary } from "@harmony/protocol";
 
 const spacePorts = new Set<MessagePort>();
-let spacesReader: ReadableStreamDefaultReader<ListDiff<SpaceSummary>[]> | null =
-  null;
+let spacesReader: ReadableStreamDefaultReader<ListDiff<SpaceSummary>[]> | null = null;
 
 function cancelStream() {
   spacesReader?.cancel().catch(() => {});
   spacesReader = null;
 }
 
-const handleSubscribe: HandlerFor<"h.spaces.subscribe"> = async (
-  _message,
-  send,
-) => {
+const handleSubscribe: HandlerFor<"h.spaces.subscribe"> = async (_message, send) => {
   spacePorts.add(send.port);
 
   if (spacePorts.size > 1) {
@@ -30,17 +26,14 @@ const handleSubscribe: HandlerFor<"h.spaces.subscribe"> = async (
   spacesReader = stream.getReader();
   send.respond({ type: "h.spaces.subscribed", spaces: spaces });
 
-  pipe(
+  void pipe(
     spacesReader,
     (spaces) => send.broadcast({ type: "h.spaces.update", spaces }),
     (error) => console.error("[spaces] stream error:", error),
   );
 };
 
-const handleUnsubscribe: HandlerFor<"h.spaces.unsubscribe"> = async (
-  _message,
-  send,
-) => {
+const handleUnsubscribe: HandlerFor<"h.spaces.unsubscribe"> = async (_message, send) => {
   spacePorts.delete(send.port);
 
   if (spacePorts.size === 0) {

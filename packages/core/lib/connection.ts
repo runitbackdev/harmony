@@ -14,10 +14,7 @@ type PendingRequest = {
   reject: (error: Error) => void;
 };
 
-type Payload<T extends string> = Omit<
-  Extract<WorkerInbound, { type: T }>,
-  "type" | "id"
->;
+type Payload<T extends string> = Omit<Extract<WorkerInbound, { type: T }>, "type" | "id">;
 
 export class WorkerConnection {
   private port: MessagePort;
@@ -44,10 +41,7 @@ export class WorkerConnection {
     this.handleUnload();
   }
 
-  request<T extends keyof ResponseMap>(
-    type: T,
-    payload: Payload<T>,
-  ): Promise<ResponseMap[T]> {
+  request<T extends keyof ResponseMap>(type: T, payload: Payload<T>): Promise<ResponseMap[T]> {
     const id = this.nextId();
 
     return new Promise((resolve, reject) => {
@@ -60,10 +54,7 @@ export class WorkerConnection {
     this.port.postMessage({ ...payload, type });
   }
 
-  on<T extends keyof StreamMap>(
-    type: T,
-    listener: (message: StreamMap[T]) => void,
-  ): () => void {
+  on<T extends keyof StreamMap>(type: T, listener: (message: StreamMap[T]) => void): () => void {
     return this.emitter.on(type, listener);
   }
 
@@ -79,9 +70,7 @@ export class WorkerConnection {
     this.pending.delete(message.id);
 
     if (message.type === "h.error") {
-      pending.reject(
-        new Error(`${message.message} from ${message.requestType}`),
-      );
+      pending.reject(new Error(`${message.message} from ${message.requestType}`));
     } else {
       pending.resolve(message);
     }

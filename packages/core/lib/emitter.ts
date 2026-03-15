@@ -4,10 +4,7 @@ type Listener = (data: any) => void;
 export class Emitter<Events extends Record<string, unknown>> {
   private listeners = new Map<string, Set<Listener>>();
 
-  on<K extends keyof Events & string>(
-    event: K,
-    fn: (data: Events[K]) => void,
-  ): () => void {
+  on<K extends keyof Events & string>(event: K, fn: (data: Events[K]) => void): () => void {
     let set = this.listeners.get(event);
 
     if (!set) {

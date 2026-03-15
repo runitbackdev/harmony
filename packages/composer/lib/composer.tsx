@@ -9,12 +9,7 @@ import { MarkdownExtension } from "./extensions";
 const composerExtension = defineExtension({
   name: "Composer",
   namespace: "@harmony",
-  dependencies: [
-    HistoryExtension,
-    AutoFocusExtension,
-    MarkdownExtension,
-    TailwindExtension,
-  ],
+  dependencies: [HistoryExtension, AutoFocusExtension, MarkdownExtension, TailwindExtension],
 });
 const placeholderText = "Enter some rich text...";
 const contentEditable = (
@@ -26,10 +21,7 @@ const contentEditable = (
 
 export function Composer() {
   return (
-    <LexicalExtensionComposer
-      extension={composerExtension}
-      contentEditable={null}
-    >
+    <LexicalExtensionComposer extension={composerExtension} contentEditable={null}>
       {contentEditable}
     </LexicalExtensionComposer>
   );

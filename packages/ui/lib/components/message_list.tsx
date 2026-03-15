@@ -66,9 +66,7 @@ function renderEvent(event: TimelineEvent, grouped: boolean) {
   if (event.content.type === "virtual") {
     const kind = event.content.kind;
     if (kind.startsWith("date_divider:")) {
-      return (
-        <DateDivider timestamp={Number(kind.slice("date_divider:".length))} />
-      );
+      return <DateDivider timestamp={Number(kind.slice("date_divider:".length))} />;
     }
     if (kind === "read_marker") return <ReadMarker />;
     if (kind === "timeline_start") return <TimelineStart />;
@@ -94,12 +92,7 @@ function renderEvent(event: TimelineEvent, grouped: boolean) {
   return null;
 }
 
-function MessageList({
-  events,
-  onLoadMore,
-  className,
-  ...props
-}: MessageListProps) {
+function MessageList({ events, onLoadMore, className, ...props }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 

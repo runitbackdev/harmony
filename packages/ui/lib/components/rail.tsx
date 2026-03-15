@@ -35,15 +35,7 @@ interface ItemProps extends HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-function Item({
-  active,
-  unread,
-  mentionCount,
-  label,
-  children,
-  className,
-  ...props
-}: ItemProps) {
+function Item({ active, unread, mentionCount, label, children, className, ...props }: ItemProps) {
   return (
     <button
       data-scope="space-rail"

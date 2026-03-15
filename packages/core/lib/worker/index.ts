@@ -4,10 +4,7 @@ import { PortRegistry } from "./ports";
 import { authHandlers } from "./handlers/auth";
 import { roomsHandlers, removeRoomsSubscriber } from "./handlers/rooms";
 import { spacesHandlers, removeSpacesSubscriber } from "./handlers/spaces";
-import {
-  timelineHandlers,
-  removeTimelineSubscriber,
-} from "./handlers/timeline";
+import { timelineHandlers, removeTimelineSubscriber } from "./handlers/timeline";
 import { syncHandlers, removeSyncSubscriber } from "./handlers/sync";
 import init, { configureTracing, stopSync } from "@harmony/wasm";
 

@@ -17,13 +17,13 @@ just dev     # starts the vite dev server
 
 ## Common Commands
 
-| Command | What it does |
-|---------|-------------|
-| `just dev` | Start dev server (builds WASM if needed) |
-| `just build` | Production build (WASM + web) |
-| `just check` | Run clippy, eslint, and typos |
-| `just fmt` | Format everything (cargo fmt + prettier) |
-| `just clean` | Remove all build artifacts |
+| Command      | What it does                             |
+| ------------ | ---------------------------------------- |
+| `just dev`   | Start dev server (builds WASM if needed) |
+| `just build` | Production build (WASM + web)            |
+| `just check` | Run clippy, eslint, and typos            |
+| `just fmt`   | Format everything (cargo fmt + prettier) |
+| `just clean` | Remove all build artifacts               |
 
 ## Commit Messages
 

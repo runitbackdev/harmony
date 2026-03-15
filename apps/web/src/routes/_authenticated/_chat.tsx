@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  createFileRoute,
-  Outlet,
-  useNavigate,
-  useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Rail, TextField } from "@harmony/ui";
 import { Home, Plus, X } from "lucide-react";
@@ -64,9 +59,7 @@ function RouteComponent() {
                   })
                 }
               >
-                <span className="text-xs font-semibold">
-                  {space.displayName[0]}
-                </span>
+                <span className="text-xs font-semibold">{space.displayName[0]}</span>
               </Rail.Item>
             ))}
 
@@ -74,11 +67,7 @@ function RouteComponent() {
           </>
         )}
 
-        <Rail.Item
-          label="Create space"
-          data-rail="add-server"
-          onClick={() => setCreateOpen(true)}
-        >
+        <Rail.Item label="Create space" data-rail="add-server" onClick={() => setCreateOpen(true)}>
           <Plus size={20} />
         </Rail.Item>
       </Rail>
@@ -88,15 +77,13 @@ function RouteComponent() {
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Title>Create a Space</Dialog.Title>
-            <Dialog.Description>
-              Give your space a name to get started.
-            </Dialog.Description>
+            <Dialog.Description>Give your space a name to get started.</Dialog.Description>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                form.handleSubmit();
+                void form.handleSubmit();
               }}
               className="mt-4 space-y-4"
             >

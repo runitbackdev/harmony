@@ -3,15 +3,4 @@ subject_length = 72
 subject_capitalized = false
 line_length = 100
 
-allowed_types = [
-  "feat",
-  "fix",
-  "docs",
-  "style",
-  "refactor",
-  "perf",
-  "test",
-  "build",
-  "ci",
-  "chore",
-]
+allowed_types = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore"]

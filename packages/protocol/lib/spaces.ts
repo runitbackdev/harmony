@@ -7,22 +7,13 @@ export type SpaceSummary = {
 };
 
 export type SpacesSubscribe = Request<"h.spaces.subscribe">;
-export type SpacesSubscribed = Response<
-  "h.spaces.subscribed",
-  { spaces: SpaceSummary[] }
->;
+export type SpacesSubscribed = Response<"h.spaces.subscribed", { spaces: SpaceSummary[] }>;
 export type SpacesUnsubscribe = Command<"h.spaces.unsubscribe">;
 
-export type SpacesUpdate = Stream<
-  "h.spaces.update",
-  { spaces: ListDiff<SpaceSummary>[] }
->;
+export type SpacesUpdate = Stream<"h.spaces.update", { spaces: ListDiff<SpaceSummary>[] }>;
 
 export type SpacesCreate = Request<"h.spaces.create", { name: string }>;
-export type SpacesCreated = Response<
-  "h.spaces.created",
-  { space: SpaceSummary }
->;
+export type SpacesCreated = Response<"h.spaces.created", { space: SpaceSummary }>;
 
 export type SpacesRequest = SpacesSubscribe | SpacesCreate;
 export type SpacesResponse = SpacesSubscribed | SpacesCreated;

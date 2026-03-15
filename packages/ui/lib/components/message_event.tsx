@@ -87,11 +87,7 @@ function MessageEvent({
             </span>
           </div>
         )}
-        <div
-          data-scope="message-event"
-          data-part="body"
-          className="text-sm text-surface-800-200"
-        >
+        <div data-scope="message-event" data-part="body" className="text-sm text-surface-800-200">
           {body}
         </div>
       </div>

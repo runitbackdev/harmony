@@ -1,10 +1,4 @@
-import type {
-  AuthCommand,
-  AuthError,
-  AuthLoggedIn,
-  AuthRequest,
-  AuthResponse,
-} from "./auth";
+import type { AuthCommand, AuthError, AuthLoggedIn, AuthRequest, AuthResponse } from "./auth";
 import type { ErrorResponse } from "./error";
 import type {
   RoomsCommand,
@@ -22,13 +16,7 @@ import type {
   SpacesSubscribed,
   SpacesUpdate,
 } from "./spaces";
-import type {
-  SyncCommand,
-  SyncRequest,
-  SyncResponse,
-  SyncStarted,
-  SyncStatus,
-} from "./sync";
+import type { SyncCommand, SyncRequest, SyncResponse, SyncStarted, SyncStatus } from "./sync";
 import type {
   TimelineCommand,
   TimelinePaginated,

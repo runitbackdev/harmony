@@ -4,28 +4,23 @@ import { useCallback, useState } from "react";
 
 export function useLogin() {
   const [status, setStatus] = useState<"idle" | "pending" | "error">("idle");
-  const [error, setError] = useState<{ code: string; message: string } | null>(
-    null,
-  );
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
-  const submit = useCallback(
-    async (request: { username: string; password: string }) => {
-      setStatus("pending");
-      setError(null);
+  const submit = useCallback(async (request: { username: string; password: string }) => {
+    setStatus("pending");
+    setError(null);
 
-      const result = await harmony.auth.login(request);
+    const result = await harmony.auth.login(request);
 
-      if (result.status === "ok") {
-        setStatus("idle");
-      } else {
-        setStatus("error");
-        setError({ code: result.code, message: result.message });
-      }
+    if (result.status === "ok") {
+      setStatus("idle");
+    } else {
+      setStatus("error");
+      setError({ code: result.code, message: result.message });
+    }
 
-      return result;
-    },
-    [],
-  );
+    return result;
+  }, []);
 
   const reset = useCallback(() => {
     setStatus("idle");

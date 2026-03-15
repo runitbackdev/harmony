@@ -8,10 +8,7 @@ export type AuthLoginResult =
 export type AuthLogoutResult = { status: "ok" };
 
 export type AuthApi = {
-  login: (params: {
-    username: string;
-    password: string;
-  }) => Promise<AuthLoginResult>;
+  login: (params: { username: string; password: string }) => Promise<AuthLoginResult>;
   restore: (session: Session) => Promise<AuthLoginResult>;
   logout: () => Promise<AuthLogoutResult>;
 };
@@ -53,7 +50,7 @@ export function createAuthApi(connection: WorkerConnection): AuthApi {
     },
 
     async logout() {
-      await connection.command("h.auth.logout", {});
+      connection.command("h.auth.logout", {});
 
       return { status: "ok" as const };
     },

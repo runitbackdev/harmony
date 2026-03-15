@@ -1,8 +1,4 @@
-import type {
-  TimelinePaginated,
-  TimelineSent,
-  TimelineSubscribed,
-} from "@harmony/protocol";
+import type { TimelinePaginated, TimelineSent, TimelineSubscribed } from "@harmony/protocol";
 import type { WorkerConnection } from "./connection";
 
 export type TimelineApi = {

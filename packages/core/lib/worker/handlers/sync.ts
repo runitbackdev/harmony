@@ -17,8 +17,7 @@ const handleStart: HandlerFor<"h.sync.start"> = async (_message, send) => {
 
   if (syncPorts.size > 1) {
     send.respond({ type: "h.sync.started" });
-    if (lastStatus != null)
-      send.port.postMessage({ type: "h.sync.status", status: lastStatus });
+    if (lastStatus != null) send.port.postMessage({ type: "h.sync.status", status: lastStatus });
     return;
   }
 
@@ -26,7 +25,7 @@ const handleStart: HandlerFor<"h.sync.start"> = async (_message, send) => {
   statusReader = statusStream.getReader();
   send.respond({ type: "h.sync.started" });
 
-  pipe(statusReader, (status) => {
+  void pipe(statusReader, (status) => {
     lastStatus = status;
     send.broadcast({ type: "h.sync.status", status });
   });
@@ -46,7 +45,7 @@ export function removeSyncSubscriber(port: MessagePort) {
 
   if (syncPorts.size === 0) {
     cancelStream();
-    stopSync();
+    void stopSync();
   }
 }
 

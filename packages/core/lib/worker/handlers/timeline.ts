@@ -1,18 +1,10 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import {
-  getTimeline,
-  paginateBackwards,
-  sendMessage,
-  subscribeTimeline,
-} from "@harmony/wasm";
+import { getTimeline, paginateBackwards, sendMessage, subscribeTimeline } from "@harmony/wasm";
 import type { ListDiff, TimelineEvent } from "@harmony/protocol";
 
 const roomPorts = new Map<string, Set<MessagePort>>();
-const readers = new Map<
-  string,
-  ReadableStreamDefaultReader<ListDiff<TimelineEvent>[]>
->();
+const readers = new Map<string, ReadableStreamDefaultReader<ListDiff<TimelineEvent>[]>>();
 
 function cancelStream(roomId: string) {
   readers
@@ -22,10 +14,7 @@ function cancelStream(roomId: string) {
   readers.delete(roomId);
 }
 
-const handleSubscribe: HandlerFor<"h.timeline.subscribe"> = async (
-  message,
-  send,
-) => {
+const handleSubscribe: HandlerFor<"h.timeline.subscribe"> = async (message, send) => {
   const { roomId } = message;
   let ports = roomPorts.get(roomId);
 
@@ -45,17 +34,14 @@ const handleSubscribe: HandlerFor<"h.timeline.subscribe"> = async (
 
   send.respond({ type: "h.timeline.subscribed", events });
 
-  pipe(
+  void pipe(
     reader,
     (events) => send.broadcast({ type: "h.timeline.update", roomId, events }),
     (error) => console.error(`[timeline] stream error for ${roomId}:`, error),
   );
 };
 
-const handleUnsubscribe: HandlerFor<"h.timeline.unsubscribe"> = async (
-  message,
-  send,
-) => {
+const handleUnsubscribe: HandlerFor<"h.timeline.unsubscribe"> = async (message, send) => {
   const { roomId } = message;
   const ports = roomPorts.get(roomId);
   if (!ports) return;
@@ -85,10 +71,7 @@ const handleSend: HandlerFor<"h.timeline.send"> = async (message, send) => {
   send.respond({ type: "h.timeline.sent" });
 };
 
-const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (
-  message,
-  send,
-) => {
+const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (message, send) => {
   const { roomId, count } = message;
   const hitStart = await paginateBackwards(roomId, count);
   send.respond({ type: "h.timeline.paginated", hitStart });
@@ -102,13 +85,8 @@ export const timelineHandlers: HandlerMap = {
 };
 
 declare module "@harmony/wasm" {
-  export function subscribeTimeline(
-    roomId: string,
-  ): Promise<[TimelineEvent[], ReadableStream]>;
+  export function subscribeTimeline(roomId: string): Promise<[TimelineEvent[], ReadableStream]>;
   export function getTimeline(roomId: string): Promise<TimelineEvent[]>;
   export function sendMessage(roomId: string, body: string): Promise<void>;
-  export function paginateBackwards(
-    roomId: string,
-    count: number,
-  ): Promise<boolean>;
+  export function paginateBackwards(roomId: string, count: number): Promise<boolean>;
 }

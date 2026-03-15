@@ -1,42 +1,44 @@
 {
   "name": "web",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "dev": "vp dev",
+    "build": "tsc -b && vp build",
+    "preview": "vp preview"
   },
   "dependencies": {
     "@harmony/profiler": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "@harmony/react": "workspace:*",
     "@harmony/ui": "workspace:*",
-    "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-form": "^1.28.3",
-    "@tanstack/react-router": "^1.161.1",
-    "@tanstack/react-router-devtools": "^1.161.1",
-    "lucide-react": "^0.564.0",
+    "@tailwindcss/vite": "^4.2.0",
+    "@tanstack/react-form": "^1.28.5",
+    "@tanstack/react-router": "^1.167.1",
+    "@tanstack/react-router-devtools": "^1.166.8",
+    "lucide-react": "^0.577.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tailwindcss": "^4.1.18",
+    "tailwindcss": "^4.2.0",
     "valibot": "^1.2.0"
   },
   "devDependencies": {
-    "@skeletonlabs/skeleton": "^4.12.0",
-    "@skeletonlabs/skeleton-react": "^4.12.0",
+    "@rolldown/plugin-babel": "^0.2.1",
+    "@skeletonlabs/skeleton": "^4.13.0",
+    "@skeletonlabs/skeleton-react": "^4.13.0",
     "@tailwindcss/forms": "^0.5.11",
-    "@tanstack/react-form-devtools": "^0.2.16",
-    "@tanstack/router-plugin": "^1.161.1",
-    "@types/node": "^24.10.1",
+    "@tanstack/react-form-devtools": "^0.2.19",
+    "@tanstack/router-plugin": "^1.166.10",
+    "@types/node": "^25.5.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitejs/plugin-react": "^5.1.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "vite-plugin-wasm": "^3.6.0",
+    "vite-plus": "catalog:"
   }
 }

@@ -44,10 +44,7 @@ type PositionerProps = ComponentProps<typeof SkeletonDialog.Positioner>;
 function Positioner({ className, ...props }: PositionerProps) {
   return (
     <SkeletonDialog.Positioner
-      className={cn(
-        "fixed inset-0 flex items-center justify-center p-4",
-        className,
-      )}
+      className={cn("fixed inset-0 flex items-center justify-center p-4", className)}
       {...props}
     />
   );

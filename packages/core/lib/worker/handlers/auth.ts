@@ -2,15 +2,11 @@ import type { AuthLoginErrorCode } from "@harmony/protocol";
 import type { HandlerFor, HandlerMap } from "../types";
 import { login, logout, restoreSession } from "@harmony/wasm";
 
-const HOMESERVER =
-  import.meta.env.VITE_HOMESERVER_URL ?? "https://chat.lycanthropy.dev";
+const HOMESERVER = import.meta.env.VITE_HOMESERVER_URL ?? "https://chat.lycanthropy.dev";
 
 type WasmError = { code: string; message: string };
 
-const MESSAGE_MAP: Record<
-  string,
-  { code: AuthLoginErrorCode; message: string }
-> = {
+const MESSAGE_MAP: Record<string, { code: AuthLoginErrorCode; message: string }> = {
   invalid_credentials: {
     code: "invalid_credentials",
     message: "Wrong username or password.",

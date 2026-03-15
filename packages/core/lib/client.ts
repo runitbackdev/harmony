@@ -28,10 +28,7 @@ export class Harmony {
     this.timeline = createTimelineApi(this.connection);
   }
 
-  on<T extends keyof StreamMap>(
-    type: T,
-    listener: (message: StreamMap[T]) => void,
-  ) {
+  on<T extends keyof StreamMap>(type: T, listener: (message: StreamMap[T]) => void) {
     return this.connection.on(type, listener);
   }
 }

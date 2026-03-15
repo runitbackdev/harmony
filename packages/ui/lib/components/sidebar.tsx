@@ -107,15 +107,7 @@ interface ItemProps extends HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-function Item({
-  active,
-  unread,
-  icon,
-  badge,
-  children,
-  className,
-  ...props
-}: ItemProps) {
+function Item({ active, unread, icon, badge, children, className, ...props }: ItemProps) {
   return (
     <li data-scope="sidebar" data-part="item-wrapper">
       <button
@@ -135,11 +127,7 @@ function Item({
         {...props}
       >
         {icon && (
-          <span
-            data-scope="sidebar"
-            data-part="item-icon"
-            className="text-surface-500"
-          >
+          <span data-scope="sidebar" data-part="item-icon" className="text-surface-500">
             {icon}
           </span>
         )}

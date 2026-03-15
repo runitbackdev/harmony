@@ -9,11 +9,7 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 function TextField({ label, error, className, ...props }: TextFieldProps) {
   return (
     <label data-scope="text-field" data-part="root" className="label">
-      <span
-        data-scope="text-field"
-        data-part="label"
-        className="label-text text-sm"
-      >
+      <span data-scope="text-field" data-part="label" className="label-text text-sm">
         {label}
       </span>
       <input
@@ -24,11 +20,7 @@ function TextField({ label, error, className, ...props }: TextFieldProps) {
         {...props}
       />
       {error && (
-        <p
-          data-scope="text-field"
-          data-part="error"
-          className="text-error-500 text-xs"
-        >
+        <p data-scope="text-field" data-part="error" className="text-error-500 text-xs">
           {error}
         </p>
       )}

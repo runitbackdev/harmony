@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
     const result = await restoreSession(session);
 
     if (result.status === "error") {
-      clearSession();
+      void clearSession();
       throw redirect({ to: "/login" });
     }
 
@@ -19,10 +19,7 @@ export const Route = createFileRoute("/_authenticated")({
     await initialize();
   },
   pendingComponent: () => (
-    <div
-      className="flex h-screen items-center justify-center bg-surface-50-950"
-      role="status"
-    >
+    <div className="flex h-screen items-center justify-center bg-surface-50-950" role="status">
       <div className="flex flex-col items-center gap-4">
         <div className="size-12 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500" />
         <p className="text-surface-500 text-sm">Loading Harmony...</p>

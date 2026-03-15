@@ -2,19 +2,20 @@
   "name": "@harmony/react",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./lib/index.ts"
+  },
   "dependencies": {
     "@harmony/core": "workspace:*",
     "@harmony/protocol": "workspace:*",
-    "valtio": "^2.3.0"
+    "valtio": "^2.3.1"
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:"
-  },
-  "exports": {
-    ".": "./lib/index.ts"
   }
 }

@@ -2,14 +2,15 @@
   "name": "@harmony/core",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./lib/index.ts"
+  },
   "dependencies": {
     "@harmony/protocol": "workspace:*",
     "@harmony/wasm": "workspace:*"
   },
   "devDependencies": {
-    "vite": "catalog:"
-  },
-  "exports": {
-    ".": "./lib/index.ts"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

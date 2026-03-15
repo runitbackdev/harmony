@@ -15,20 +15,11 @@ export type SpaceFilterSummary = {
 
 export type RoomsSubscribe = Request<"h.rooms.subscribe", { spaceId: string }>;
 export type RoomsSubscribed = Response<"h.rooms.subscribed">;
-export type RoomsUnsubscribe = Command<
-  "h.rooms.unsubscribe",
-  { spaceId: string }
->;
+export type RoomsUnsubscribe = Command<"h.rooms.unsubscribe", { spaceId: string }>;
 
-export type RoomsUpdate = Stream<
-  "h.rooms.update",
-  { rooms: ListDiff<RoomSummary>[] }
->;
+export type RoomsUpdate = Stream<"h.rooms.update", { rooms: ListDiff<RoomSummary>[] }>;
 
-export type RoomsCreate = Request<
-  "h.rooms.create",
-  { spaceId: string; name: string }
->;
+export type RoomsCreate = Request<"h.rooms.create", { spaceId: string; name: string }>;
 export type RoomsCreated = Response<"h.rooms.created", { room: RoomSummary }>;
 
 export type RoomsRequest = RoomsSubscribe | RoomsCreate;

@@ -32,16 +32,16 @@ Harmony is a Matrix chat client. The heavy lifting (protocol, sync, crypto) runs
 
 ## Packages
 
-| Package | What it does |
-|---------|-------------|
-| `apps/web` | React 19 app with TanStack Router. File-based routing, session-guarded layouts. |
-| `packages/core` | The `Harmony` client class + SharedWorker internals. Owns the message protocol. |
-| `packages/react` | React hooks (`useLogin`, `useSync`, `useSyncStatus`, `useSpaces`) wrapping core. |
-| `packages/protocol` | Shared TypeScript types for every message crossing the worker boundary. |
-| `packages/ui` | Design system components (Skeleton React + Tailwind 4). |
-| `packages/composer` | Rich text editor built on Lexical. |
-| `packages/profiler` | FPS/memory dev overlay. |
-| `crates/wasm` | Rust crate compiled to WASM. Wraps `matrix-sdk` for auth, sync, and spaces. |
+| Package             | What it does                                                                     |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `apps/web`          | React 19 app with TanStack Router. File-based routing, session-guarded layouts.  |
+| `packages/core`     | The `Harmony` client class + SharedWorker internals. Owns the message protocol.  |
+| `packages/react`    | React hooks (`useLogin`, `useSync`, `useSyncStatus`, `useSpaces`) wrapping core. |
+| `packages/protocol` | Shared TypeScript types for every message crossing the worker boundary.          |
+| `packages/ui`       | Design system components (Skeleton React + Tailwind 4).                          |
+| `packages/composer` | Rich text editor built on Lexical.                                               |
+| `packages/profiler` | FPS/memory dev overlay.                                                          |
+| `crates/wasm`       | Rust crate compiled to WASM. Wraps `matrix-sdk` for auth, sync, and spaces.      |
 
 ## Message Protocol
 
@@ -96,10 +96,10 @@ Starting points depending on what you're working on:
 
 ## Build Tools
 
-| Tool | Purpose |
-|------|---------|
-| `pnpm` | Package manager, workspace linking |
-| `vite` | Dev server + bundler for the web app |
-| `wasm-pack` | Compiles Rust crate to WASM + JS bindings |
-| `just` | Task runner (`just dev`, `just build`, `just check`, `just fmt`) |
-| `lefthook` | Git hooks for formatting, linting, commit messages |
+| Tool        | Purpose                                                          |
+| ----------- | ---------------------------------------------------------------- |
+| `pnpm`      | Package manager, workspace linking                               |
+| `vite`      | Dev server + bundler for the web app                             |
+| `wasm-pack` | Compiles Rust crate to WASM + JS bindings                        |
+| `just`      | Task runner (`just dev`, `just build`, `just check`, `just fmt`) |
+| `lefthook`  | Git hooks for formatting, linting, commit messages               |

@@ -52,9 +52,7 @@ type KeyedSubscriber<K, T> = (
   cleanup: () => void;
 }>;
 
-export function createKeyedSubscription<K, T>(
-  subscribe: KeyedSubscriber<K, T>,
-) {
+export function createKeyedSubscription<K, T>(subscribe: KeyedSubscriber<K, T>) {
   const state = proxy({
     key: null as K | null,
     items: [] as T[],

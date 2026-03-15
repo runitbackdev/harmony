@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  createFileRoute,
-  Outlet,
-  useNavigate,
-  useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Sidebar, TextField } from "@harmony/ui";
 import { createRoom, subscribeRooms, useRooms } from "@harmony/react";
@@ -37,11 +32,7 @@ function PendingSkeleton() {
       </Sidebar.Header>
       <div className="flex-1 space-y-2 p-2">
         {SKELETON_WIDTHS.map((width, i) => (
-          <div
-            key={i}
-            className="h-8 animate-pulse rounded bg-surface-300-700"
-            style={{ width }}
-          />
+          <div key={i} className="h-8 animate-pulse rounded bg-surface-300-700" style={{ width }} />
         ))}
       </div>
     </Sidebar>
@@ -104,15 +95,13 @@ function RouteComponent() {
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Title>Create a Channel</Dialog.Title>
-            <Dialog.Description>
-              Give your channel a name to get started.
-            </Dialog.Description>
+            <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                form.handleSubmit();
+                void form.handleSubmit();
               }}
               className="mt-4 space-y-4"
             >

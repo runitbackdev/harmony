@@ -38,7 +38,7 @@ function Login() {
       if (result.status === "ok") {
         setSession(result.session);
 
-        navigate({ to: "/" });
+        void navigate({ to: "/" });
       }
     },
   });
@@ -55,7 +55,7 @@ function Login() {
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            form.handleSubmit();
+            void form.handleSubmit();
           }}
           className="space-y-4"
         >

@@ -1,11 +1,6 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import {
-  createRoom,
-  setRoomFilter,
-  subscribeRoomList,
-  subscribeSpaceFilters,
-} from "@harmony/wasm";
+import { createRoom, setRoomFilter, subscribeRoomList, subscribeSpaceFilters } from "@harmony/wasm";
 import { applyListDiff } from "@harmony/protocol";
 import type { ListDiff, RoomSummary } from "@harmony/protocol";
 
@@ -16,19 +11,13 @@ type SpaceFilterData = {
 };
 
 const subscribedPorts = new Set<MessagePort>();
-let roomListReader: ReadableStreamDefaultReader<
-  ListDiff<RoomSummary>[]
-> | null = null;
-let spaceFiltersReader: ReadableStreamDefaultReader<
-  ListDiff<SpaceFilterData>[]
-> | null = null;
+let roomListReader: ReadableStreamDefaultReader<ListDiff<RoomSummary>[]> | null = null;
+let spaceFiltersReader: ReadableStreamDefaultReader<ListDiff<SpaceFilterData>[]> | null = null;
 let currentSpaceId: string | null = null;
 const spaceFilters: SpaceFilterData[] = [];
 
 function descendantsForSpace(spaceId: string): string[] {
-  const filter = spaceFilters.find(
-    (sf) => sf.level === 0 && sf.spaceId === spaceId,
-  );
+  const filter = spaceFilters.find((sf) => sf.level === 0 && sf.spaceId === spaceId);
   return filter?.descendants ?? [];
 }
 
@@ -44,7 +33,7 @@ async function initializeIfNeeded() {
   const roomListStream = await subscribeRoomList();
   roomListReader = roomListStream.getReader();
 
-  pipe(
+  void pipe(
     roomListReader,
     (roomDiffs) => broadcastRoomUpdate(roomDiffs),
     (error) => console.error("[rooms] room list stream error:", error),
@@ -54,7 +43,7 @@ async function initializeIfNeeded() {
   spaceFilters.push(...initialFilters);
   spaceFiltersReader = filtersStream.getReader();
 
-  pipe(
+  void pipe(
     spaceFiltersReader,
     (filterDiffs) => {
       for (const diff of filterDiffs) {
@@ -70,10 +59,7 @@ async function initializeIfNeeded() {
   );
 }
 
-const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (
-  message,
-  send,
-) => {
+const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (message, send) => {
   const { spaceId } = message;
   subscribedPorts.add(send.port);
 
@@ -86,10 +72,7 @@ const handleSubscribe: HandlerFor<"h.rooms.subscribe"> = async (
   send.respond({ type: "h.rooms.subscribed" });
 };
 
-const handleUnsubscribe: HandlerFor<"h.rooms.unsubscribe"> = async (
-  _message,
-  send,
-) => {
+const handleUnsubscribe: HandlerFor<"h.rooms.unsubscribe"> = async (_message, send) => {
   subscribedPorts.delete(send.port);
 };
 
@@ -112,8 +95,6 @@ export const roomsHandlers: HandlerMap = {
 declare module "@harmony/wasm" {
   export function subscribeRoomList(): Promise<ReadableStream>;
   export function setRoomFilter(roomIds: string[]): void;
-  export function subscribeSpaceFilters(): Promise<
-    [SpaceFilterData[], ReadableStream]
-  >;
+  export function subscribeSpaceFilters(): Promise<[SpaceFilterData[], ReadableStream]>;
   export function createRoom(spaceId: string, name: string): Promise<RoomData>;
 }

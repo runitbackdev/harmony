@@ -15,10 +15,7 @@ export function createDispatcher(handlers: HandlerMap, ports: PortRegistry) {
         try {
           port.postMessage({ ...payload, id: message.id });
         } catch (error) {
-          console.warn(
-            "[dispatcher] failed to respond, port likely closed:",
-            error,
-          );
+          console.warn("[dispatcher] failed to respond, port likely closed:", error);
         }
       },
       broadcast(payload) {
@@ -49,7 +46,7 @@ export function createDispatcher(handlers: HandlerMap, ports: PortRegistry) {
           ? error.message
           : typeof error === "object"
             ? JSON.stringify(error)
-            : String(error);
+            : String(error as string);
 
       if (isRequest) {
         send.respond({

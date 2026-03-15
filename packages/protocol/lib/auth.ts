@@ -7,20 +7,13 @@ export type Session = {
   refreshToken: string | null;
 };
 
-export type AuthLogin = Request<
-  "h.auth.login",
-  { username: string; password: string }
->;
+export type AuthLogin = Request<"h.auth.login", { username: string; password: string }>;
 
 export type AuthRestore = Request<"h.auth.restore", { session: Session }>;
 
 export type AuthLogout = Command<"h.auth.logout">;
 
-export type AuthLoginErrorCode =
-  | "invalid_credentials"
-  | "server_not_found"
-  | "network"
-  | "unknown";
+export type AuthLoginErrorCode = "invalid_credentials" | "server_not_found" | "network" | "unknown";
 
 export type AuthLoggedIn = Response<"h.auth.logged_in", { session: Session }>;
 

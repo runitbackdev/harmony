@@ -17,8 +17,7 @@ export function useStickToBottom(
       const container = containerRef.current;
       if (!container) return;
       atBottom.current =
-        container.scrollHeight - container.scrollTop - container.clientHeight <
-        AT_BOTTOM_THRESHOLD;
+        container.scrollHeight - container.scrollTop - container.clientHeight < AT_BOTTOM_THRESHOLD;
     }
 
     container.addEventListener("scroll", handleScroll, { passive: true });

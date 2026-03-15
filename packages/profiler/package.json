@@ -5,6 +5,9 @@
   "exports": {
     ".": "./lib/index.ts"
   },
+  "dependencies": {
+    "@tanstack/react-hotkeys": "catalog:"
+  },
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -13,8 +16,5 @@
   },
   "peerDependencies": {
     "react": "catalog:"
-  },
-  "dependencies": {
-    "@tanstack/react-hotkeys": "catalog:"
   }
 }
