@@ -9,6 +9,7 @@ services:
     volumes:
       - ./synapse/homeserver.yaml:/config/homeserver.yaml:ro
       - ./synapse/log.config:/config/log.config:ro
+      - ./synapse/herald.registration.yaml:/config/herald.registration.yaml:ro
       - synapse-data:/data
     ports:
       - "8008:8008"

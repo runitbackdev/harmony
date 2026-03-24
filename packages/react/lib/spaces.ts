@@ -25,3 +25,9 @@ export async function createSpace(name: string) {
 
   return space;
 }
+
+export async function joinSpace(spaceId: string) {
+  const { space } = await harmony.spaces.join(spaceId);
+
+  return space;
+}

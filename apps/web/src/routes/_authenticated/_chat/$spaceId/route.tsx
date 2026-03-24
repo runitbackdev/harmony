@@ -2,8 +2,8 @@ import { useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Sidebar, TextField } from "@harmony/ui";
-import { createRoom, subscribeRooms, useRooms } from "@harmony/react";
-import { Hash, Plus, X } from "lucide-react";
+import { createRoom, subscribeRooms, useCreateInvite, useRooms } from "@harmony/react";
+import { Check, Copy, Hash, Link, Plus, X } from "lucide-react";
 import * as v from "valibot";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId")({
@@ -44,12 +44,14 @@ function RouteComponent() {
   const navigate = useNavigate();
   const { spaceId, roomId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const createInvite = useCreateInvite();
 
   const form = useForm({
     defaultValues: { name: "" },
     validators: { onSubmit: createRoomSchema },
     onSubmit: async ({ value }) => {
-      await createRoom(spaceId!, value.name);
+      await createRoom(spaceId!, value.name, "public");
       setCreateOpen(false);
       form.reset();
     },
@@ -78,7 +80,18 @@ function RouteComponent() {
             ))}
           </Sidebar.List>
         </div>
-        <div className="p-2">
+        <div className="space-y-1 p-2">
+          <button
+            className="btn preset-tonal-surface w-full gap-2 text-sm"
+            onClick={() => {
+              setInviteOpen(true);
+              if (!createInvite.data) createInvite.mutate({ spaceMxid: spaceId! });
+            }}
+            aria-label="Create invite link"
+          >
+            <Link size={16} />
+            Invite People
+          </button>
           <button
             className="btn preset-tonal-surface w-full gap-2 text-sm"
             onClick={() => setCreateOpen(true)}
@@ -135,7 +148,79 @@ function RouteComponent() {
         </Dialog.Positioner>
       </Dialog>
 
+      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
+
       <Outlet />
     </>
+  );
+}
+
+function InviteDialog({
+  open,
+  onOpenChange,
+  createInvite,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  createInvite: ReturnType<typeof useCreateInvite>;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const inviteUrl = createInvite.data
+    ? `${window.location.origin}/invite/${createInvite.data.code}`
+    : null;
+
+  function handleClose(event: { open: boolean }) {
+    onOpenChange(event.open);
+    if (!event.open) setCopied(false);
+  }
+
+  async function handleCopy() {
+    if (!inviteUrl) return;
+    await navigator.clipboard.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog.Backdrop />
+      <Dialog.Positioner>
+        <Dialog.Content>
+          <Dialog.Title>Invite People</Dialog.Title>
+          <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
+
+          <div className="mt-4">
+            {createInvite.isPending ? (
+              <div className="h-10 animate-pulse rounded bg-surface-200-800" />
+            ) : createInvite.isError ? (
+              <p className="text-error-500 text-sm">Failed to create invite link.</p>
+            ) : inviteUrl ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteUrl}
+                  aria-label="Invite link"
+                  className="input flex-1 truncate bg-surface-200-800 px-3 py-2 text-sm"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <button
+                  className="btn preset-filled-primary-500 shrink-0 gap-1.5"
+                  onClick={() => void handleCopy()}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <Dialog.CloseTrigger>
+            <X size={16} />
+          </Dialog.CloseTrigger>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog>
   );
 }

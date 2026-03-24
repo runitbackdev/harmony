@@ -21,7 +21,9 @@ const rooms = createKeyedSubscription<string, RoomSummary>((spaceId, items) =>
 export const useRooms = rooms.useValue;
 export const subscribeRooms = rooms.start;
 
-export async function createRoom(spaceId: string, name: string) {
-  const { room } = await harmony.rooms.create(spaceId, name);
+import type { ChannelVisibility } from "@harmony/protocol";
+
+export async function createRoom(spaceId: string, name: string, visibility: ChannelVisibility) {
+  const { room } = await harmony.rooms.create(spaceId, name, visibility);
   return room;
 }

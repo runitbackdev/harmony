@@ -7,7 +7,9 @@
   },
   "dependencies": {
     "@harmony/protocol": "workspace:*",
-    "@harmony/wasm": "workspace:*"
+    "@harmony/wasm": "workspace:*",
+    "camelcase-keys": "^10.0.2",
+    "snakecase-keys": "^9.0.2"
   },
   "devDependencies": {
     "vite": "catalog:",

@@ -11,6 +11,7 @@ import type {
 import type {
   SpacesCommand,
   SpacesCreated,
+  SpacesJoined,
   SpacesRequest,
   SpacesResponse,
   SpacesSubscribed,
@@ -43,6 +44,7 @@ export type ResponseMap = {
   "h.sync.start": SyncStarted;
   "h.spaces.subscribe": SpacesSubscribed;
   "h.spaces.create": SpacesCreated;
+  "h.spaces.join": SpacesJoined;
   "h.rooms.subscribe": RoomsSubscribed;
   "h.rooms.create": RoomsCreated;
   "h.timeline.subscribe": TimelineSubscribed;

@@ -1,8 +1,15 @@
 use futures_util::StreamExt;
 use matrix_sdk::ruma::{
-    RoomId,
-    api::client::room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
-    events::space::child::SpaceChildEventContent,
+    OwnedRoomId, RoomId,
+    api::client::{
+        room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
+        space::get_hierarchy::v1::Request as SpaceHierarchyRequest,
+    },
+    events::{
+        EmptyStateKey, InitialStateEvent,
+        room::join_rules::{AllowRule, JoinRule, RoomJoinRulesEventContent},
+        space::child::SpaceChildEventContent,
+    },
     room::RoomType,
     serde::Raw,
 };
@@ -31,6 +38,14 @@ pub async fn get_service() -> Result<Rc<SpaceService>, HarmonyError> {
     let service = Rc::new(SpaceService::new(client).await);
     SPACE_SERVICE.with(|inner| *inner.borrow_mut() = Some(service.clone()));
     Ok(service)
+}
+
+#[derive(Clone, Copy, Tsify, Serialize, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "lowercase")]
+pub enum ChannelVisibility {
+    Public,
+    Private,
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -100,9 +115,23 @@ pub async fn subscribe_space_filters_impl() -> Result<Subscription<SpaceFilterDa
     Ok(Subscription { initial, stream })
 }
 
+fn join_rules_for_space(
+    space: &matrix_sdk::Room,
+    visibility: ChannelVisibility,
+) -> RoomJoinRulesEventContent {
+    match visibility {
+        ChannelVisibility::Public => {
+            let allow = vec![AllowRule::room_membership(space.room_id().to_owned())];
+            RoomJoinRulesEventContent::restricted(allow)
+        }
+        ChannelVisibility::Private => RoomJoinRulesEventContent::new(JoinRule::Invite),
+    }
+}
+
 async fn create_channel(
     space: &matrix_sdk::Room,
     name: &str,
+    visibility: ChannelVisibility,
 ) -> Result<matrix_sdk::Room, HarmonyError> {
     let server_name = space
         .client()
@@ -111,8 +140,16 @@ async fn create_channel(
         .server_name()
         .to_owned();
 
+    let join_rules = join_rules_for_space(space, visibility);
+    let join_rules_event = InitialStateEvent::new(EmptyStateKey, join_rules);
+
     let mut request = CreateRoomRequest::new();
     request.name = Some(name.to_owned());
+    request.initial_state = vec![
+        Raw::new(&join_rules_event)
+            .map_err(|_| HarmonyError::SerializationFailed)?
+            .cast(),
+    ];
     let channel = space.client().create_room(request).await?;
 
     let mut child_content = SpaceChildEventContent::new(vec![server_name]);
@@ -124,7 +161,11 @@ async fn create_channel(
     Ok(channel)
 }
 
-pub async fn create_room_impl(space_id: &str, name: &str) -> Result<RoomData, HarmonyError> {
+pub async fn create_room_impl(
+    space_id: &str,
+    name: &str,
+    visibility: ChannelVisibility,
+) -> Result<RoomData, HarmonyError> {
     let room_id: &RoomId =
         <&RoomId>::try_from(space_id).map_err(|_| HarmonyError::InvalidUserId)?;
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
@@ -132,12 +173,47 @@ pub async fn create_room_impl(space_id: &str, name: &str) -> Result<RoomData, Ha
         .get_room(room_id)
         .ok_or(HarmonyError::ClientNotReady)?;
 
-    let channel = create_channel(&space, name).await?;
+    let channel = create_channel(&space, name, visibility).await?;
 
     Ok(RoomData {
         room_id: channel.room_id().to_string(),
         display_name: name.to_owned(),
         room_type: None,
+    })
+}
+
+pub async fn join_space_impl(space_id: &str) -> Result<SpaceData, HarmonyError> {
+    let room_id = <&RoomId>::try_from(space_id).map_err(|_| HarmonyError::InvalidUserId)?;
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+
+    let space = client.join_room_by_id(room_id).await?;
+    let display_name = space
+        .display_name()
+        .await
+        .map_or(String::new(), |n| n.to_string());
+
+    let hierarchy = client
+        .send(SpaceHierarchyRequest::new(room_id.to_owned()))
+        .await?;
+
+    let suggested_rooms: Vec<OwnedRoomId> = hierarchy
+        .rooms
+        .iter()
+        .find(|r| r.summary.room_id == room_id)
+        .into_iter()
+        .flat_map(|space_entry| &space_entry.children_state)
+        .filter_map(|raw| raw.deserialize().ok())
+        .filter(|child| child.content.suggested)
+        .map(|child| child.state_key)
+        .collect();
+
+    for child_room_id in &suggested_rooms {
+        let _ = client.join_room_by_id(child_room_id).await;
+    }
+
+    Ok(SpaceData {
+        room_id: space.room_id().to_string(),
+        display_name,
     })
 }
 
@@ -153,7 +229,7 @@ pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
         Some(Raw::new(&creation_content).map_err(|_| HarmonyError::SerializationFailed)?);
 
     let space = client.create_room(request).await?;
-    create_channel(&space, "general").await?;
+    create_channel(&space, "general", ChannelVisibility::Public).await?;
 
     Ok(SpaceData {
         room_id: space.room_id().to_string(),

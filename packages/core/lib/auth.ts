@@ -1,5 +1,6 @@
 import type { Session } from "@harmony/protocol";
 import type { WorkerConnection } from "./connection";
+import { setSession, clearSession } from "./session";
 
 export type AuthLoginResult =
   | { status: "ok"; session: Session }
@@ -20,6 +21,7 @@ export function createAuthApi(connection: WorkerConnection): AuthApi {
 
       switch (response.type) {
         case "h.auth.logged_in": {
+          setSession(response.session);
           return { status: "ok" as const, session: response.session };
         }
         case "h.auth.error": {
@@ -37,6 +39,7 @@ export function createAuthApi(connection: WorkerConnection): AuthApi {
 
       switch (response.type) {
         case "h.auth.logged_in": {
+          setSession(response.session);
           return { status: "ok" as const, session: response.session };
         }
         case "h.auth.error": {
@@ -51,6 +54,7 @@ export function createAuthApi(connection: WorkerConnection): AuthApi {
 
     async logout() {
       connection.command("h.auth.logout", {});
+      await clearSession();
 
       return { status: "ok" as const };
     },

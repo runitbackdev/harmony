@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from "./routes/__root";
 import { Route as LoginRouteImport } from "./routes/login";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
+import { Route as InviteCodeRouteImport } from "./routes/invite/$code";
 import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
 import { Route as AuthenticatedChatRouteImport } from "./routes/_authenticated/_chat";
 import { Route as AuthenticatedChatIndexRouteImport } from "./routes/_authenticated/_chat/index";
@@ -24,6 +25,11 @@ const LoginRoute = LoginRouteImport.update({
 } as any);
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: "/_authenticated",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: "/invite/$code",
+  path: "/invite/$code",
   getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -40,23 +46,22 @@ const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   path: "/",
   getParentRoute: () => AuthenticatedChatRoute,
 } as any);
-const AuthenticatedChatSpaceIdRouteRoute =
-  AuthenticatedChatSpaceIdRouteRouteImport.update({
-    id: "/$spaceId",
-    path: "/$spaceId",
-    getParentRoute: () => AuthenticatedChatRoute,
-  } as any);
-const AuthenticatedChatSpaceIdRoomIdRoute =
-  AuthenticatedChatSpaceIdRoomIdRouteImport.update({
-    id: "/$roomId",
-    path: "/$roomId",
-    getParentRoute: () => AuthenticatedChatSpaceIdRouteRoute,
-  } as any);
+const AuthenticatedChatSpaceIdRouteRoute = AuthenticatedChatSpaceIdRouteRouteImport.update({
+  id: "/$spaceId",
+  path: "/$spaceId",
+  getParentRoute: () => AuthenticatedChatRoute,
+} as any);
+const AuthenticatedChatSpaceIdRoomIdRoute = AuthenticatedChatSpaceIdRoomIdRouteImport.update({
+  id: "/$roomId",
+  path: "/$roomId",
+  getParentRoute: () => AuthenticatedChatSpaceIdRouteRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedChatIndexRoute;
   "/login": typeof LoginRoute;
   "/settings": typeof AuthenticatedSettingsRoute;
+  "/invite/$code": typeof InviteCodeRoute;
   "/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
 }
@@ -64,6 +69,7 @@ export interface FileRoutesByTo {
   "/": typeof AuthenticatedChatIndexRoute;
   "/login": typeof LoginRoute;
   "/settings": typeof AuthenticatedSettingsRoute;
+  "/invite/$code": typeof InviteCodeRoute;
   "/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
 }
@@ -73,21 +79,23 @@ export interface FileRoutesById {
   "/login": typeof LoginRoute;
   "/_authenticated/_chat": typeof AuthenticatedChatRouteWithChildren;
   "/_authenticated/settings": typeof AuthenticatedSettingsRoute;
+  "/invite/$code": typeof InviteCodeRoute;
   "/_authenticated/_chat/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/_authenticated/_chat/": typeof AuthenticatedChatIndexRoute;
   "/_authenticated/_chat/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/login" | "/settings" | "/$spaceId" | "/$spaceId/$roomId";
+  fullPaths: "/" | "/login" | "/settings" | "/invite/$code" | "/$spaceId" | "/$spaceId/$roomId";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/login" | "/settings" | "/$spaceId" | "/$spaceId/$roomId";
+  to: "/" | "/login" | "/settings" | "/invite/$code" | "/$spaceId" | "/$spaceId/$roomId";
   id:
     | "__root__"
     | "/_authenticated"
     | "/login"
     | "/_authenticated/_chat"
     | "/_authenticated/settings"
+    | "/invite/$code"
     | "/_authenticated/_chat/$spaceId"
     | "/_authenticated/_chat/"
     | "/_authenticated/_chat/$spaceId/$roomId";
@@ -96,6 +104,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
   LoginRoute: typeof LoginRoute;
+  InviteCodeRoute: typeof InviteCodeRoute;
 }
 
 declare module "@tanstack/react-router" {
@@ -112,6 +121,13 @@ declare module "@tanstack/react-router" {
       path: "";
       fullPath: "/";
       preLoaderRoute: typeof AuthenticatedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/invite/$code": {
+      id: "/invite/$code";
+      path: "/invite/$code";
+      fullPath: "/invite/$code";
+      preLoaderRoute: typeof InviteCodeRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/_authenticated/settings": {
@@ -156,15 +172,12 @@ interface AuthenticatedChatSpaceIdRouteRouteChildren {
   AuthenticatedChatSpaceIdRoomIdRoute: typeof AuthenticatedChatSpaceIdRoomIdRoute;
 }
 
-const AuthenticatedChatSpaceIdRouteRouteChildren: AuthenticatedChatSpaceIdRouteRouteChildren =
-  {
-    AuthenticatedChatSpaceIdRoomIdRoute: AuthenticatedChatSpaceIdRoomIdRoute,
-  };
+const AuthenticatedChatSpaceIdRouteRouteChildren: AuthenticatedChatSpaceIdRouteRouteChildren = {
+  AuthenticatedChatSpaceIdRoomIdRoute: AuthenticatedChatSpaceIdRoomIdRoute,
+};
 
 const AuthenticatedChatSpaceIdRouteRouteWithChildren =
-  AuthenticatedChatSpaceIdRouteRoute._addFileChildren(
-    AuthenticatedChatSpaceIdRouteRouteChildren,
-  );
+  AuthenticatedChatSpaceIdRouteRoute._addFileChildren(AuthenticatedChatSpaceIdRouteRouteChildren);
 
 interface AuthenticatedChatRouteChildren {
   AuthenticatedChatSpaceIdRouteRoute: typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
@@ -172,13 +185,13 @@ interface AuthenticatedChatRouteChildren {
 }
 
 const AuthenticatedChatRouteChildren: AuthenticatedChatRouteChildren = {
-  AuthenticatedChatSpaceIdRouteRoute:
-    AuthenticatedChatSpaceIdRouteRouteWithChildren,
+  AuthenticatedChatSpaceIdRouteRoute: AuthenticatedChatSpaceIdRouteRouteWithChildren,
   AuthenticatedChatIndexRoute: AuthenticatedChatIndexRoute,
 };
 
-const AuthenticatedChatRouteWithChildren =
-  AuthenticatedChatRoute._addFileChildren(AuthenticatedChatRouteChildren);
+const AuthenticatedChatRouteWithChildren = AuthenticatedChatRoute._addFileChildren(
+  AuthenticatedChatRouteChildren,
+);
 
 interface AuthenticatedRouteChildren {
   AuthenticatedChatRoute: typeof AuthenticatedChatRouteWithChildren;
@@ -197,6 +210,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  InviteCodeRoute: InviteCodeRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

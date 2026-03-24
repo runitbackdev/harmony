@@ -15,7 +15,10 @@ export type SpacesUpdate = Stream<"h.spaces.update", { spaces: ListDiff<SpaceSum
 export type SpacesCreate = Request<"h.spaces.create", { name: string }>;
 export type SpacesCreated = Response<"h.spaces.created", { space: SpaceSummary }>;
 
-export type SpacesRequest = SpacesSubscribe | SpacesCreate;
-export type SpacesResponse = SpacesSubscribed | SpacesCreated;
+export type SpacesJoin = Request<"h.spaces.join", { spaceId: string }>;
+export type SpacesJoined = Response<"h.spaces.joined", { space: SpaceSummary }>;
+
+export type SpacesRequest = SpacesSubscribe | SpacesCreate | SpacesJoin;
+export type SpacesResponse = SpacesSubscribed | SpacesCreated | SpacesJoined;
 export type SpacesCommand = SpacesUnsubscribe;
 export type SpacesStream = SpacesUpdate;

@@ -36,6 +36,9 @@ rc_login:
     per_second: 100
     burst_count: 100
 
+app_service_config_files:
+  - /config/herald.registration.yaml
+
 report_stats: false
 suppress_key_server_warning: true
 serve_server_wellknown: true

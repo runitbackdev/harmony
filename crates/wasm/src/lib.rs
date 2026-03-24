@@ -7,8 +7,8 @@ use crate::{
     errors::HarmonyError,
     rooms::{RoomData, set_room_filter_impl, subscribe_room_list_impl},
     spaces::{
-        SpaceData, create_room_impl, create_space_impl, get_spaces_impl,
-        subscribe_space_filters_impl, subscribe_spaces_impl,
+        ChannelVisibility, SpaceData, create_room_impl, create_space_impl, get_spaces_impl,
+        join_space_impl, subscribe_space_filters_impl, subscribe_spaces_impl,
     },
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
@@ -88,9 +88,18 @@ pub async fn create_space(name: &str) -> Result<SpaceData, HarmonyError> {
     create_space_impl(name).await
 }
 
+#[wasm_bindgen(js_name = joinSpace)]
+pub async fn join_space(space_id: &str) -> Result<SpaceData, HarmonyError> {
+    join_space_impl(space_id).await
+}
+
 #[wasm_bindgen(js_name = createRoom)]
-pub async fn create_room(space_id: &str, name: &str) -> Result<RoomData, HarmonyError> {
-    create_room_impl(space_id, name).await
+pub async fn create_room(
+    space_id: &str,
+    name: &str,
+    visibility: ChannelVisibility,
+) -> Result<RoomData, HarmonyError> {
+    create_room_impl(space_id, name, visibility).await
 }
 
 #[wasm_bindgen(js_name = subscribeRoomList)]

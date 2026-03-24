@@ -2,9 +2,7 @@ import type { Session } from "@harmony/protocol";
 
 const STORAGE_KEY = "harmony_session";
 
-// NOTE: We might eventually wanna use WebCrypto here to encrypt this
-// for better XSS protection
-export function getSession() {
+export function getSession(): Session | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
 

@@ -19,7 +19,12 @@ export type RoomsUnsubscribe = Command<"h.rooms.unsubscribe", { spaceId: string 
 
 export type RoomsUpdate = Stream<"h.rooms.update", { rooms: ListDiff<RoomSummary>[] }>;
 
-export type RoomsCreate = Request<"h.rooms.create", { spaceId: string; name: string }>;
+export type ChannelVisibility = "public" | "private";
+
+export type RoomsCreate = Request<
+  "h.rooms.create",
+  { spaceId: string; name: string; visibility: ChannelVisibility }
+>;
 export type RoomsCreated = Response<"h.rooms.created", { room: RoomSummary }>;
 
 export type RoomsRequest = RoomsSubscribe | RoomsCreate;

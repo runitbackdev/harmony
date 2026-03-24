@@ -1,12 +1,16 @@
-import { getSession, setSession } from "@/auth/session";
-import { useLogin } from "@harmony/react";
+import { getSession, useLogin } from "@harmony/react";
 import { TextField } from "@harmony/ui";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import * as v from "valibot";
 
+const searchSchema = v.object({
+  invite: v.optional(v.string()),
+});
+
 export const Route = createFileRoute("/login")({
   component: Login,
+  validateSearch: searchSchema,
   beforeLoad: async () => {
     if (getSession()) throw redirect({ to: "/" });
   },
@@ -20,6 +24,7 @@ const loginSchema = v.object({
 function Login() {
   const login = useLogin();
   const navigate = useNavigate();
+  const { invite } = Route.useSearch();
 
   const form = useForm({
     defaultValues: {
@@ -36,9 +41,7 @@ function Login() {
       });
 
       if (result.status === "ok") {
-        setSession(result.session);
-
-        void navigate({ to: "/" });
+        void navigate(invite ? { to: "/invite/$code", params: { code: invite } } : { to: "/" });
       }
     },
   });

@@ -1,5 +1,4 @@
-import { clearSession, getSession, setSession } from "@/auth/session";
-import { initialize, restoreSession } from "@harmony/react";
+import { getSession, initialize, restoreSession } from "@harmony/react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -11,11 +10,9 @@ export const Route = createFileRoute("/_authenticated")({
     const result = await restoreSession(session);
 
     if (result.status === "error") {
-      void clearSession();
       throw redirect({ to: "/login" });
     }
 
-    setSession(result.session);
     await initialize();
   },
   pendingComponent: () => (

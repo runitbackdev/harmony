@@ -81,8 +81,8 @@ export function removeRoomsSubscriber(port: MessagePort) {
 }
 
 const handleCreate: HandlerFor<"h.rooms.create"> = async (message, send) => {
-  const { spaceId, name } = message;
-  const room = await createRoom(spaceId, name);
+  const { spaceId, name, visibility } = message;
+  const room = await createRoom(spaceId, name, visibility);
   send.respond({ type: "h.rooms.created", room });
 };
 
@@ -96,5 +96,5 @@ declare module "@harmony/wasm" {
   export function subscribeRoomList(): Promise<ReadableStream>;
   export function setRoomFilter(roomIds: string[]): void;
   export function subscribeSpaceFilters(): Promise<[SpaceFilterData[], ReadableStream]>;
-  export function createRoom(spaceId: string, name: string): Promise<RoomData>;
+  export function createRoom(spaceId: string, name: string, visibility: string): Promise<RoomData>;
 }
