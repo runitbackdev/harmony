@@ -13,13 +13,12 @@ class MatrixClient < ApplicationClient
   end
 
   def space_preview(room_id, as_user:)
-    response = @connection.get("/_matrix/client/v1/rooms/#{CGI.escape(room_id)}/hierarchy") do |req|
+    response = @connection.get("/_matrix/client/v1/room_summary/#{CGI.escape(room_id)}") do |req|
       req.headers["Authorization"] = "Bearer #{@as_token}"
       req.params["user_id"] = as_user
-      req.params["limit"] = 1
     end
 
-    room = response.body["rooms"]&.first
+    room = response.body
     { name: room&.dig("name") || "Unknown Space", member_count: room&.dig("num_joined_members") || 0 }
   end
 
