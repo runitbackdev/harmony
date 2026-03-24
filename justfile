@@ -40,11 +40,10 @@ synapse:
 synapse-stop:
   docker compose down
 
-herald:
-  cd apps/herald && bin/rails server
-
-reset:
-  ./scripts/reset-dev.sh
+setup-users:
+  docker exec harmony-synapse register_new_matrix_user -u admin -p admin -c /config/homeserver.yaml --admin
+  docker exec harmony-synapse register_new_matrix_user -u alice -p alice -c /config/homeserver.yaml --no-admin
+  docker exec harmony-synapse register_new_matrix_user -u bob -p bob -c /config/homeserver.yaml --no-admin
 
 synapse-seed: setup-users
 
