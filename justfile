@@ -46,6 +46,8 @@ herald:
 reset:
   ./scripts/reset-dev.sh
 
+synapse-seed: setup-users
+
 [private]
 check-deps:
   @command -v rustup >/dev/null || (echo "error: rustup not found — install from https://rustup.rs" && exit 1)
