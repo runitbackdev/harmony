@@ -113,12 +113,6 @@ Seed test data (users, rooms, messages):
 just synapse-seed
 ```
 
-Run the app against the local homeserver:
-
-```sh
-just dev-local
-```
-
 | Command              | Description                            |
 | -------------------- | -------------------------------------- |
 | `just synapse`       | Start local Synapse (port 8008)        |
