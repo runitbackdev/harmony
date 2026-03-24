@@ -119,7 +119,6 @@ just synapse-seed
 | `just synapse-seed`  | Create test users, rooms, and messages |
 | `just synapse-stop`  | Stop Synapse                           |
 | `just synapse-reset` | Stop Synapse and delete all data       |
-| `just dev-local`     | Dev server pointed at local Synapse    |
 
 ### Test Accounts
 
