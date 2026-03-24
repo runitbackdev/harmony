@@ -46,16 +46,18 @@ const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   path: "/",
   getParentRoute: () => AuthenticatedChatRoute,
 } as any);
-const AuthenticatedChatSpaceIdRouteRoute = AuthenticatedChatSpaceIdRouteRouteImport.update({
-  id: "/$spaceId",
-  path: "/$spaceId",
-  getParentRoute: () => AuthenticatedChatRoute,
-} as any);
-const AuthenticatedChatSpaceIdRoomIdRoute = AuthenticatedChatSpaceIdRoomIdRouteImport.update({
-  id: "/$roomId",
-  path: "/$roomId",
-  getParentRoute: () => AuthenticatedChatSpaceIdRouteRoute,
-} as any);
+const AuthenticatedChatSpaceIdRouteRoute =
+  AuthenticatedChatSpaceIdRouteRouteImport.update({
+    id: "/$spaceId",
+    path: "/$spaceId",
+    getParentRoute: () => AuthenticatedChatRoute,
+  } as any);
+const AuthenticatedChatSpaceIdRoomIdRoute =
+  AuthenticatedChatSpaceIdRoomIdRouteImport.update({
+    id: "/$roomId",
+    path: "/$roomId",
+    getParentRoute: () => AuthenticatedChatSpaceIdRouteRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedChatIndexRoute;
@@ -86,9 +88,21 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/login" | "/settings" | "/invite/$code" | "/$spaceId" | "/$spaceId/$roomId";
+  fullPaths:
+    | "/"
+    | "/login"
+    | "/settings"
+    | "/invite/$code"
+    | "/$spaceId"
+    | "/$spaceId/$roomId";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/login" | "/settings" | "/invite/$code" | "/$spaceId" | "/$spaceId/$roomId";
+  to:
+    | "/"
+    | "/login"
+    | "/settings"
+    | "/invite/$code"
+    | "/$spaceId"
+    | "/$spaceId/$roomId";
   id:
     | "__root__"
     | "/_authenticated"
@@ -172,12 +186,15 @@ interface AuthenticatedChatSpaceIdRouteRouteChildren {
   AuthenticatedChatSpaceIdRoomIdRoute: typeof AuthenticatedChatSpaceIdRoomIdRoute;
 }
 
-const AuthenticatedChatSpaceIdRouteRouteChildren: AuthenticatedChatSpaceIdRouteRouteChildren = {
-  AuthenticatedChatSpaceIdRoomIdRoute: AuthenticatedChatSpaceIdRoomIdRoute,
-};
+const AuthenticatedChatSpaceIdRouteRouteChildren: AuthenticatedChatSpaceIdRouteRouteChildren =
+  {
+    AuthenticatedChatSpaceIdRoomIdRoute: AuthenticatedChatSpaceIdRoomIdRoute,
+  };
 
 const AuthenticatedChatSpaceIdRouteRouteWithChildren =
-  AuthenticatedChatSpaceIdRouteRoute._addFileChildren(AuthenticatedChatSpaceIdRouteRouteChildren);
+  AuthenticatedChatSpaceIdRouteRoute._addFileChildren(
+    AuthenticatedChatSpaceIdRouteRouteChildren,
+  );
 
 interface AuthenticatedChatRouteChildren {
   AuthenticatedChatSpaceIdRouteRoute: typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
@@ -185,13 +202,13 @@ interface AuthenticatedChatRouteChildren {
 }
 
 const AuthenticatedChatRouteChildren: AuthenticatedChatRouteChildren = {
-  AuthenticatedChatSpaceIdRouteRoute: AuthenticatedChatSpaceIdRouteRouteWithChildren,
+  AuthenticatedChatSpaceIdRouteRoute:
+    AuthenticatedChatSpaceIdRouteRouteWithChildren,
   AuthenticatedChatIndexRoute: AuthenticatedChatIndexRoute,
 };
 
-const AuthenticatedChatRouteWithChildren = AuthenticatedChatRoute._addFileChildren(
-  AuthenticatedChatRouteChildren,
-);
+const AuthenticatedChatRouteWithChildren =
+  AuthenticatedChatRoute._addFileChildren(AuthenticatedChatRouteChildren);
 
 interface AuthenticatedRouteChildren {
   AuthenticatedChatRoute: typeof AuthenticatedChatRouteWithChildren;

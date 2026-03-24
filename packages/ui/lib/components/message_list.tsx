@@ -58,11 +58,12 @@ function isPending(event: TimelineEvent): boolean {
 // #region MessageList
 
 interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
+  currentUserId?: string;
   events: TimelineEvent[];
   onLoadMore?: () => Promise<boolean>;
 }
 
-function renderEvent(event: TimelineEvent, grouped: boolean) {
+function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: string) {
   if (event.content.type === "virtual") {
     const kind = event.content.kind;
     if (kind.startsWith("date_divider:")) {
@@ -74,6 +75,9 @@ function renderEvent(event: TimelineEvent, grouped: boolean) {
   }
 
   if (event.content.type === "message") {
+    const mentions = event.content.mentions;
+    const highlight = !!currentUserId && !!mentions && (mentions.everyone || mentions.userIds.includes(currentUserId));
+
     return (
       <MessageEvent
         sender={event.senderName ?? event.sender ?? "Unknown"}
@@ -82,6 +86,7 @@ function renderEvent(event: TimelineEvent, grouped: boolean) {
         avatar={event.senderAvatar}
         pending={isPending(event)}
         grouped={grouped}
+        highlight={highlight}
       />
     );
   }
@@ -92,7 +97,7 @@ function renderEvent(event: TimelineEvent, grouped: boolean) {
   return null;
 }
 
-function MessageList({ events, onLoadMore, className, ...props }: MessageListProps) {
+function MessageList({ events, onLoadMore, className, currentUserId, ...props }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -122,8 +127,9 @@ function MessageList({ events, onLoadMore, className, ...props }: MessageListPro
             contentVisibility: "auto",
             containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
           }}
+          className="px-4"
         >
-          {renderEvent(event, grouping[i])}
+          {renderEvent(event, grouping[i], currentUserId)}
         </div>
       ))}
     </div>

@@ -2,7 +2,7 @@ import type { Command, Request, Response, Stream } from "./base";
 import type { ListDiff } from "./diff";
 
 export type TimelineContent =
-  | { type: "message"; body: string; msgtype: string }
+  | { type: "message"; body: string; msgtype: string; mentions?: { everyone: boolean, userIds: string[] } }
   | { type: "membershipChange"; userId: string; change: string }
   | {
       type: "profileChange";

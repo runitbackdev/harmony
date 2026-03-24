@@ -1,10 +1,10 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use matrix_sdk::ruma::OwnedRoomId;
+use matrix_sdk::ruma::{OwnedRoomId, OwnedUserId};
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
 use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 use matrix_sdk_ui::timeline::{
@@ -50,11 +50,20 @@ pub struct TimelineEventData {
 #[derive(Tsify, Serialize)]
 #[tsify(into_wasm_abi)]
 #[serde(tag = "type", rename_all = "camelCase")]
+pub struct Mentions {
+    pub everyone: bool,
+    pub user_ids: BTreeSet<OwnedUserId>
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum TimelineContent {
     #[serde(rename_all = "camelCase")]
     Message {
         body: String,
         msgtype: String,
+        mentions: Option<Mentions>
     },
 
     #[serde(rename_all = "camelCase")]
@@ -145,6 +154,10 @@ fn convert_content(content: &TimelineItemContent) -> TimelineContent {
                     TimelineContent::Message {
                         body: message.body().to_owned(),
                         msgtype: message.msgtype().msgtype().to_owned(),
+                        mentions: message.mentions().map(|m| Mentions {
+                            everyone: m.room,
+                            user_ids: m.user_ids.to_owned()
+                        })
                     }
                 })
         }

@@ -6,6 +6,7 @@ import {
   subscribeTimeline,
   useRooms,
   useTimeline,
+  getSession,
 } from "@harmony/react";
 import { MessageList } from "@harmony/ui";
 import { Hash } from "lucide-react";
@@ -48,6 +49,7 @@ function TimelineView() {
   const events = useTimeline();
   const inputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState(false);
+  const currentUserId = getSession()?.userId;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -106,7 +108,12 @@ function TimelineView() {
           </ul>
         </div>
       ) : (
-        <MessageList events={events} onLoadMore={handleLoadMore} className="px-4 pb-4" />
+        <MessageList
+          events={events}
+          onLoadMore={handleLoadMore}
+          currentUserId={currentUserId}
+          className="pb-4"
+        />
       )}
 
       <form

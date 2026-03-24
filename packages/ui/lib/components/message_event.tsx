@@ -11,6 +11,7 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   avatar?: string | null;
   pending?: boolean;
   grouped?: boolean;
+  highlight?: boolean;
 }
 
 function getInitials(sender: string) {
@@ -27,6 +28,7 @@ function MessageEvent({
   pending,
   grouped,
   className,
+  highlight,
   ...props
 }: MessageEventProps) {
   const time = new Date(timestamp).toLocaleTimeString([], {
@@ -43,6 +45,7 @@ function MessageEvent({
         "group/message flex gap-4",
         grouped ? "py-px" : "pt-4",
         pending && "opacity-50",
+        highlight && "bg-warning-500/10 -mx-4 px-4",
         "transition-opacity duration-300",
         className,
       )}

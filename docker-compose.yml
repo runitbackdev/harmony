@@ -7,10 +7,10 @@ services:
       UID: "0"
       GID: "0"
     volumes:
-      - ./synapse/homeserver.yaml:/config/homeserver.yaml:ro
-      - ./synapse/log.config:/config/log.config:ro
-      - ./synapse/herald.registration.yaml:/config/herald.registration.yaml:ro
-      - synapse-data:/data
+      - ./synapse/homeserver.yaml:/config/homeserver.yaml:ro,z
+      - ./synapse/log.config:/config/log.config:ro,z
+      - ./synapse/herald.registration.yaml:/config/herald.registration.yaml:ro,z
+      - synapse-data:/data:z
     ports:
       - "8008:8008"
 
