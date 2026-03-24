@@ -1,6 +1,6 @@
 services:
   synapse:
-    image: matrixdotorg/synapse:latest
+    image: docker.io/matrixdotorg/synapse:latest
     container_name: harmony-synapse
     environment:
       SYNAPSE_CONFIG_PATH: /config/homeserver.yaml
