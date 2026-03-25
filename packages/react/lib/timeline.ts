@@ -27,6 +27,17 @@ export async function sendMessage(roomId: string, body: string, formattedBody?: 
   await harmony.timeline.send(roomId, body, formattedBody);
 }
 
+export type { EditTarget } from "@harmony/core";
+
+export async function editMessage(
+  roomId: string,
+  target: { eventId?: string; transactionId?: string },
+  body: string,
+  formattedBody?: string,
+) {
+  await harmony.timeline.edit(roomId, target, body, formattedBody);
+}
+
 export async function paginateTimeline(roomId: string, count = 50) {
   const result = await harmony.timeline.paginate(roomId, count);
   return result.hitStart;

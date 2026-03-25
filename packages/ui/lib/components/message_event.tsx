@@ -14,6 +14,9 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   pending?: boolean;
   grouped?: boolean;
   highlight?: boolean;
+  isOwn?: boolean;
+  onEdit?: () => void;
+  editing?: React.ReactNode;
 }
 
 function getInitials(sender: string) {
@@ -32,6 +35,9 @@ function MessageEvent({
   grouped,
   className,
   highlight,
+  isOwn,
+  onEdit,
+  editing,
   ...props
 }: MessageEventProps) {
   const time = new Date(timestamp).toLocaleTimeString([], {
@@ -74,7 +80,18 @@ function MessageEvent({
           </Avatar>
         )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
+        {isOwn && onEdit && !editing && (
+          <button
+            type="button"
+            onClick={onEdit}
+            data-scope="message-event"
+            data-part="edit-button"
+            className="absolute right-0 top-0 rounded px-1.5 py-0.5 text-xs text-surface-500 opacity-0 transition-opacity hover:bg-surface-200-800 hover:text-surface-950-50 group-hover/message:opacity-100"
+          >
+            Edit
+          </button>
+        )}
         {!grouped && (
           <div className="flex items-baseline gap-2">
             <span
@@ -93,18 +110,23 @@ function MessageEvent({
             </span>
           </div>
         )}
-        {formattedBody ? (
-          <div
-            data-scope="message-event"
-            data-part="body"
-            className="rich-text text-sm text-surface-800-200"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedBody) }}
-          />
-        ) : (
-          <div data-scope="message-event" data-part="body" className="text-sm text-surface-800-200">
-            {body}
-          </div>
-        )}
+        {editing ??
+          (formattedBody ? (
+            <div
+              data-scope="message-event"
+              data-part="body"
+              className="rich-text text-sm text-surface-800-200"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedBody) }}
+            />
+          ) : (
+            <div
+              data-scope="message-event"
+              data-part="body"
+              className="text-sm text-surface-800-200"
+            >
+              {body}
+            </div>
+          ))}
       </div>
     </div>
   );

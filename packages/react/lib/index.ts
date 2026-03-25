@@ -6,6 +6,7 @@ export { useSyncStatus } from "./sync";
 export { createRoom, subscribeRooms, useRooms } from "./rooms";
 export { createSpace, joinSpace, useSpaces } from "./spaces";
 export {
+  editMessage,
   paginateTimeline,
   sendMessage,
   subscribeTimeline,

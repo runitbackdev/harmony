@@ -61,9 +61,18 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   currentUserId?: string;
   events: TimelineEvent[];
   onLoadMore?: () => Promise<boolean>;
+  onEditMessage?: (event: TimelineEvent) => void;
+  editingEventId?: string | null;
+  renderEditor?: (event: TimelineEvent) => React.ReactNode;
 }
 
-function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: string) {
+function renderEvent(
+  event: TimelineEvent,
+  grouped: boolean,
+  currentUserId?: string,
+  onEditMessage?: (event: TimelineEvent) => void,
+  editingNode?: React.ReactNode,
+) {
   if (event.content.type === "virtual") {
     const kind = event.content.kind;
     if (kind.startsWith("date_divider:")) {
@@ -81,6 +90,8 @@ function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: str
       !!mentions &&
       (mentions.everyone || mentions.userIds.includes(currentUserId));
 
+    const isOwn = !!currentUserId && event.sender === currentUserId;
+
     return (
       <MessageEvent
         sender={event.senderName ?? event.sender ?? "Unknown"}
@@ -91,6 +102,9 @@ function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: str
         pending={isPending(event)}
         grouped={grouped}
         highlight={highlight}
+        isOwn={isOwn}
+        onEdit={onEditMessage ? () => onEditMessage(event) : undefined}
+        editing={editingNode}
       />
     );
   }
@@ -101,7 +115,16 @@ function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: str
   return null;
 }
 
-function MessageList({ events, onLoadMore, className, currentUserId, ...props }: MessageListProps) {
+function MessageList({
+  events,
+  onLoadMore,
+  onEditMessage,
+  editingEventId,
+  renderEditor,
+  className,
+  currentUserId,
+  ...props
+}: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -133,7 +156,17 @@ function MessageList({ events, onLoadMore, className, currentUserId, ...props }:
           }}
           className="px-4"
         >
-          {renderEvent(event, grouping[i], currentUserId)}
+          {renderEvent(
+            event,
+            grouping[i],
+            currentUserId,
+            onEditMessage,
+            editingEventId &&
+              renderEditor &&
+              (event.id === editingEventId || event.transactionId === editingEventId)
+              ? renderEditor(event)
+              : undefined,
+          )}
         </div>
       ))}
     </div>

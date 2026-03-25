@@ -1,6 +1,12 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { getTimeline, paginateBackwards, sendMessage, subscribeTimeline } from "@harmony/wasm";
+import {
+  editMessage,
+  getTimeline,
+  paginateBackwards,
+  sendMessage,
+  subscribeTimeline,
+} from "@harmony/wasm";
 import type { ListDiff, TimelineEvent } from "@harmony/protocol";
 
 const roomPorts = new Map<string, Set<MessagePort>>();
@@ -71,6 +77,12 @@ const handleSend: HandlerFor<"h.timeline.send"> = async (message, send) => {
   send.respond({ type: "h.timeline.sent" });
 };
 
+const handleEdit: HandlerFor<"h.timeline.edit"> = async (message, send) => {
+  const { roomId, eventId, transactionId, body, formattedBody } = message;
+  await editMessage(roomId, eventId, transactionId, body, formattedBody);
+  send.respond({ type: "h.timeline.edited" });
+};
+
 const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (message, send) => {
   const { roomId, count } = message;
   const hitStart = await paginateBackwards(roomId, count);
@@ -81,6 +93,7 @@ export const timelineHandlers: HandlerMap = {
   "h.timeline.subscribe": handleSubscribe,
   "h.timeline.unsubscribe": handleUnsubscribe,
   "h.timeline.send": handleSend,
+  "h.timeline.edit": handleEdit,
   "h.timeline.paginate": handlePaginate,
 };
 
@@ -88,5 +101,12 @@ declare module "@harmony/wasm" {
   export function subscribeTimeline(roomId: string): Promise<[TimelineEvent[], ReadableStream]>;
   export function getTimeline(roomId: string): Promise<TimelineEvent[]>;
   export function sendMessage(roomId: string, body: string, formattedBody?: string): Promise<void>;
+  export function editMessage(
+    roomId: string,
+    eventId?: string,
+    transactionId?: string,
+    body?: string,
+    formattedBody?: string,
+  ): Promise<void>;
   export function paginateBackwards(roomId: string, count: number): Promise<boolean>;
 }

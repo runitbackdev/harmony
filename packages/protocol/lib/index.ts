@@ -20,6 +20,7 @@ import type {
 import type { SyncCommand, SyncRequest, SyncResponse, SyncStarted, SyncStatus } from "./sync";
 import type {
   TimelineCommand,
+  TimelineEdited,
   TimelinePaginated,
   TimelineRequest,
   TimelineResponse,
@@ -49,6 +50,7 @@ export type ResponseMap = {
   "h.rooms.create": RoomsCreated;
   "h.timeline.subscribe": TimelineSubscribed;
   "h.timeline.send": TimelineSent;
+  "h.timeline.edit": TimelineEdited;
   "h.timeline.paginate": TimelinePaginated;
 };
 

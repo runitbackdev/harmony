@@ -26,6 +26,7 @@ export type SendState =
 
 export type TimelineEvent = {
   id: string | null;
+  transactionId: string | null;
   sender: string | null;
   senderName: string | null;
   senderAvatar: string | null;
@@ -44,6 +45,12 @@ export type TimelineSend = Request<
 >;
 export type TimelineSent = Response<"h.timeline.sent">;
 
+export type TimelineEdit = Request<
+  "h.timeline.edit",
+  { roomId: string; eventId?: string; transactionId?: string; body: string; formattedBody?: string }
+>;
+export type TimelineEdited = Response<"h.timeline.edited">;
+
 export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
 export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
 
@@ -52,7 +59,11 @@ export type TimelineUpdate = Stream<
   { roomId: string; events: ListDiff<TimelineEvent>[] }
 >;
 
-export type TimelineRequest = TimelineSubscribe | TimelineSend | TimelinePaginate;
-export type TimelineResponse = TimelineSubscribed | TimelineSent | TimelinePaginated;
+export type TimelineRequest = TimelineSubscribe | TimelineSend | TimelineEdit | TimelinePaginate;
+export type TimelineResponse =
+  | TimelineSubscribed
+  | TimelineSent
+  | TimelineEdited
+  | TimelinePaginated;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

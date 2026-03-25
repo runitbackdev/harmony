@@ -1,10 +1,6 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
-import Typography from "@tiptap/extension-typography";
-import { Spoiler } from "./spoiler";
+import { baseExtensions, editorAttributes } from "./extensions";
 import "./composer.css";
 
 type ComposerProps = {
@@ -13,19 +9,9 @@ type ComposerProps = {
 
 export function Composer({ onSend }: ComposerProps) {
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
-      Underline,
-      Placeholder.configure({ placeholder: "Send a message..." }),
-      Typography,
-      Spoiler,
-    ],
+    extensions: [...baseExtensions, Placeholder.configure({ placeholder: "Send a message..." })],
     editorProps: {
-      attributes: {
-        class: "composer rich-text",
-        "aria-label": "Message composer",
-      },
+      attributes: { ...editorAttributes, "aria-label": "Message composer" },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();

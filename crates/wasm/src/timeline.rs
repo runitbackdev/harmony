@@ -4,12 +4,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use futures_util::StreamExt;
+use matrix_sdk::room::edit::EditedContent;
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
 use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
-use matrix_sdk::ruma::{OwnedRoomId, OwnedUserId};
+use matrix_sdk::ruma::{OwnedRoomId, OwnedTransactionId, OwnedUserId};
 use matrix_sdk_ui::timeline::{
-    EventSendState, MembershipChange, TimelineDetails, TimelineItem, TimelineItemContent,
-    TimelineItemKind, VirtualTimelineItem,
+    EventSendState, MembershipChange, TimelineDetails, TimelineEventItemId, TimelineItem,
+    TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
 };
 use serde::Serialize;
 use tsify_next::Tsify;
@@ -39,6 +40,7 @@ pub enum SendState {
 #[serde(rename_all = "camelCase")]
 pub struct TimelineEventData {
     pub id: Option<String>,
+    pub transaction_id: Option<String>,
     pub sender: Option<String>,
     pub sender_name: Option<String>,
     pub sender_avatar: Option<String>,
@@ -115,8 +117,11 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 },
             });
 
+            let transaction_id = event.transaction_id().map(ToString::to_string);
+
             TimelineEventData {
                 id: event.event_id().map(ToString::to_string),
+                transaction_id,
                 sender: Some(event.sender().to_string()),
                 sender_name,
                 sender_avatar,
@@ -135,6 +140,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
 
             TimelineEventData {
                 id: None,
+                transaction_id: None,
                 sender: None,
                 sender_name: None,
                 sender_avatar: None,
@@ -278,6 +284,40 @@ pub async fn send_message_impl(
 
     timeline
         .send(AnyMessageLikeEventContent::RoomMessage(content))
+        .await?;
+
+    Ok(())
+}
+
+pub async fn edit_message_impl(
+    room_id: &str,
+    event_id: Option<&str>,
+    transaction_id: Option<&str>,
+    body: &str,
+    formatted_body: Option<&str>,
+) -> Result<(), HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    let item_id = match (event_id, transaction_id) {
+        (Some(eid), _) => {
+            TimelineEventItemId::EventId(eid.try_into().map_err(|_| HarmonyError::InvalidUserId)?)
+        }
+        (_, Some(tid)) => TimelineEventItemId::TransactionId(OwnedTransactionId::from(tid)),
+        _ => return Err(HarmonyError::InvalidUserId),
+    };
+
+    let content = formatted_body.map_or_else(
+        || RoomMessageEventContent::text_plain(body),
+        |html| RoomMessageEventContent::text_html(body, html),
+    );
+
+    timeline
+        .edit(&item_id, EditedContent::RoomMessage(content.into()))
         .await?;
 
     Ok(())

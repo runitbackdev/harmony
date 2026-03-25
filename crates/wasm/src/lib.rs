@@ -12,8 +12,8 @@ use crate::{
     },
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
-        TimelineEventData, get_timeline_impl, paginate_backwards_impl, send_message_impl,
-        subscribe_timeline_impl,
+        TimelineEventData, edit_message_impl, get_timeline_impl, paginate_backwards_impl,
+        send_message_impl, subscribe_timeline_impl,
     },
 };
 
@@ -129,6 +129,24 @@ pub async fn send_message(
     formatted_body: Option<String>,
 ) -> Result<(), HarmonyError> {
     send_message_impl(room_id, body, formatted_body.as_deref()).await
+}
+
+#[wasm_bindgen(js_name = editMessage)]
+pub async fn edit_message(
+    room_id: &str,
+    event_id: Option<String>,
+    transaction_id: Option<String>,
+    body: &str,
+    formatted_body: Option<String>,
+) -> Result<(), HarmonyError> {
+    edit_message_impl(
+        room_id,
+        event_id.as_deref(),
+        transaction_id.as_deref(),
+        body,
+        formatted_body.as_deref(),
+    )
+    .await
 }
 
 #[wasm_bindgen(js_name = paginateBackwards)]

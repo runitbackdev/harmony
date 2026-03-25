@@ -1,10 +1,26 @@
-import type { TimelinePaginated, TimelineSent, TimelineSubscribed } from "@harmony/protocol";
+import type {
+  TimelineEdited,
+  TimelinePaginated,
+  TimelineSent,
+  TimelineSubscribed,
+} from "@harmony/protocol";
 import type { WorkerConnection } from "./connection";
+
+export type EditTarget = {
+  eventId?: string;
+  transactionId?: string;
+};
 
 export type TimelineApi = {
   subscribe: (roomId: string) => Promise<TimelineSubscribed>;
   unsubscribe: (roomId: string) => void;
   send: (roomId: string, body: string, formattedBody?: string) => Promise<TimelineSent>;
+  edit: (
+    roomId: string,
+    target: EditTarget,
+    body: string,
+    formattedBody?: string,
+  ) => Promise<TimelineEdited>;
   paginate: (roomId: string, count: number) => Promise<TimelinePaginated>;
 };
 
@@ -20,6 +36,10 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
 
     async send(roomId: string, body: string, formattedBody?: string) {
       return connection.request("h.timeline.send", { roomId, body, formattedBody });
+    },
+
+    async edit(roomId: string, target: EditTarget, body: string, formattedBody?: string) {
+      return connection.request("h.timeline.edit", { roomId, ...target, body, formattedBody });
     },
 
     async paginate(roomId: string, count: number) {

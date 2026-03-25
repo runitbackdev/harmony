@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
+  editMessage,
   paginateTimeline,
   sendMessage,
   subscribeTimeline,
@@ -9,9 +10,10 @@ import {
   getSession,
 } from "@harmony/react";
 import { MessageList } from "@harmony/ui";
-import { Composer } from "@harmony/composer";
+import { Composer, EditComposer } from "@harmony/composer";
+import type { EditTarget } from "@harmony/composer";
 import { Hash } from "lucide-react";
-import type { TimelineContent } from "@harmony/protocol";
+import type { TimelineContent, TimelineEvent } from "@harmony/protocol";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
@@ -49,8 +51,30 @@ function TimelineView() {
   const room = rooms.find((r) => r.roomId === roomId);
   const events = useTimeline();
   const [debug, setDebug] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const currentUserId = getSession()?.userId;
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
+
+  function handleEditMessage(event: TimelineEvent) {
+    setEditingId(event.id ?? event.transactionId ?? null);
+  }
+
+  function handleEdit(target: EditTarget, body: string, html: string) {
+    void editMessage(roomId, target, body, html);
+    setEditingId(null);
+  }
+
+  function renderEditor(event: TimelineEvent) {
+    if (event.content.type !== "message") return null;
+    return (
+      <EditComposer
+        target={{ eventId: event.id ?? undefined, transactionId: event.transactionId ?? undefined }}
+        content={event.content.formattedBody ?? event.content.body}
+        onEdit={handleEdit}
+        onCancel={() => setEditingId(null)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -95,6 +119,9 @@ function TimelineView() {
         <MessageList
           events={events}
           onLoadMore={handleLoadMore}
+          onEditMessage={handleEditMessage}
+          editingEventId={editingId}
+          renderEditor={renderEditor}
           currentUserId={currentUserId}
           className="pb-4"
         />
