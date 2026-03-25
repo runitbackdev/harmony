@@ -4,7 +4,7 @@ import type { WorkerConnection } from "./connection";
 export type TimelineApi = {
   subscribe: (roomId: string) => Promise<TimelineSubscribed>;
   unsubscribe: (roomId: string) => void;
-  send: (roomId: string, body: string) => Promise<TimelineSent>;
+  send: (roomId: string, body: string, formattedBody?: string) => Promise<TimelineSent>;
   paginate: (roomId: string, count: number) => Promise<TimelinePaginated>;
 };
 
@@ -18,8 +18,8 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
       connection.command("h.timeline.unsubscribe", { roomId });
     },
 
-    async send(roomId: string, body: string) {
-      return connection.request("h.timeline.send", { roomId, body });
+    async send(roomId: string, body: string, formattedBody?: string) {
+      return connection.request("h.timeline.send", { roomId, body, formattedBody });
     },
 
     async paginate(roomId: string, count: number) {

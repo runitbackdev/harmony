@@ -7,12 +7,14 @@
   },
   "dependencies": {
     "@harmony/protocol": "workspace:*",
+    "dompurify": "^3.2.4",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:"
+    "@types/react-dom": "catalog:",
+    "vite": "catalog:"
   },
   "peerDependencies": {
     "@skeletonlabs/skeleton-react": "^4.12.0",

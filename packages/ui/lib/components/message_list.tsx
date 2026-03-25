@@ -76,12 +76,16 @@ function renderEvent(event: TimelineEvent, grouped: boolean, currentUserId?: str
 
   if (event.content.type === "message") {
     const mentions = event.content.mentions;
-    const highlight = !!currentUserId && !!mentions && (mentions.everyone || mentions.userIds.includes(currentUserId));
+    const highlight =
+      !!currentUserId &&
+      !!mentions &&
+      (mentions.everyone || mentions.userIds.includes(currentUserId));
 
     return (
       <MessageEvent
         sender={event.senderName ?? event.sender ?? "Unknown"}
         body={event.content.body}
+        formattedBody={event.content.formattedBody}
         timestamp={event.timestamp}
         avatar={event.senderAvatar}
         pending={isPending(event)}

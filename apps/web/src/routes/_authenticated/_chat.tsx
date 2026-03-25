@@ -37,7 +37,7 @@ function RouteComponent() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Rail>
-        <Rail.Item active label="Home" data-rail="home">
+        <Rail.Item label="Home" data-rail="home">
           <Home size={20} />
         </Rail.Item>
 

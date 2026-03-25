@@ -1,12 +1,14 @@
 import type { HTMLAttributes } from "react";
 import { Avatar } from "@skeletonlabs/skeleton-react";
 import { cn } from "../utils";
+import { sanitizeHtml } from "../sanitize";
 
 // #region MessageEvent
 
 interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   sender: string;
   body: string;
+  formattedBody?: string;
   timestamp: number;
   avatar?: string | null;
   pending?: boolean;
@@ -23,6 +25,7 @@ function getInitials(sender: string) {
 function MessageEvent({
   sender,
   body,
+  formattedBody,
   timestamp,
   avatar,
   pending,
@@ -90,9 +93,18 @@ function MessageEvent({
             </span>
           </div>
         )}
-        <div data-scope="message-event" data-part="body" className="text-sm text-surface-800-200">
-          {body}
-        </div>
+        {formattedBody ? (
+          <div
+            data-scope="message-event"
+            data-part="body"
+            className="rich-text text-sm text-surface-800-200"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedBody) }}
+          />
+        ) : (
+          <div data-scope="message-event" data-part="body" className="text-sm text-surface-800-200">
+            {body}
+          </div>
+        )}
       </div>
     </div>
   );

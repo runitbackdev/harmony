@@ -4,9 +4,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use matrix_sdk::ruma::{OwnedRoomId, OwnedUserId};
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
-use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
+use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
+use matrix_sdk::ruma::{OwnedRoomId, OwnedUserId};
 use matrix_sdk_ui::timeline::{
     EventSendState, MembershipChange, TimelineDetails, TimelineItem, TimelineItemContent,
     TimelineItemKind, VirtualTimelineItem,
@@ -52,7 +52,7 @@ pub struct TimelineEventData {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub struct Mentions {
     pub everyone: bool,
-    pub user_ids: BTreeSet<OwnedUserId>
+    pub user_ids: BTreeSet<OwnedUserId>,
 }
 
 #[derive(Tsify, Serialize)]
@@ -62,8 +62,9 @@ pub enum TimelineContent {
     #[serde(rename_all = "camelCase")]
     Message {
         body: String,
+        formatted_body: Option<String>,
         msgtype: String,
-        mentions: Option<Mentions>
+        mentions: Option<Mentions>,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -151,13 +152,21 @@ fn convert_content(content: &TimelineItemContent) -> TimelineContent {
             msg_like
                 .as_message()
                 .map_or(TimelineContent::Unknown {}, |message| {
+                    let formatted_body = match message.msgtype() {
+                        MessageType::Text(t) => t.formatted.as_ref().map(|f| f.body.clone()),
+                        MessageType::Notice(n) => n.formatted.as_ref().map(|f| f.body.clone()),
+                        MessageType::Emote(e) => e.formatted.as_ref().map(|f| f.body.clone()),
+                        _ => None,
+                    };
+
                     TimelineContent::Message {
                         body: message.body().to_owned(),
+                        formatted_body,
                         msgtype: message.msgtype().msgtype().to_owned(),
                         mentions: message.mentions().map(|m| Mentions {
                             everyone: m.room,
-                            user_ids: m.user_ids.to_owned()
-                        })
+                            user_ids: m.user_ids.clone(),
+                        }),
                     }
                 })
         }
@@ -250,7 +259,11 @@ pub async fn paginate_backwards_impl(room_id: &str, count: u16) -> Result<bool, 
     Ok(hit_start)
 }
 
-pub async fn send_message_impl(room_id: &str, body: &str) -> Result<(), HarmonyError> {
+pub async fn send_message_impl(
+    room_id: &str,
+    body: &str,
+    formatted_body: Option<&str>,
+) -> Result<(), HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
         .map_err(|_| HarmonyError::InvalidUserId)?;
@@ -258,10 +271,13 @@ pub async fn send_message_impl(room_id: &str, body: &str) -> Result<(), HarmonyE
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
 
+    let content = formatted_body.map_or_else(
+        || RoomMessageEventContent::text_plain(body),
+        |html| RoomMessageEventContent::text_html(body, html),
+    );
+
     timeline
-        .send(AnyMessageLikeEventContent::RoomMessage(
-            RoomMessageEventContent::text_plain(body),
-        ))
+        .send(AnyMessageLikeEventContent::RoomMessage(content))
         .await?;
 
     Ok(())

@@ -2,7 +2,13 @@ import type { Command, Request, Response, Stream } from "./base";
 import type { ListDiff } from "./diff";
 
 export type TimelineContent =
-  | { type: "message"; body: string; msgtype: string; mentions?: { everyone: boolean, userIds: string[] } }
+  | {
+      type: "message";
+      body: string;
+      formattedBody?: string;
+      msgtype: string;
+      mentions?: { everyone: boolean; userIds: string[] };
+    }
   | { type: "membershipChange"; userId: string; change: string }
   | {
       type: "profileChange";
@@ -32,7 +38,10 @@ export type TimelineSubscribe = Request<"h.timeline.subscribe", { roomId: string
 export type TimelineSubscribed = Response<"h.timeline.subscribed", { events: TimelineEvent[] }>;
 export type TimelineUnsubscribe = Command<"h.timeline.unsubscribe", { roomId: string }>;
 
-export type TimelineSend = Request<"h.timeline.send", { roomId: string; body: string }>;
+export type TimelineSend = Request<
+  "h.timeline.send",
+  { roomId: string; body: string; formattedBody?: string }
+>;
 export type TimelineSent = Response<"h.timeline.sent">;
 
 export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;

@@ -66,8 +66,8 @@ export function removeTimelineSubscriber(port: MessagePort) {
 }
 
 const handleSend: HandlerFor<"h.timeline.send"> = async (message, send) => {
-  const { roomId, body } = message;
-  await sendMessage(roomId, body);
+  const { roomId, body, formattedBody } = message;
+  await sendMessage(roomId, body, formattedBody);
   send.respond({ type: "h.timeline.sent" });
 };
 
@@ -87,6 +87,6 @@ export const timelineHandlers: HandlerMap = {
 declare module "@harmony/wasm" {
   export function subscribeTimeline(roomId: string): Promise<[TimelineEvent[], ReadableStream]>;
   export function getTimeline(roomId: string): Promise<TimelineEvent[]>;
-  export function sendMessage(roomId: string, body: string): Promise<void>;
+  export function sendMessage(roomId: string, body: string, formattedBody?: string): Promise<void>;
   export function paginateBackwards(roomId: string, count: number): Promise<boolean>;
 }

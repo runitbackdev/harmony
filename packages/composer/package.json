@@ -6,19 +6,18 @@
     ".": "./lib/index.ts"
   },
   "dependencies": {
-    "@lexical/extension": "^0.41.0",
-    "@lexical/history": "^0.41.0",
-    "@lexical/link": "^0.41.0",
-    "@lexical/list": "^0.41.0",
-    "@lexical/markdown": "^0.41.0",
-    "@lexical/react": "^0.41.0",
-    "@lexical/rich-text": "^0.41.0",
-    "@lexical/tailwind": "^0.41.0",
-    "lexical": "^0.41.0"
+    "@tiptap/core": "^3.20.5",
+    "@tiptap/extension-link": "^3.20.5",
+    "@tiptap/extension-placeholder": "^3.20.5",
+    "@tiptap/extension-typography": "^3.20.5",
+    "@tiptap/extension-underline": "^3.20.5",
+    "@tiptap/react": "^3.20.5",
+    "@tiptap/starter-kit": "^3.20.5"
   },
   "devDependencies": {
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:"
+    "@types/react-dom": "catalog:",
+    "vite": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:"

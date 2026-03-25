@@ -9,6 +9,7 @@
     "preview": "vp preview"
   },
   "dependencies": {
+    "@harmony/composer": "workspace:*",
     "@harmony/profiler": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "@harmony/react": "workspace:*",

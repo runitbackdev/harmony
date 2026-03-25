@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   paginateTimeline,
@@ -9,6 +9,7 @@ import {
   getSession,
 } from "@harmony/react";
 import { MessageList } from "@harmony/ui";
+import { Composer } from "@harmony/composer";
 import { Hash } from "lucide-react";
 import type { TimelineContent } from "@harmony/protocol";
 
@@ -47,26 +48,9 @@ function TimelineView() {
   const rooms = useRooms();
   const room = rooms.find((r) => r.roomId === roomId);
   const events = useTimeline();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [debug, setDebug] = useState(false);
   const currentUserId = getSession()?.userId;
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [roomId]);
-
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
-
-  function handleSubmit() {
-    const input = inputRef.current;
-    if (!input) return;
-
-    const body = input.value.trim();
-    if (!body) return;
-
-    input.value = "";
-    void sendMessage(roomId, body);
-  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -116,21 +100,9 @@ function TimelineView() {
         />
       )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-        className="border-t border-surface-200-800 p-4"
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          aria-label="Send a message"
-          placeholder="Send a message..."
-          className="w-full rounded bg-surface-100-900 px-3 py-2 text-sm text-surface-950-50 placeholder:text-surface-500 focus:outline-none"
-        />
-      </form>
+      <div className="border-t border-surface-200-800 p-4">
+        <Composer onSend={(body, html) => void sendMessage(roomId, body, html)} />
+      </div>
     </div>
   );
 }

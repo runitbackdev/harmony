@@ -1,0 +1,27 @@
+.composer {
+  background-color: var(--color-surface-100-900);
+  color: var(--color-surface-950-50);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  outline: none;
+}
+
+.composer [data-mx-spoiler] {
+  background-color: var(--color-surface-200-800);
+  color: inherit;
+  border-radius: 0.25rem;
+  padding: 0 0.125rem;
+  cursor: text;
+}
+
+.composer.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-surface-500);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

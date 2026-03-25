@@ -123,8 +123,12 @@ pub async fn subscribe_timeline(room_id: &str) -> Result<JsValue, JsValue> {
 }
 
 #[wasm_bindgen(js_name = sendMessage)]
-pub async fn send_message(room_id: &str, body: &str) -> Result<(), HarmonyError> {
-    send_message_impl(room_id, body).await
+pub async fn send_message(
+    room_id: &str,
+    body: &str,
+    formatted_body: Option<String>,
+) -> Result<(), HarmonyError> {
+    send_message_impl(room_id, body, formatted_body.as_deref()).await
 }
 
 #[wasm_bindgen(js_name = paginateBackwards)]
