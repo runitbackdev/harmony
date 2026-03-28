@@ -38,6 +38,15 @@ export async function editMessage(
   await harmony.timeline.edit(roomId, target, body, formattedBody);
 }
 
+export async function toggleReaction(
+  roomId: string,
+  target: { eventId?: string; transactionId?: string },
+  key: string,
+) {
+  const result = await harmony.timeline.toggleReaction(roomId, target, key);
+  return result.added;
+}
+
 export async function paginateTimeline(roomId: string, count = 50) {
   const result = await harmony.timeline.paginate(roomId, count);
   return result.hitStart;

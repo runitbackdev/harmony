@@ -1,8 +1,9 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { HTMLAttributes } from "react";
 import type { TimelineEvent } from "@harmony/protocol";
 import { cn } from "../utils";
 import { useLoadMoreOnScroll, useStickToBottom } from "../hooks/scroll";
+import { MessageActionBar } from "./message_action_bar";
 import { MessageEvent } from "./message_event";
 import { SystemEvent } from "./system_event";
 import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
@@ -64,14 +65,15 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   onEditMessage?: (event: TimelineEvent) => void;
   editingEventId?: string | null;
   renderEditor?: (event: TimelineEvent) => React.ReactNode;
+  onToggleReaction?: (eventId: string, key: string) => void;
 }
 
 function renderEvent(
   event: TimelineEvent,
   grouped: boolean,
   currentUserId?: string,
-  onEditMessage?: (event: TimelineEvent) => void,
   editingNode?: React.ReactNode,
+  onToggleReaction?: (eventId: string, key: string) => void,
 ) {
   if (event.content.type === "virtual") {
     const kind = event.content.kind;
@@ -90,8 +92,6 @@ function renderEvent(
       !!mentions &&
       (mentions.everyone || mentions.userIds.includes(currentUserId));
 
-    const isOwn = !!currentUserId && event.sender === currentUserId;
-
     return (
       <MessageEvent
         sender={event.senderName ?? event.sender ?? "Unknown"}
@@ -102,9 +102,14 @@ function renderEvent(
         pending={isPending(event)}
         grouped={grouped}
         highlight={highlight}
-        isOwn={isOwn}
-        onEdit={onEditMessage ? () => onEditMessage(event) : undefined}
         editing={editingNode}
+        reactions={event.reactions ?? undefined}
+        currentUserId={currentUserId}
+        onToggleReaction={
+          onToggleReaction
+            ? (key: string) => onToggleReaction(event.id ?? event.transactionId ?? "", key)
+            : undefined
+        }
       />
     );
   }
@@ -123,11 +128,32 @@ function MessageList({
   renderEditor,
   className,
   currentUserId,
+  onToggleReaction,
   ...props
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredAnchor, setHoveredAnchor] = useState<HTMLElement | null>(null);
+
+  const handlePointerEnter = useCallback((event: TimelineEvent, i: number, el: HTMLElement) => {
+    if (event.content.type !== "message") return;
+    setHoveredIndex(i);
+    setHoveredAnchor(el);
+  }, []);
+
+  const handlePointerLeave = useCallback((e: React.PointerEvent) => {
+    if (document.querySelector('[data-scope="emoji-picker"][data-part="popover"]')) return;
+    const related = e.relatedTarget;
+    if (related instanceof Node) {
+      const actionBar = document.querySelector('[data-scope="message-action-bar"]');
+      if (actionBar?.contains(related)) return;
+    }
+    setHoveredIndex(null);
+    setHoveredAnchor(null);
+  }, []);
 
   const filtered = useMemo(
     () => events.filter((event) => event.content.type !== "unknown"),
@@ -138,6 +164,13 @@ function MessageList({
 
   useStickToBottom(containerRef, anchorRef, filtered.length);
   useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
+
+  const hoveredEvent = hoveredIndex !== null ? filtered[hoveredIndex] : null;
+  const isHoveredOwn = !!currentUserId && hoveredEvent?.sender === currentUserId;
+  const isHoveredEditing =
+    hoveredEvent &&
+    editingEventId &&
+    (hoveredEvent.id === editingEventId || hoveredEvent.transactionId === editingEventId);
 
   return (
     <div
@@ -156,18 +189,20 @@ function MessageList({
             containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
             overflowAnchor: "none",
           }}
-          className="px-4"
+          className={cn("px-4", hoveredIndex === i && "bg-surface-100-900")}
+          onPointerEnter={(e) => handlePointerEnter(event, i, e.currentTarget)}
+          onPointerLeave={handlePointerLeave}
         >
           {renderEvent(
             event,
             grouping[i],
             currentUserId,
-            onEditMessage,
             editingEventId &&
               renderEditor &&
               (event.id === editingEventId || event.transactionId === editingEventId)
               ? renderEditor(event)
               : undefined,
+            onToggleReaction,
           )}
         </div>
       ))}
@@ -178,6 +213,24 @@ function MessageList({
         style={{ overflowAnchor: "auto" }}
         className="pb-4"
       />
+
+      {hoveredAnchor && hoveredEvent && !isHoveredEditing && (
+        <MessageActionBar
+          anchor={hoveredAnchor}
+          isOwn={isHoveredOwn}
+          onDismiss={() => {
+            setHoveredIndex(null);
+            setHoveredAnchor(null);
+          }}
+          onEdit={isHoveredOwn && onEditMessage ? () => onEditMessage(hoveredEvent) : undefined}
+          onToggleReaction={
+            onToggleReaction
+              ? (key: string) =>
+                  onToggleReaction(hoveredEvent.id ?? hoveredEvent.transactionId ?? "", key)
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

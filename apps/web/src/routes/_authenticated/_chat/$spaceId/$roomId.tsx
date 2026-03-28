@@ -6,6 +6,7 @@ import {
   paginateTimeline,
   sendMessage,
   subscribeTimeline,
+  toggleReaction,
   useRooms,
   useTimeline,
   getSession,
@@ -55,6 +56,10 @@ function TimelineView() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const currentUserId = getSession()?.userId;
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
+
+  function handleToggleReaction(eventId: string, key: string) {
+    void toggleReaction(roomId, { eventId }, key);
+  }
 
   function handleEditMessage(event: TimelineEvent) {
     setEditingId(event.id ?? event.transactionId ?? null);
@@ -124,6 +129,7 @@ function TimelineView() {
           editingEventId={editingId}
           renderEditor={renderEditor}
           currentUserId={currentUserId}
+          onToggleReaction={handleToggleReaction}
         />
       )}
 

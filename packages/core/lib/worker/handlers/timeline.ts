@@ -6,6 +6,7 @@ import {
   paginateBackwards,
   sendMessage,
   subscribeTimeline,
+  toggleReaction,
 } from "@harmony/wasm";
 import type { ListDiff, TimelineEvent } from "@harmony/protocol";
 
@@ -83,6 +84,12 @@ const handleEdit: HandlerFor<"h.timeline.edit"> = async (message, send) => {
   send.respond({ type: "h.timeline.edited" });
 };
 
+const handleToggleReaction: HandlerFor<"h.timeline.toggleReaction"> = async (message, send) => {
+  const { roomId, eventId, transactionId, key } = message;
+  const added = await toggleReaction(roomId, eventId, transactionId, key);
+  send.respond({ type: "h.timeline.reactionToggled", added });
+};
+
 const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (message, send) => {
   const { roomId, count } = message;
   const hitStart = await paginateBackwards(roomId, count);
@@ -94,6 +101,7 @@ export const timelineHandlers: HandlerMap = {
   "h.timeline.unsubscribe": handleUnsubscribe,
   "h.timeline.send": handleSend,
   "h.timeline.edit": handleEdit,
+  "h.timeline.toggleReaction": handleToggleReaction,
   "h.timeline.paginate": handlePaginate,
 };
 
@@ -109,4 +117,10 @@ declare module "@harmony/wasm" {
     formattedBody?: string,
   ): Promise<void>;
   export function paginateBackwards(roomId: string, count: number): Promise<boolean>;
+  export function toggleReaction(
+    roomId: string,
+    eventId?: string,
+    transactionId?: string,
+    key?: string,
+  ): Promise<boolean>;
 }

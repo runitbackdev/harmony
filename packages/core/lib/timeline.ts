@@ -1,6 +1,7 @@
 import type {
   TimelineEdited,
   TimelinePaginated,
+  TimelineReactionToggled,
   TimelineSent,
   TimelineSubscribed,
 } from "@harmony/protocol";
@@ -21,6 +22,11 @@ export type TimelineApi = {
     body: string,
     formattedBody?: string,
   ) => Promise<TimelineEdited>;
+  toggleReaction: (
+    roomId: string,
+    target: EditTarget,
+    key: string,
+  ) => Promise<TimelineReactionToggled>;
   paginate: (roomId: string, count: number) => Promise<TimelinePaginated>;
 };
 
@@ -40,6 +46,10 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
 
     async edit(roomId: string, target: EditTarget, body: string, formattedBody?: string) {
       return connection.request("h.timeline.edit", { roomId, ...target, body, formattedBody });
+    },
+
+    async toggleReaction(roomId: string, target: EditTarget, key: string) {
+      return connection.request("h.timeline.toggleReaction", { roomId, ...target, key });
     },
 
     async paginate(roomId: string, count: number) {

@@ -6,8 +6,11 @@
     ".": "./lib/index.ts"
   },
   "dependencies": {
+    "@floating-ui/react": "catalog:",
+    "@harmony/composer": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "dompurify": "^3.2.4",
+    "lucide-react": "catalog:",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.5.0"
   },

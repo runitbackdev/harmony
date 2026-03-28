@@ -3,12 +3,14 @@ packages:
   - packages/*
 
 catalog:
-  "@tanstack/react-hotkeys": ^0.4.1
+  "@floating-ui/react": ^0.27.19
+  "@tanstack/react-hotkeys": ^0.8.3
   "@types/react": ^19.2.7
   "@types/react-dom": ^19.2.3
+  lucide-react: ^1.7.0
   react: ^19.2.0
   react-dom: ^19.2.0
-  typescript: ~5.9.3
+  typescript: ~6.0.2
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vitest: npm:@voidzero-dev/vite-plus-test@latest
   vite-plus: latest

@@ -13,6 +13,7 @@ import {
 
 type EmojiPickerButtonProps = {
   onSelect: (emoji: { native?: string }) => void;
+  placement?: "top-end" | "left-start" | "right-start" | "bottom-end";
 };
 
 const FREQUENTLY_USED_GROUP = -1;
@@ -20,22 +21,25 @@ const COLUMNS = 8;
 const HEADER_HEIGHT = 28;
 const ROW_HEIGHT = 32;
 
-export default function EmojiPickerButton({ onSelect }: EmojiPickerButtonProps) {
+export default function EmojiPickerButton({
+  onSelect,
+  placement = "top-end",
+}: EmojiPickerButtonProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const { floatingStyles, refs } = useFloating({
     open,
-    placement: "top-end",
+    placement,
     middleware: [offset(8), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
 
   const handleSelect = useCallback(
-    (emoji: EmojiResult) => {
+    (emoji: EmojiResult, event: Pick<MouseEvent | KeyboardEvent, "shiftKey">) => {
       recordUsage(emoji.id);
       onSelect({ native: emoji.native });
-      setOpen(false);
+      if (!event.shiftKey) setOpen(false);
     },
     [onSelect],
   );
@@ -113,7 +117,7 @@ function buildVirtualRows(groups: EmojiGroup[]): VirtualRow[] {
 }
 
 type PickerDialogProps = {
-  onSelect: (emoji: EmojiResult) => void;
+  onSelect: (emoji: EmojiResult, event: Pick<MouseEvent | KeyboardEvent, "shiftKey">) => void;
   onClose: () => void;
 };
 
@@ -340,7 +344,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
       case "Enter":
       case " ":
         if (flatEmoji[focusedIndex]) {
-          onSelect(flatEmoji[focusedIndex]);
+          onSelect(flatEmoji[focusedIndex], e);
         }
         e.preventDefault();
         return;
@@ -518,7 +522,7 @@ type EmojiRowProps = {
   startY: number;
   focusedId: string | null;
   flatIndexById: Map<string, number>;
-  onSelect: (emoji: EmojiResult) => void;
+  onSelect: (emoji: EmojiResult, event: Pick<MouseEvent | KeyboardEvent, "shiftKey">) => void;
   onFocus: (index: number) => void;
 };
 
@@ -556,7 +560,7 @@ const EmojiRow = memo(function EmojiRow({
             data-scope="emoji-picker"
             data-part="emoji"
             data-state={isFocused ? "focused" : undefined}
-            onClick={() => onSelect(e)}
+            onClick={(event) => onSelect(e, event)}
             onFocus={() => onFocus(flatIndexById.get(e.id) ?? -1)}
           >
             {e.native}

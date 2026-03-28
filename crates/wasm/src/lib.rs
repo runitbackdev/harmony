@@ -15,7 +15,7 @@ use crate::{
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
         TimelineEventData, edit_message_impl, get_timeline_impl, paginate_backwards_impl,
-        send_message_impl, subscribe_timeline_impl,
+        send_message_impl, subscribe_timeline_impl, toggle_reaction_impl,
     },
 };
 
@@ -159,6 +159,16 @@ pub async fn edit_message(
 #[wasm_bindgen(js_name = paginateBackwards)]
 pub async fn paginate_backwards(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
     paginate_backwards_impl(room_id, count).await
+}
+
+#[wasm_bindgen(js_name = toggleReaction)]
+pub async fn toggle_reaction(
+    room_id: &str,
+    event_id: Option<String>,
+    transaction_id: Option<String>,
+    key: &str,
+) -> Result<bool, HarmonyError> {
+    toggle_reaction_impl(room_id, event_id.as_deref(), transaction_id.as_deref(), key).await
 }
 
 #[wasm_bindgen(js_name = getTimeline)]

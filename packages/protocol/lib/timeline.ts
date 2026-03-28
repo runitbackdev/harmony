@@ -19,6 +19,13 @@ export type TimelineContent =
   | { type: "virtual"; kind: string }
   | { type: "unknown" };
 
+export type ReactionGroup = {
+  key: string;
+  count: number;
+  senders: string[];
+  pending: boolean;
+};
+
 export type SendState =
   | { state: "notSentYet" }
   | { state: "sent" }
@@ -33,6 +40,7 @@ export type TimelineEvent = {
   timestamp: number;
   content: TimelineContent;
   sendState: SendState | null;
+  reactions: ReactionGroup[] | null;
 };
 
 export type TimelineSubscribe = Request<"h.timeline.subscribe", { roomId: string }>;
@@ -51,6 +59,12 @@ export type TimelineEdit = Request<
 >;
 export type TimelineEdited = Response<"h.timeline.edited">;
 
+export type TimelineToggleReaction = Request<
+  "h.timeline.toggleReaction",
+  { roomId: string; eventId?: string; transactionId?: string; key: string }
+>;
+export type TimelineReactionToggled = Response<"h.timeline.reactionToggled", { added: boolean }>;
+
 export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
 export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
 
@@ -59,11 +73,17 @@ export type TimelineUpdate = Stream<
   { roomId: string; events: ListDiff<TimelineEvent>[] }
 >;
 
-export type TimelineRequest = TimelineSubscribe | TimelineSend | TimelineEdit | TimelinePaginate;
+export type TimelineRequest =
+  | TimelineSubscribe
+  | TimelineSend
+  | TimelineEdit
+  | TimelineToggleReaction
+  | TimelinePaginate;
 export type TimelineResponse =
   | TimelineSubscribed
   | TimelineSent
   | TimelineEdited
+  | TimelineReactionToggled
   | TimelinePaginated;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

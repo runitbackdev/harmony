@@ -1,7 +1,9 @@
 import type { HTMLAttributes } from "react";
+import type { ReactionGroup } from "@harmony/protocol";
 import { Avatar } from "@skeletonlabs/skeleton-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";
+import { ReactionDisplay } from "./reaction_display";
 
 // #region MessageEvent
 
@@ -14,9 +16,10 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   pending?: boolean;
   grouped?: boolean;
   highlight?: boolean;
-  isOwn?: boolean;
-  onEdit?: () => void;
   editing?: React.ReactNode;
+  reactions?: ReactionGroup[];
+  currentUserId?: string;
+  onToggleReaction?: (key: string) => void;
 }
 
 function getInitials(sender: string) {
@@ -35,9 +38,10 @@ function MessageEvent({
   grouped,
   className,
   highlight,
-  isOwn,
-  onEdit,
   editing,
+  reactions,
+  currentUserId,
+  onToggleReaction,
   ...props
 }: MessageEventProps) {
   const time = new Date(timestamp).toLocaleTimeString([], {
@@ -81,17 +85,6 @@ function MessageEvent({
         )}
       </div>
       <div className="relative min-w-0 flex-1">
-        {isOwn && onEdit && !editing && (
-          <button
-            type="button"
-            onClick={onEdit}
-            data-scope="message-event"
-            data-part="edit-button"
-            className="absolute right-0 top-0 rounded px-1.5 py-0.5 text-xs text-surface-500 opacity-0 transition-opacity hover:bg-surface-200-800 hover:text-surface-950-50 group-hover/message:opacity-100"
-          >
-            Edit
-          </button>
-        )}
         {!grouped && (
           <div className="flex items-baseline gap-2">
             <span
@@ -127,6 +120,13 @@ function MessageEvent({
               {body}
             </div>
           ))}
+        {reactions && reactions.length > 0 && (
+          <ReactionDisplay
+            reactions={reactions}
+            currentUserId={currentUserId}
+            onToggleReaction={onToggleReaction}
+          />
+        )}
       </div>
     </div>
   );

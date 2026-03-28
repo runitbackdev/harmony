@@ -9,8 +9,8 @@ use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
 use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
 use matrix_sdk::ruma::{OwnedRoomId, OwnedTransactionId, OwnedUserId};
 use matrix_sdk_ui::timeline::{
-    EventSendState, MembershipChange, TimelineDetails, TimelineEventItemId, TimelineItem,
-    TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
+    EventSendState, MembershipChange, ReactionStatus, TimelineDetails, TimelineEventItemId,
+    TimelineItem, TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
 };
 use serde::Serialize;
 use tsify_next::Tsify;
@@ -38,6 +38,16 @@ pub enum SendState {
 #[derive(Tsify, Serialize)]
 #[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
+pub struct ReactionGroup {
+    pub key: String,
+    pub count: usize,
+    pub senders: Vec<String>,
+    pub pending: bool,
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
 pub struct TimelineEventData {
     pub id: Option<String>,
     pub transaction_id: Option<String>,
@@ -47,6 +57,7 @@ pub struct TimelineEventData {
     pub timestamp: f64,
     pub content: TimelineContent,
     pub send_state: Option<SendState>,
+    pub reactions: Option<Vec<ReactionGroup>>,
 }
 
 #[derive(Tsify, Serialize)]
@@ -119,6 +130,23 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
 
             let transaction_id = event.transaction_id().map(ToString::to_string);
 
+            let reactions = event.content().reactions().map(|by_key| {
+                by_key
+                    .iter()
+                    .map(|(key, senders)| {
+                        let pending = senders
+                            .values()
+                            .any(|info| !matches!(info.status, ReactionStatus::RemoteToRemote(_)));
+                        ReactionGroup {
+                            key: key.clone(),
+                            count: senders.len(),
+                            senders: senders.keys().map(ToString::to_string).collect(),
+                            pending,
+                        }
+                    })
+                    .collect()
+            });
+
             TimelineEventData {
                 id: event.event_id().map(ToString::to_string),
                 transaction_id,
@@ -128,6 +156,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 timestamp: event.timestamp().0.into(),
                 content: convert_content(event.content()),
                 send_state,
+                reactions,
             }
         }
 
@@ -147,6 +176,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 timestamp: 0.0,
                 content: TimelineContent::Virtual { kind },
                 send_state: None,
+                reactions: None,
             }
         }
     }
@@ -321,6 +351,31 @@ pub async fn edit_message_impl(
         .await?;
 
     Ok(())
+}
+
+pub async fn toggle_reaction_impl(
+    room_id: &str,
+    event_id: Option<&str>,
+    transaction_id: Option<&str>,
+    key: &str,
+) -> Result<bool, HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    let item_id = match (event_id, transaction_id) {
+        (Some(eid), _) => {
+            TimelineEventItemId::EventId(eid.try_into().map_err(|_| HarmonyError::InvalidUserId)?)
+        }
+        (_, Some(tid)) => TimelineEventItemId::TransactionId(OwnedTransactionId::from(tid)),
+        _ => return Err(HarmonyError::InvalidUserId),
+    };
+
+    let added = timeline.toggle_reaction(&item_id, key).await?;
+    Ok(added)
 }
 
 pub async fn get_timeline_impl(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {

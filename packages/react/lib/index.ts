@@ -10,6 +10,7 @@ export {
   paginateTimeline,
   sendMessage,
   subscribeTimeline,
+  toggleReaction,
   unsubscribeTimeline,
   useTimeline,
 } from "./timeline";
