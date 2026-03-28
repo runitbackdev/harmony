@@ -7,6 +7,12 @@ export type RoomSummary = {
   roomType: string | null;
 };
 
+export type MemberSummary = {
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
 export type SpaceFilterSummary = {
   spaceId: string;
   level: number;
@@ -27,7 +33,10 @@ export type RoomsCreate = Request<
 >;
 export type RoomsCreated = Response<"h.rooms.created", { room: RoomSummary }>;
 
-export type RoomsRequest = RoomsSubscribe | RoomsCreate;
-export type RoomsResponse = RoomsSubscribed | RoomsCreated;
+export type MembersGet = Request<"h.members.get", { roomId: string }>;
+export type MembersGot = Response<"h.members.got", { members: MemberSummary[] }>;
+
+export type RoomsRequest = RoomsSubscribe | RoomsCreate | MembersGet;
+export type RoomsResponse = RoomsSubscribed | RoomsCreated | MembersGot;
 export type RoomsCommand = RoomsUnsubscribe;
 export type RoomsStream = RoomsUpdate;

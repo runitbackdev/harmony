@@ -1,13 +1,14 @@
 use std::cell::RefCell;
 
 use futures_util::StreamExt;
-use matrix_sdk::ruma::OwnedRoomId;
+use matrix_sdk::RoomMemberships;
+use matrix_sdk::ruma::{OwnedRoomId, RoomId};
 use matrix_sdk_ui::room_list_service::filters::new_filter_identifiers;
 use matrix_sdk_ui::room_list_service::{RoomList, RoomListDynamicEntriesController, RoomListItem};
 use serde::{Deserialize, Serialize};
 use tsify_next::Tsify;
 
-use crate::{diff::convert_diffs, errors::HarmonyError, sync};
+use crate::{client, diff::convert_diffs, errors::HarmonyError, sync};
 
 type ControllerCell = RefCell<Option<RoomListDynamicEntriesController>>;
 
@@ -72,4 +73,30 @@ pub fn set_room_filter_impl(room_ids: Vec<String>) -> Result<(), HarmonyError> {
         controller.set_filter(Box::new(new_filter_identifiers(owned_ids)));
         Ok(())
     })
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct MemberData {
+    pub user_id: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+pub async fn get_room_members_impl(room_id: &str) -> Result<Vec<MemberData>, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let room_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
+    let room = client.get_room(room_id).ok_or(HarmonyError::RoomNotFound)?;
+
+    let members = room.members(RoomMemberships::JOIN).await?;
+
+    Ok(members
+        .into_iter()
+        .map(|m| MemberData {
+            user_id: m.user_id().to_string(),
+            display_name: m.display_name().map(String::from),
+            avatar_url: m.avatar_url().map(ToString::to_string),
+        })
+        .collect())
 }

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
+  getMembers,
   paginateTimeline,
   sendMessage,
   subscribeTimeline,
@@ -123,12 +124,15 @@ function TimelineView() {
           editingEventId={editingId}
           renderEditor={renderEditor}
           currentUserId={currentUserId}
-          className="pb-4"
         />
       )}
 
       <div className="border-t border-surface-200-800 p-4">
-        <Composer onSend={(body, html) => void sendMessage(roomId, body, html)} />
+        <Composer
+          roomId={roomId}
+          getMembers={getMembers}
+          onSend={(body, html) => void sendMessage(roomId, body, html)}
+        />
       </div>
     </div>
   );

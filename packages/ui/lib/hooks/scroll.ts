@@ -5,9 +5,11 @@ const LOAD_MORE_MARGIN = "200px 0px 0px 0px";
 
 export function useStickToBottom(
   containerRef: React.RefObject<HTMLDivElement | null>,
+  anchorRef: React.RefObject<HTMLDivElement | null>,
   itemCount: number,
 ) {
   const atBottom = useRef(true);
+  const prevCount = useRef(itemCount);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,10 +27,14 @@ export function useStickToBottom(
   }, [containerRef]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !atBottom.current) return;
-    container.scrollTop = container.scrollHeight;
-  }, [containerRef, itemCount]);
+    const anchor = anchorRef.current;
+    if (!anchor || !atBottom.current) return;
+
+    const isInitial = prevCount.current === 0;
+    prevCount.current = itemCount;
+
+    anchor.scrollIntoView({ block: "end", behavior: isInitial ? "instant" : "instant" });
+  }, [anchorRef, itemCount]);
 }
 
 export function useLoadMoreOnScroll(

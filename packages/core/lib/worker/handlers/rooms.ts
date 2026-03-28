@@ -1,8 +1,14 @@
 import type { HandlerFor, HandlerMap } from "../types";
 import { pipe } from "../pipe";
-import { createRoom, setRoomFilter, subscribeRoomList, subscribeSpaceFilters } from "@harmony/wasm";
+import {
+  createRoom,
+  getRoomMembers,
+  setRoomFilter,
+  subscribeRoomList,
+  subscribeSpaceFilters,
+} from "@harmony/wasm";
 import { applyListDiff } from "@harmony/protocol";
-import type { ListDiff, RoomSummary } from "@harmony/protocol";
+import type { ListDiff, MemberSummary, RoomSummary } from "@harmony/protocol";
 
 type SpaceFilterData = {
   spaceId: string;
@@ -86,10 +92,17 @@ const handleCreate: HandlerFor<"h.rooms.create"> = async (message, send) => {
   send.respond({ type: "h.rooms.created", room });
 };
 
+const handleGetMembers: HandlerFor<"h.members.get"> = async (message, send) => {
+  const { roomId } = message;
+  const members = await getRoomMembers(roomId);
+  send.respond({ type: "h.members.got", members });
+};
+
 export const roomsHandlers: HandlerMap = {
   "h.rooms.subscribe": handleSubscribe,
   "h.rooms.unsubscribe": handleUnsubscribe,
   "h.rooms.create": handleCreate,
+  "h.members.get": handleGetMembers,
 };
 
 declare module "@harmony/wasm" {
@@ -97,4 +110,5 @@ declare module "@harmony/wasm" {
   export function setRoomFilter(roomIds: string[]): void;
   export function subscribeSpaceFilters(): Promise<[SpaceFilterData[], ReadableStream]>;
   export function createRoom(spaceId: string, name: string, visibility: string): Promise<RoomData>;
+  export function getRoomMembers(roomId: string): Promise<MemberSummary[]>;
 }

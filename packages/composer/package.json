@@ -6,13 +6,21 @@
     ".": "./lib/index.ts"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.19",
+    "@harmony/protocol": "workspace:*",
+    "@tanstack/react-virtual": "^3.13.23",
     "@tiptap/core": "^3.20.5",
     "@tiptap/extension-link": "^3.20.5",
+    "@tiptap/extension-mention": "^3.20.5",
     "@tiptap/extension-placeholder": "^3.20.5",
     "@tiptap/extension-typography": "^3.20.5",
     "@tiptap/extension-underline": "^3.20.5",
+    "@tiptap/pm": "^3.20.5",
     "@tiptap/react": "^3.20.5",
-    "@tiptap/starter-kit": "^3.20.5"
+    "@tiptap/starter-kit": "^3.20.5",
+    "@tiptap/suggestion": "^3.20.5",
+    "emojibase": "^17.0.0",
+    "emojibase-data": "^17.0.0"
   },
   "devDependencies": {
     "@types/react": "catalog:",

@@ -127,6 +127,7 @@ function MessageList({
 }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(
     () => events.filter((event) => event.content.type !== "unknown"),
@@ -135,7 +136,7 @@ function MessageList({
 
   const grouping = useMemo(() => computeGrouping(filtered), [filtered]);
 
-  useStickToBottom(containerRef, filtered.length);
+  useStickToBottom(containerRef, anchorRef, filtered.length);
   useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
 
   return (
@@ -153,6 +154,7 @@ function MessageList({
           style={{
             contentVisibility: "auto",
             containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
+            overflowAnchor: "none",
           }}
           className="px-4"
         >
@@ -169,6 +171,13 @@ function MessageList({
           )}
         </div>
       ))}
+      <div
+        ref={anchorRef}
+        data-scope="message-list"
+        data-part="anchor"
+        style={{ overflowAnchor: "auto" }}
+        className="pb-4"
+      />
     </div>
   );
 }

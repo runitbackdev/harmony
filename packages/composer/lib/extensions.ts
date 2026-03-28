@@ -5,7 +5,7 @@ import Typography from "@tiptap/extension-typography";
 import { Spoiler } from "./spoiler";
 
 export const baseExtensions = [
-  StarterKit,
+  StarterKit.configure({ underline: false, link: false }),
   Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
   Underline,
   Typography,

@@ -1,6 +1,7 @@
 import type { AuthCommand, AuthError, AuthLoggedIn, AuthRequest, AuthResponse } from "./auth";
 import type { ErrorResponse } from "./error";
 import type {
+  MembersGot,
   RoomsCommand,
   RoomsCreated,
   RoomsRequest,
@@ -48,6 +49,7 @@ export type ResponseMap = {
   "h.spaces.join": SpacesJoined;
   "h.rooms.subscribe": RoomsSubscribed;
   "h.rooms.create": RoomsCreated;
+  "h.members.get": MembersGot;
   "h.timeline.subscribe": TimelineSubscribed;
   "h.timeline.send": TimelineSent;
   "h.timeline.edit": TimelineEdited;
