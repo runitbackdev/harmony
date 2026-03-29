@@ -212,20 +212,23 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
     };
   }, [query]);
 
-  function syncActiveTab(group: number) {
-    if (group === activeTabRef.current) return;
-    activeTabRef.current = group;
-    const tablist = tablistRef.current;
-    if (!tablist) return;
-    const label = allGroups.find((g) => g.group === group)?.label;
-    for (const btn of tablist.children) {
-      if (!(btn instanceof HTMLElement)) continue;
-      const isActive = btn.getAttribute("aria-label") === label;
-      btn.setAttribute("data-state", isActive ? "active" : "");
-      btn.setAttribute("aria-selected", String(isActive));
-      btn.setAttribute("tabindex", isActive ? "0" : "-1");
-    }
-  }
+  const syncActiveTab = useCallback(
+    (group: number) => {
+      if (group === activeTabRef.current) return;
+      activeTabRef.current = group;
+      const tablist = tablistRef.current;
+      if (!tablist) return;
+      const label = allGroups.find((g) => g.group === group)?.label;
+      for (const btn of tablist.children) {
+        if (!(btn instanceof HTMLElement)) continue;
+        const isActive = btn.getAttribute("aria-label") === label;
+        btn.setAttribute("data-state", isActive ? "active" : "");
+        btn.setAttribute("aria-selected", String(isActive));
+        btn.setAttribute("tabindex", isActive ? "0" : "-1");
+      }
+    },
+    [allGroups],
+  );
 
   // Scroll-sync: derive active tab from visible virtual rows
   useEffect(() => {
@@ -262,7 +265,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
       el.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(rafId);
     };
-  }, [isSearching, virtualRows, virtualizer]);
+  }, [isSearching, virtualRows, virtualizer, syncActiveTab]);
 
   // Focus trap
   useEffect(() => {

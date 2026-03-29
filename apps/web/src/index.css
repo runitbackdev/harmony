@@ -1,4 +1,10 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Twemoji";
+  src: url("/fonts/Twemoji_GlyfColr1.woff2") format("woff2");
+  font-display: swap;
+}
 @plugin "@tailwindcss/forms";
 
 @import "@skeletonlabs/skeleton";
@@ -9,6 +15,10 @@
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";
+
+body {
+  font-family: "Twemoji", var(--base-font-family);
+}
 
 .select,
 .input,
