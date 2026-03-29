@@ -6,9 +6,6 @@ const ALLOWED_TAGS = [
   "h1",
   "h2",
   "h3",
-  "h4",
-  "h5",
-  "h6",
   "blockquote",
   "p",
   "a",
@@ -24,19 +21,12 @@ const ALLOWED_TAGS = [
   "em",
   "strike",
   "code",
-  "hr",
   "br",
   "div",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-  "caption",
   "pre",
   "span",
   "img",
+  "small",
   "mx-reply",
 ];
 
@@ -55,6 +45,7 @@ const ALLOWED_ATTR = [
   "start",
   "class",
   "data-mx-spoiler",
+  "data-subtext",
 ];
 
 const ALLOWED_URI_REGEXP = /^(?:https?|ftp|mailto|magnet|mxc):/i;

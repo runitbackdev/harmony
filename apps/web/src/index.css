@@ -4,6 +4,8 @@
   font-family: "Twemoji";
   src: url("/fonts/Twemoji_GlyfColr1.woff2") format("woff2");
   font-display: swap;
+  unicode-range: U+200D, U+2300-23FF, U+2600-27BF, U+2B50, U+FE00-FE0F,
+    U+1F000-1FAFF, U+E0020-E007F;
 }
 @plugin "@tailwindcss/forms";
 

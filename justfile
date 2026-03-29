@@ -6,13 +6,16 @@ setup: check-deps
   command -v wasm-pack >/dev/null || cargo install wasm-pack
   command -v typos >/dev/null || cargo install typos-cli
   command -v committed >/dev/null || cargo install committed
+  command -v overmind >/dev/null || go install github.com/DarthSim/overmind/v2@latest
+  command -v watchexec >/dev/null || cargo install watchexec-cli
   just build-wasm-dev
   pnpm install
   pnpm lefthook install
+  cd apps/herald && bundle install
 
 dev:
   @test -d packages/wasm || just build-wasm-dev
-  VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
+  overmind start -f Procfile.dev
 
 build: build-wasm build-web
 
@@ -52,6 +55,10 @@ check-deps:
   @command -v rustup >/dev/null || (echo "error: rustup not found — install from https://rustup.rs" && exit 1)
   @command -v cargo >/dev/null || (echo "error: cargo not found — install rust via rustup" && exit 1)
   @command -v pnpm >/dev/null || (echo "error: pnpm not found — install from https://pnpm.io" && exit 1)
+  @command -v go >/dev/null || (echo "error: go not found — install from https://go.dev/dl" && exit 1)
+  @command -v tmux >/dev/null || (echo "error: tmux not found — install via your package manager" && exit 1)
+  @command -v ruby >/dev/null || (echo "error: ruby not found — install from https://www.ruby-lang.org" && exit 1)
+  @command -v bundle >/dev/null || (echo "error: bundler not found — run: gem install bundler" && exit 1)
 
 [private]
 build-wasm:
