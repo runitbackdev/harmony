@@ -47,15 +47,13 @@ interface IndexedEmoji {
 
 let index: IndexedEmoji[] | null = null;
 
-function getIndex(): IndexedEmoji[] {
-  if (index) return index;
-
+function buildIndex(): IndexedEmoji[] {
   const shortcodeDatasets = [joypixelsShortcodes, githubShortcodes] as ShortcodesDataset[];
   for (const emoji of emojis as CompactEmoji[]) {
     joinShortcodesToEmoji(emoji, shortcodeDatasets);
   }
 
-  index = (emojis as CompactEmoji[])
+  return (emojis as CompactEmoji[])
     .filter((e) => e.group !== undefined)
     .map((e) => {
       const shortcodes = e.shortcodes ?? [];
@@ -71,8 +69,22 @@ function getIndex(): IndexedEmoji[] {
         searchText: [e.label, ...shortcodes, ...tags].join(" ").toLowerCase(),
       };
     });
+}
 
+function getIndex(): IndexedEmoji[] {
+  if (index) return index;
+  index = buildIndex();
   return index;
+}
+
+if (typeof requestIdleCallback === "function") {
+  requestIdleCallback(() => {
+    index = buildIndex();
+  });
+} else {
+  setTimeout(() => {
+    index = buildIndex();
+  }, 0);
 }
 
 function toResult(entry: IndexedEmoji): EmojiResult {
@@ -124,7 +136,11 @@ function insertEmoji(editor: any, range: Range, emoji: EmojiResult) {
 
 export type EmojiGroup = { group: number; label: string; emoji: EmojiResult[] };
 
+let cachedGroups: EmojiGroup[] | null = null;
+
 export function getEmojiByGroup(): EmojiGroup[] {
+  if (cachedGroups) return cachedGroups;
+
   const entries = getIndex();
   const grouped = new Map<number, IndexedEmoji[]>();
 
@@ -138,13 +154,15 @@ export function getEmojiByGroup(): EmojiGroup[] {
     arr.push(entry);
   }
 
-  return Array.from(grouped.entries())
+  cachedGroups = Array.from(grouped.entries())
     .sort(([a], [b]) => a - b)
     .map(([group, items]) => ({
       group,
       label: GROUP_LABELS[group]!,
       emoji: items.sort((a, b) => a.order - b.order).map(toResult),
     }));
+
+  return cachedGroups;
 }
 
 const STORAGE_KEY = "harmony:emoji:recent";

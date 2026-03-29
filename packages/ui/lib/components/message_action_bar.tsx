@@ -39,7 +39,7 @@ function MessageActionBar({
       style={floatingStyles}
       className="z-50 flex items-center gap-0.5 rounded-md border border-surface-300-700 bg-surface-50-950 px-1 py-0.5 shadow-sm"
       onPointerLeave={(e) => {
-        if (document.querySelector('[data-scope="emoji-picker"][data-part="popover"]')) return;
+        if ("emojiPickerOpen" in document.documentElement.dataset) return;
         const related = e.relatedTarget;
         if (related instanceof Node && anchor.contains(related)) return;
         onDismiss?.();

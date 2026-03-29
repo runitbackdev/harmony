@@ -1,9 +1,12 @@
 import type { HTMLAttributes } from "react";
-import type { ReactionGroup } from "@harmony/protocol";
 import { Avatar } from "@skeletonlabs/skeleton-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";
-import { ReactionDisplay } from "./reaction_display";
+
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // #region MessageEvent
 
@@ -17,9 +20,7 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   grouped?: boolean;
   highlight?: boolean;
   editing?: React.ReactNode;
-  reactions?: ReactionGroup[];
-  currentUserId?: string;
-  onToggleReaction?: (key: string) => void;
+  reactions?: React.ReactNode;
 }
 
 function getInitials(sender: string) {
@@ -40,14 +41,9 @@ function MessageEvent({
   highlight,
   editing,
   reactions,
-  currentUserId,
-  onToggleReaction,
   ...props
 }: MessageEventProps) {
-  const time = new Date(timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = timeFormatter.format(timestamp);
 
   return (
     <div
@@ -120,13 +116,7 @@ function MessageEvent({
               {body}
             </div>
           ))}
-        {reactions && reactions.length > 0 && (
-          <ReactionDisplay
-            reactions={reactions}
-            currentUserId={currentUserId}
-            onToggleReaction={onToggleReaction}
-          />
-        )}
+        {reactions}
       </div>
     </div>
   );

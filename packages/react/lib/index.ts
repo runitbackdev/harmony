@@ -14,3 +14,4 @@ export {
   unsubscribeTimeline,
   useTimeline,
 } from "./timeline";
+export { useReactions } from "./reactions";

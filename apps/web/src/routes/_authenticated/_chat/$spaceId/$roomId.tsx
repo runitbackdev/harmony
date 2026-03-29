@@ -7,11 +7,12 @@ import {
   sendMessage,
   subscribeTimeline,
   toggleReaction,
+  useReactions,
   useRooms,
   useTimeline,
   getSession,
 } from "@harmony/react";
-import { MessageList } from "@harmony/ui";
+import { MessageList, ReactionDisplay } from "@harmony/ui";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { EditTarget } from "@harmony/composer";
 import { Hash } from "lucide-react";
@@ -45,21 +46,49 @@ function formatContent(content: TimelineContent): string {
 
 // #endregion
 
+function ConnectedReactions({ eventId }: { eventId: string }) {
+  const { roomId } = useParams({ from: "/_authenticated/_chat/$spaceId/$roomId" });
+  const reactions = useReactions(eventId);
+  if (!reactions?.length) return null;
+  return (
+    <ReactionDisplay
+      reactions={reactions}
+      currentUserId={getSession()?.userId}
+      onToggleReaction={(key) => void toggleReaction(roomId, { eventId }, key)}
+    />
+  );
+}
+
+function RoomHeader({ roomId }: { roomId: string }) {
+  const rooms = useRooms();
+  const room = rooms.find((r) => r.roomId === roomId);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Hash size={16} className="text-surface-500" />
+      <h2 className="text-sm font-semibold text-surface-950-50">
+        {room?.displayName ?? "Unknown"}
+      </h2>
+    </div>
+  );
+}
+
 function TimelineView() {
   const { roomId } = useParams({
     from: "/_authenticated/_chat/$spaceId/$roomId",
   });
-  const rooms = useRooms();
-  const room = rooms.find((r) => r.roomId === roomId);
   const events = useTimeline();
   const [debug, setDebug] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const currentUserId = getSession()?.userId;
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
 
-  function handleToggleReaction(eventId: string, key: string) {
-    void toggleReaction(roomId, { eventId }, key);
-  }
+  const handleToggleReaction = useCallback(
+    (eventId: string, key: string) => {
+      void toggleReaction(roomId, { eventId }, key);
+    },
+    [roomId],
+  );
 
   function handleEditMessage(event: TimelineEvent) {
     setEditingId(event.id ?? event.transactionId ?? null);
@@ -85,10 +114,7 @@ function TimelineView() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
-        <Hash size={16} className="text-surface-500" />
-        <h2 className="text-sm font-semibold text-surface-950-50">
-          {room?.displayName ?? "Unknown"}
-        </h2>
+        <RoomHeader roomId={roomId} />
         {import.meta.env.DEV && (
           <button
             type="button"
@@ -130,6 +156,7 @@ function TimelineView() {
           renderEditor={renderEditor}
           currentUserId={currentUserId}
           onToggleReaction={handleToggleReaction}
+          ReactionSlot={ConnectedReactions}
         />
       )}
 

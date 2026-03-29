@@ -1,4 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  memo,
+} from "react";
 import type { HTMLAttributes } from "react";
 import type { TimelineEvent } from "@harmony/protocol";
 import { cn } from "../utils";
@@ -10,6 +18,7 @@ import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
 
 const GROUP_INTERVAL_MS = 8 * 60 * 1000;
 const INTRINSIC_ITEM_HEIGHT = "auto 40px";
+const SCROLL_IDLE_MS = 150;
 
 // #region Helpers
 
@@ -56,6 +65,150 @@ function isPending(event: TimelineEvent): boolean {
 
 // #endregion
 
+// #region MessageRow
+
+export type ReactionSlotProps = { eventId: string };
+
+interface MessageRowProps {
+  event: TimelineEvent;
+  grouped: boolean;
+  index: number;
+  currentUserId?: string;
+  editingNode?: React.ReactNode;
+  ReactionSlot?: React.ComponentType<ReactionSlotProps>;
+  onPointerEnter: (event: TimelineEvent, index: number, el: HTMLElement) => void;
+  onPointerLeave: (e: React.PointerEvent) => void;
+}
+
+const MessageRow = memo(function MessageRow({
+  event,
+  grouped,
+  index,
+  currentUserId,
+  editingNode,
+  ReactionSlot,
+  onPointerEnter,
+  onPointerLeave,
+}: MessageRowProps) {
+  function renderContent() {
+    if (event.content.type === "virtual") {
+      const kind = event.content.kind;
+      if (kind.startsWith("date_divider:")) {
+        return <DateDivider timestamp={Number(kind.slice("date_divider:".length))} />;
+      }
+      if (kind === "read_marker") return <ReadMarker />;
+      if (kind === "timeline_start") return <TimelineStart />;
+      return null;
+    }
+
+    if (event.content.type === "message") {
+      const mentions = event.content.mentions;
+      const highlight =
+        !!currentUserId &&
+        !!mentions &&
+        (mentions.everyone || mentions.userIds.includes(currentUserId));
+
+      return (
+        <MessageEvent
+          sender={event.senderName ?? event.sender ?? "Unknown"}
+          body={event.content.body}
+          formattedBody={event.content.formattedBody}
+          timestamp={event.timestamp}
+          avatar={event.senderAvatar}
+          pending={isPending(event)}
+          grouped={grouped}
+          highlight={highlight}
+          editing={editingNode}
+          reactions={ReactionSlot && event.id ? <ReactionSlot eventId={event.id} /> : undefined}
+        />
+      );
+    }
+
+    const systemText = formatSystemContent(event);
+    if (systemText) return <SystemEvent content={systemText} />;
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
+        overflowAnchor: "none",
+      }}
+      className="px-4 hover:bg-surface-100-900 data-hovered:bg-surface-100-900"
+      onPointerEnter={(e) => onPointerEnter(event, index, e.currentTarget)}
+      onPointerLeave={onPointerLeave}
+    >
+      {renderContent()}
+    </div>
+  );
+});
+
+// #endregion
+
+// #region ActionBarOverlay
+
+interface ActionBarHandle {
+  show: (anchor: HTMLElement, event: TimelineEvent) => void;
+  hide: () => void;
+}
+
+interface ActionBarOverlayProps {
+  currentUserId?: string;
+  editingEventId?: string | null;
+  onEditMessage?: (event: TimelineEvent) => void;
+  onToggleReaction?: (eventId: string, key: string) => void;
+}
+
+const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
+  function ActionBarOverlay(
+    { currentUserId, editingEventId, onEditMessage, onToggleReaction },
+    ref,
+  ) {
+    const [hover, setHover] = useState<{ anchor: HTMLElement; event: TimelineEvent } | null>(null);
+
+    useImperativeHandle(ref, () => ({
+      show: (anchor, event) => setHover({ anchor, event }),
+      hide: () => {
+        setHover((prev) => {
+          prev?.anchor.removeAttribute("data-hovered");
+          return null;
+        });
+      },
+    }));
+
+    if (!hover) return null;
+
+    const { anchor, event } = hover;
+    const isOwn = !!currentUserId && event.sender === currentUserId;
+    const isEditing =
+      editingEventId != null &&
+      (event.id === editingEventId || event.transactionId === editingEventId);
+
+    if (isEditing) return null;
+
+    return (
+      <MessageActionBar
+        anchor={anchor}
+        isOwn={isOwn}
+        onDismiss={() => {
+          anchor.removeAttribute("data-hovered");
+          setHover(null);
+        }}
+        onEdit={isOwn && onEditMessage ? () => onEditMessage(event) : undefined}
+        onToggleReaction={
+          onToggleReaction
+            ? (key: string) => onToggleReaction(event.id ?? event.transactionId ?? "", key)
+            : undefined
+        }
+      />
+    );
+  },
+);
+
+// #endregion
+
 // #region MessageList
 
 interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
@@ -66,58 +219,7 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   editingEventId?: string | null;
   renderEditor?: (event: TimelineEvent) => React.ReactNode;
   onToggleReaction?: (eventId: string, key: string) => void;
-}
-
-function renderEvent(
-  event: TimelineEvent,
-  grouped: boolean,
-  currentUserId?: string,
-  editingNode?: React.ReactNode,
-  onToggleReaction?: (eventId: string, key: string) => void,
-) {
-  if (event.content.type === "virtual") {
-    const kind = event.content.kind;
-    if (kind.startsWith("date_divider:")) {
-      return <DateDivider timestamp={Number(kind.slice("date_divider:".length))} />;
-    }
-    if (kind === "read_marker") return <ReadMarker />;
-    if (kind === "timeline_start") return <TimelineStart />;
-    return null;
-  }
-
-  if (event.content.type === "message") {
-    const mentions = event.content.mentions;
-    const highlight =
-      !!currentUserId &&
-      !!mentions &&
-      (mentions.everyone || mentions.userIds.includes(currentUserId));
-
-    return (
-      <MessageEvent
-        sender={event.senderName ?? event.sender ?? "Unknown"}
-        body={event.content.body}
-        formattedBody={event.content.formattedBody}
-        timestamp={event.timestamp}
-        avatar={event.senderAvatar}
-        pending={isPending(event)}
-        grouped={grouped}
-        highlight={highlight}
-        editing={editingNode}
-        reactions={event.reactions ?? undefined}
-        currentUserId={currentUserId}
-        onToggleReaction={
-          onToggleReaction
-            ? (key: string) => onToggleReaction(event.id ?? event.transactionId ?? "", key)
-            : undefined
-        }
-      />
-    );
-  }
-
-  const systemText = formatSystemContent(event);
-  if (systemText) return <SystemEvent content={systemText} />;
-
-  return null;
+  ReactionSlot?: React.ComponentType<ReactionSlotProps>;
 }
 
 function MessageList({
@@ -126,6 +228,7 @@ function MessageList({
   onEditMessage,
   editingEventId,
   renderEditor,
+  ReactionSlot,
   className,
   currentUserId,
   onToggleReaction,
@@ -134,25 +237,43 @@ function MessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const actionBarRef = useRef<ActionBarHandle>(null);
+  const hoveredAnchorRef = useRef<HTMLElement | null>(null);
 
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [hoveredAnchor, setHoveredAnchor] = useState<HTMLElement | null>(null);
-
-  const handlePointerEnter = useCallback((event: TimelineEvent, i: number, el: HTMLElement) => {
+  const handlePointerEnter = useCallback((event: TimelineEvent, _: number, el: HTMLElement) => {
     if (event.content.type !== "message") return;
-    setHoveredIndex(i);
-    setHoveredAnchor(el);
+    hoveredAnchorRef.current?.removeAttribute("data-hovered");
+    el.setAttribute("data-hovered", "");
+    hoveredAnchorRef.current = el;
+    actionBarRef.current?.show(el, event);
   }, []);
 
   const handlePointerLeave = useCallback((e: React.PointerEvent) => {
-    if (document.querySelector('[data-scope="emoji-picker"][data-part="popover"]')) return;
+    if ("emojiPickerOpen" in document.documentElement.dataset) return;
     const related = e.relatedTarget;
     if (related instanceof Node) {
       const actionBar = document.querySelector('[data-scope="message-action-bar"]');
       if (actionBar?.contains(related)) return;
     }
-    setHoveredIndex(null);
-    setHoveredAnchor(null);
+    hoveredAnchorRef.current = null;
+    actionBarRef.current?.hide();
+  }, []);
+
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    hoveredAnchorRef.current?.removeAttribute("data-hovered");
+    hoveredAnchorRef.current = null;
+    actionBarRef.current?.hide();
+    container.style.pointerEvents = "none";
+
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      container.style.pointerEvents = "";
+    }, SCROLL_IDLE_MS);
   }, []);
 
   const filtered = useMemo(
@@ -165,47 +286,36 @@ function MessageList({
   useStickToBottom(containerRef, anchorRef, filtered.length);
   useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
 
-  const hoveredEvent = hoveredIndex !== null ? filtered[hoveredIndex] : null;
-  const isHoveredOwn = !!currentUserId && hoveredEvent?.sender === currentUserId;
-  const isHoveredEditing =
-    hoveredEvent &&
-    editingEventId &&
-    (hoveredEvent.id === editingEventId || hoveredEvent.transactionId === editingEventId);
-
   return (
     <div
       data-scope="message-list"
       data-part="root"
       ref={containerRef}
       className={cn("flex-1 overflow-y-auto", className)}
+      onScroll={handleScroll}
       {...props}
     >
       <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />
-      {filtered.map((event, i) => (
-        <div
-          key={event.id ?? `pending-${i}`}
-          style={{
-            contentVisibility: "auto",
-            containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
-            overflowAnchor: "none",
-          }}
-          className={cn("px-4", hoveredIndex === i && "bg-surface-100-900")}
-          onPointerEnter={(e) => handlePointerEnter(event, i, e.currentTarget)}
-          onPointerLeave={handlePointerLeave}
-        >
-          {renderEvent(
-            event,
-            grouping[i],
-            currentUserId,
-            editingEventId &&
-              renderEditor &&
-              (event.id === editingEventId || event.transactionId === editingEventId)
-              ? renderEditor(event)
-              : undefined,
-            onToggleReaction,
-          )}
-        </div>
-      ))}
+      {filtered.map((event, i) => {
+        const isEditing =
+          editingEventId != null &&
+          renderEditor != null &&
+          (event.id === editingEventId || event.transactionId === editingEventId);
+
+        return (
+          <MessageRow
+            key={event.id ?? `pending-${i}`}
+            event={event}
+            grouped={grouping[i]}
+            index={i}
+            currentUserId={currentUserId}
+            editingNode={isEditing ? renderEditor(event) : undefined}
+            ReactionSlot={ReactionSlot}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
+          />
+        );
+      })}
       <div
         ref={anchorRef}
         data-scope="message-list"
@@ -214,23 +324,13 @@ function MessageList({
         className="pb-4"
       />
 
-      {hoveredAnchor && hoveredEvent && !isHoveredEditing && (
-        <MessageActionBar
-          anchor={hoveredAnchor}
-          isOwn={isHoveredOwn}
-          onDismiss={() => {
-            setHoveredIndex(null);
-            setHoveredAnchor(null);
-          }}
-          onEdit={isHoveredOwn && onEditMessage ? () => onEditMessage(hoveredEvent) : undefined}
-          onToggleReaction={
-            onToggleReaction
-              ? (key: string) =>
-                  onToggleReaction(hoveredEvent.id ?? hoveredEvent.transactionId ?? "", key)
-              : undefined
-          }
-        />
-      )}
+      <ActionBarOverlay
+        ref={actionBarRef}
+        currentUserId={currentUserId}
+        editingEventId={editingEventId}
+        onEditMessage={onEditMessage}
+        onToggleReaction={onToggleReaction}
+      />
     </div>
   );
 }

@@ -52,6 +52,30 @@ type KeyedSubscriber<K, T> = (
   cleanup: () => void;
 }>;
 
+export function createKeyedMap<V>() {
+  const state = proxy<Record<string, V>>({});
+
+  function set(key: string, value: V) {
+    state[key] = value;
+  }
+
+  function remove(key: string) {
+    delete state[key];
+  }
+
+  function clear() {
+    for (const k of Object.keys(state)) delete state[k];
+  }
+
+  function useEntry(key: string | null): V | undefined {
+    const snap = useSnapshot(state);
+    if (!key) return undefined;
+    return snap[key] as V | undefined;
+  }
+
+  return { state, set, remove, clear, useEntry };
+}
+
 export function createKeyedSubscription<K, T>(subscribe: KeyedSubscriber<K, T>) {
   const state = proxy({
     key: null as K | null,

@@ -54,6 +54,14 @@ export default function EmojiPickerButton({
     wasOpen.current = open;
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.dataset.emojiPickerOpen = "";
+    return () => {
+      delete document.documentElement.dataset.emojiPickerOpen;
+    };
+  }, [open]);
+
   return (
     <>
       <button
@@ -124,12 +132,13 @@ type PickerDialogProps = {
 function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<EmojiResult[]>([]);
-  const [activeTab, setActiveTab] = useState<number>(FREQUENTLY_USED_GROUP);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const activeTabRef = useRef<number>(FREQUENTLY_USED_GROUP);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const tablistRef = useRef<HTMLDivElement>(null);
 
   const groups = useMemo(() => getEmojiByGroup(), []);
   const frequentlyUsed = useMemo(() => getFrequentlyUsed(), []);
@@ -175,7 +184,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (i) => (virtualRows[i]?.type === "header" ? HEADER_HEIGHT : ROW_HEIGHT),
-    overscan: 10,
+    overscan: 3,
   });
 
   // Auto-focus search on mount
@@ -203,8 +212,22 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
     };
   }, [query]);
 
+  function syncActiveTab(group: number) {
+    if (group === activeTabRef.current) return;
+    activeTabRef.current = group;
+    const tablist = tablistRef.current;
+    if (!tablist) return;
+    const label = allGroups.find((g) => g.group === group)?.label;
+    for (const btn of tablist.children) {
+      if (!(btn instanceof HTMLElement)) continue;
+      const isActive = btn.getAttribute("aria-label") === label;
+      btn.setAttribute("data-state", isActive ? "active" : "");
+      btn.setAttribute("aria-selected", String(isActive));
+      btn.setAttribute("tabindex", isActive ? "0" : "-1");
+    }
+  }
+
   // Scroll-sync: derive active tab from visible virtual rows
-  const activeTabRef = useRef(activeTab);
   useEffect(() => {
     if (isSearching || !scrollRef.current) return;
 
@@ -227,9 +250,8 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
           const firstRow = virtualRows[items[0]!.index];
           if (firstRow) group = firstRow.group;
         }
-        if (group !== null && group !== activeTabRef.current) {
-          activeTabRef.current = group;
-          setActiveTab(group);
+        if (group !== null) {
+          syncActiveTab(group);
         }
       });
     }
@@ -370,7 +392,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
   }
 
   function handleTabKeyDown(e: KeyboardEvent, groupList: EmojiGroup[]) {
-    const currentIdx = groupList.findIndex((g) => g.group === activeTab);
+    const currentIdx = groupList.findIndex((g) => g.group === activeTabRef.current);
     let nextIdx = currentIdx;
 
     if (e.key === "ArrowRight") {
@@ -384,7 +406,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
     e.preventDefault();
     const next = groupList[nextIdx];
     if (next) {
-      setActiveTab(next.group);
+      syncActiveTab(next.group);
       scrollToGroup(next.group);
     }
   }
@@ -421,31 +443,35 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
 
       {!isSearching && (
         <div
+          ref={tablistRef}
           role="tablist"
           aria-label="Emoji categories"
           data-scope="emoji-picker"
           data-part="tablist"
           onKeyDown={(e) => handleTabKeyDown(e, allGroups)}
         >
-          {allGroups.map((g) => (
-            <button
-              key={g.group}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === g.group}
-              aria-label={g.label}
-              tabIndex={activeTab === g.group ? 0 : -1}
-              data-scope="emoji-picker"
-              data-part="tab"
-              data-state={activeTab === g.group ? "active" : undefined}
-              onClick={() => {
-                setActiveTab(g.group);
-                scrollToGroup(g.group);
-              }}
-            >
-              {getCategoryIcon(g.group)}
-            </button>
-          ))}
+          {allGroups.map((g) => {
+            const isDefault = g.group === FREQUENTLY_USED_GROUP;
+            return (
+              <button
+                key={g.group}
+                type="button"
+                role="tab"
+                aria-selected={isDefault}
+                aria-label={g.label}
+                tabIndex={isDefault ? 0 : -1}
+                data-scope="emoji-picker"
+                data-part="tab"
+                data-state={isDefault ? "active" : ""}
+                onClick={() => {
+                  syncActiveTab(g.group);
+                  scrollToGroup(g.group);
+                }}
+              >
+                {getCategoryIcon(g.group)}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -481,6 +507,7 @@ function PickerDialog({ onSelect, onClose }: PickerDialogProps) {
                     width: "100%",
                     height: HEADER_HEIGHT,
                     transform: `translate3d(0,${virtualItem.start}px,0)`,
+                    contain: "strict",
                   }}
                 >
                   {row.label}
@@ -534,10 +561,28 @@ const EmojiRow = memo(function EmojiRow({
   onSelect,
   onFocus,
 }: EmojiRowProps) {
+  function handleClick(e: React.MouseEvent) {
+    const btn = (e.target as HTMLElement).closest("[data-emoji-idx]") as HTMLElement | null;
+    if (!btn) return;
+    const idx = Number(btn.dataset.emojiIdx);
+    const em = emoji[idx];
+    if (em) onSelect(em, e);
+  }
+
+  function handleFocus(e: React.FocusEvent) {
+    const btn = (e.target as HTMLElement).closest("[data-emoji-idx]") as HTMLElement | null;
+    if (!btn) return;
+    const idx = Number(btn.dataset.emojiIdx);
+    const em = emoji[idx];
+    if (em) onFocus(flatIndexById.get(em.id) ?? -1);
+  }
+
   return (
     <div
       data-scope="emoji-picker"
       data-part="grid-row"
+      onClick={handleClick}
+      onFocus={handleFocus}
       style={{
         position: "absolute",
         top: 0,
@@ -547,9 +592,10 @@ const EmojiRow = memo(function EmojiRow({
         transform: `translate3d(0,${startY}px,0)`,
         display: "grid",
         gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
+        contain: "strict",
       }}
     >
-      {emoji.map((e) => {
+      {emoji.map((e, i) => {
         const isFocused = e.id === focusedId;
         return (
           <button
@@ -559,9 +605,8 @@ const EmojiRow = memo(function EmojiRow({
             tabIndex={isFocused ? 0 : -1}
             data-scope="emoji-picker"
             data-part="emoji"
+            data-emoji-idx={i}
             data-state={isFocused ? "focused" : undefined}
-            onClick={(event) => onSelect(e, event)}
-            onFocus={() => onFocus(flatIndexById.get(e.id) ?? -1)}
           >
             {e.native}
           </button>
