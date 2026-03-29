@@ -20,6 +20,7 @@ pre-commit:
       run: vp check --no-fmt
 
     - name: typos
+      exclude: "*.woff2"
       run: typos {staged_files}
 
 commit-msg:
