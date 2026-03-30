@@ -48,6 +48,14 @@ setup-users:
   docker exec harmony-synapse register_new_matrix_user -u alice -p alice -c /config/homeserver.yaml --no-admin
   docker exec harmony-synapse register_new_matrix_user -u bob -p bob -c /config/homeserver.yaml --no-admin
 
+synapse-reset:
+  docker compose down -v
+  docker compose up -d synapse
+  @echo "Waiting for Synapse to start..."
+  @until docker exec harmony-synapse curl -sf http://localhost:8008/_matrix/client/versions > /dev/null 2>&1; do sleep 1; done
+  just setup-users
+  @echo "Synapse reset complete."
+
 synapse-seed: setup-users
 
 [private]

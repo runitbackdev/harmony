@@ -1,10 +1,10 @@
-import { useMemo, useCallback } from "react";
-import { Extension } from "@tiptap/core";
-import { useEditor, EditorContent } from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
-import { baseExtensions, editorAttributes } from "./extensions";
-import { createEmojiExtension } from "./emoji";
-import { isSuggestionActive } from "./suggestion-active";
+import { useRef, useEffect, useCallback, useMemo } from "react";
+import { placeholder } from "@codemirror/view";
+import { autocompletion } from "@codemirror/autocomplete";
+import { Compartment, EditorState, EditorView, baseExtensions, editKeymap } from "./editor";
+import { emojiCompletionSource } from "./emoji-source";
+import { markdownToHtml } from "./md-to-html";
+import { htmlToMarkdown } from "./html-to-md";
 import "./composer.css";
 
 export type EditTarget = {
@@ -15,54 +15,66 @@ export type EditTarget = {
 type EditComposerProps = {
   target: EditTarget;
   content: string;
+  markdownSource?: string;
   onEdit: (target: EditTarget, body: string, formattedBody: string) => void;
   onCancel: () => void;
 };
 
-export function EditComposer({ target, content, onEdit, onCancel }: EditComposerProps) {
-  const emojiExtension = useMemo(() => createEmojiExtension(), []);
+export function EditComposer({
+  target,
+  content,
+  markdownSource,
+  onEdit,
+  onCancel,
+}: EditComposerProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const keymapCompartment = useMemo(() => new Compartment(), []);
 
-  const onEditRef = useCallback(onEdit, [onEdit]);
-  const onCancelRef = useCallback(onCancel, [onCancel]);
-
-  const editKeysExtension = useMemo(
-    () =>
-      Extension.create({
-        name: "editKeys",
-        addKeyboardShortcuts() {
-          return {
-            Escape: () => {
-              onCancelRef();
-              return true;
-            },
-            Enter: ({ editor }) => {
-              if (isSuggestionActive(editor.state)) return false;
-              const body = editor.getText().trim();
-              if (!body) return true;
-              onEditRef(target, body, editor.getHTML());
-              return true;
-            },
-          };
-        },
-      }),
-    [target, onEditRef, onCancelRef],
+  const handleEdit = useCallback(
+    (body: string) => onEdit(target, body, markdownToHtml(body) ?? body),
+    [onEdit, target],
   );
 
-  const editor = useEditor({
-    content,
-    extensions: [
-      ...baseExtensions,
-      Placeholder.configure({ placeholder: "Editing message..." }),
-      emojiExtension,
-      editKeysExtension,
-    ],
-    editorProps: {
-      attributes: { ...editorAttributes, "aria-label": "Edit message" },
-    },
-    onCreate: ({ editor }) => {
-      editor.commands.focus("end");
-    },
-  });
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  return <EditorContent editor={editor} />;
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: markdownSource ?? htmlToMarkdown(content),
+        extensions: [
+          ...baseExtensions,
+          placeholder("Editing message..."),
+          keymapCompartment.of(editKeymap({ onEdit: handleEdit, onCancel })),
+          autocompletion({
+            override: [emojiCompletionSource],
+            icons: false,
+          }),
+          EditorView.contentAttributes.of({
+            role: "textbox",
+            "aria-multiline": "true",
+            "aria-label": "Edit message",
+          }),
+        ],
+      }),
+      parent: containerRef.current,
+    });
+
+    viewRef.current = view;
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    view.focus();
+
+    return () => {
+      view.destroy();
+      viewRef.current = null;
+    };
+  }, [content]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: keymapCompartment.reconfigure(editKeymap({ onEdit: handleEdit, onCancel })),
+    });
+  }, [handleEdit, onCancel, keymapCompartment]);
+
+  return <div ref={containerRef} className="cm-composer" />;
 }

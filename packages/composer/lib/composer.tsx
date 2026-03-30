@@ -1,11 +1,16 @@
-import { useMemo, useCallback } from "react";
-import { Extension } from "@tiptap/core";
-import { useEditor, EditorContent } from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
-import { baseExtensions, editorAttributes } from "./extensions";
-import { createMentionExtension } from "./mention";
-import { createEmojiExtension } from "./emoji";
-import { isSuggestionActive } from "./suggestion-active";
+import { useRef, useEffect, useCallback, useMemo } from "react";
+import { placeholder } from "@codemirror/view";
+import { autocompletion } from "@codemirror/autocomplete";
+import {
+  Compartment,
+  EditorState,
+  EditorView,
+  baseExtensions,
+  sendKeymap,
+  createMentionSource,
+} from "./editor";
+import { emojiCompletionSource } from "./emoji-source";
+import { markdownToHtml } from "./md-to-html";
 import EmojiPickerButton from "./emoji-picker";
 import type { MemberSummary } from "@harmony/protocol";
 import "./composer.css";
@@ -17,60 +22,83 @@ type ComposerProps = {
 };
 
 export function Composer({ roomId, getMembers, onSend }: ComposerProps) {
-  const mentionExtension = useMemo(
-    () => createMentionExtension(roomId, getMembers),
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const keymapCompartment = useMemo(() => new Compartment(), []);
+  const completionCompartment = useMemo(() => new Compartment(), []);
+
+  const handleSend = useCallback(
+    (body: string) => onSend(body, markdownToHtml(body) ?? body),
+    [onSend],
+  );
+
+  const mentionSource = useMemo(
+    () => createMentionSource(roomId, getMembers),
     [roomId, getMembers],
   );
 
-  const emojiExtension = useMemo(() => createEmojiExtension(), []);
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-  const onSendRef = useCallback(onSend, [onSend]);
-
-  const sendExtension = useMemo(
-    () =>
-      Extension.create({
-        name: "sendMessage",
-        addKeyboardShortcuts() {
-          return {
-            Enter: ({ editor }) => {
-              if (isSuggestionActive(editor.state)) return false;
-              const body = editor.getText().trim();
-              if (!body) return true;
-              onSendRef(body, editor.getHTML());
-              editor.commands.clearContent();
-              return true;
-            },
-          };
-        },
+    const view = new EditorView({
+      state: EditorState.create({
+        extensions: [
+          ...baseExtensions,
+          placeholder("Send a message..."),
+          keymapCompartment.of(sendKeymap({ onSend: handleSend })),
+          completionCompartment.of(
+            autocompletion({
+              override: [emojiCompletionSource, mentionSource],
+              icons: false,
+            }),
+          ),
+          EditorView.contentAttributes.of({
+            role: "textbox",
+            "aria-multiline": "true",
+            "aria-label": "Message composer",
+          }),
+        ],
       }),
-    [onSendRef],
-  );
+      parent: containerRef.current,
+    });
 
-  const editor = useEditor({
-    extensions: [
-      ...baseExtensions,
-      Placeholder.configure({ placeholder: "Send a message..." }),
-      mentionExtension,
-      emojiExtension,
-      sendExtension,
-    ],
-    editorProps: {
-      attributes: { ...editorAttributes, "aria-label": "Message composer" },
-    },
-    autofocus: true,
-  });
+    viewRef.current = view;
+    view.focus();
 
-  const handleEmojiSelect = useCallback(
-    (emoji: { native?: string }) => {
-      if (!editor || !emoji.native) return;
-      editor.chain().focus().insertContent(emoji.native).run();
-    },
-    [editor],
-  );
+    return () => {
+      view.destroy();
+      viewRef.current = null;
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: keymapCompartment.reconfigure(sendKeymap({ onSend: handleSend })),
+    });
+  }, [handleSend, keymapCompartment]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: completionCompartment.reconfigure(
+        autocompletion({
+          override: [emojiCompletionSource, mentionSource],
+          icons: false,
+        }),
+      ),
+    });
+  }, [mentionSource, completionCompartment]);
+
+  const handleEmojiSelect = useCallback((emoji: { native?: string }) => {
+    const view = viewRef.current;
+    if (!view || !emoji.native) return;
+    const { from, to } = view.state.selection.main;
+    view.dispatch({ changes: { from, to, insert: emoji.native } });
+    view.focus();
+  }, []);
 
   return (
     <div data-scope="composer" data-part="root">
-      <EditorContent editor={editor} className="flex-1 min-w-0" />
+      <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
       <div data-scope="composer" data-part="toolbar">
         <EmojiPickerButton onSelect={handleEmojiSelect} />
       </div>

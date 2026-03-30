@@ -1,25 +1,13 @@
-import { Extension, InputRule, type Range } from "@tiptap/core";
-import { ReactRenderer } from "@tiptap/react";
-import Suggestion, {
-  type SuggestionOptions,
-  type SuggestionKeyDownProps,
-} from "@tiptap/suggestion";
-import { PluginKey } from "@tiptap/pm/state";
 import { joinShortcodesToEmoji, type CompactEmoji, type ShortcodesDataset } from "emojibase";
 import emojis from "emojibase-data/en/compact.json";
 import joypixelsShortcodes from "emojibase-data/en/shortcodes/joypixels.json";
 import githubShortcodes from "emojibase-data/en/shortcodes/github.json";
-import EmojiList from "./emoji-list";
 
 export type EmojiResult = {
   id: string;
   name: string;
   native: string;
   shortcode: string;
-};
-
-export type EmojiListRef = {
-  onKeyDown: (props: SuggestionKeyDownProps) => boolean;
 };
 
 export const GROUP_LABELS: Record<number, string> = {
@@ -130,10 +118,6 @@ async function findByShortcode(shortcode: string): Promise<EmojiResult | null> {
   return match ? toResult(match) : null;
 }
 
-function insertEmoji(editor: any, range: Range, emoji: EmojiResult) {
-  editor.chain().focus().deleteRange(range).insertContent(emoji.native).run();
-}
-
 export type EmojiGroup = { group: number; label: string; emoji: EmojiResult[] };
 
 let cachedGroups: EmojiGroup[] | null = null;
@@ -206,91 +190,4 @@ export function getFrequentlyUsed(): EmojiResult[] {
     .map(toResult);
 }
 
-export { searchEmoji as searchEmojiForPicker };
-
-export const emojiSuggestionPluginKey = new PluginKey("emojiSuggestion");
-
-export function createEmojiExtension() {
-  return Extension.create({
-    name: "emoji",
-
-    addProseMirrorPlugins() {
-      const suggestionConfig: SuggestionOptions<EmojiResult> = {
-        editor: this.editor,
-        pluginKey: emojiSuggestionPluginKey,
-        char: ":",
-        allowSpaces: false,
-
-        async items({ query }) {
-          return searchEmoji(query);
-        },
-
-        command({ editor, range, props }) {
-          insertEmoji(editor, range, props);
-        },
-
-        render() {
-          let renderer: ReactRenderer<EmojiListRef>;
-
-          return {
-            onStart(props) {
-              renderer = new ReactRenderer(EmojiList, {
-                props: { ...props, getReferenceClientRect: props.clientRect },
-                editor: props.editor,
-              });
-              document.body.appendChild(renderer.element);
-            },
-
-            onUpdate(props) {
-              renderer.updateProps({
-                ...props,
-                getReferenceClientRect: props.clientRect,
-              });
-            },
-
-            onKeyDown(props) {
-              if (props.event.key === "Escape") {
-                renderer.destroy();
-                return true;
-              }
-              return renderer.ref?.onKeyDown(props) ?? false;
-            },
-
-            onExit() {
-              renderer.destroy();
-            },
-          };
-        },
-      };
-
-      return [Suggestion(suggestionConfig)];
-    },
-
-    addInputRules() {
-      const editor = this.editor;
-
-      return [
-        new InputRule({
-          find: /:([a-zA-Z0-9_+-]+):$/,
-          handler: ({ range, match }) => {
-            const shortcode = match[1];
-            if (!shortcode) return;
-
-            void findByShortcode(shortcode).then((emoji) => {
-              if (!emoji) return;
-
-              const currentDoc = editor.state.doc;
-              if (range.from > currentDoc.content.size || range.to > currentDoc.content.size)
-                return;
-
-              const currentText = currentDoc.textBetween(range.from, range.to);
-              if (currentText !== match[0]) return;
-
-              insertEmoji(editor, range, emoji);
-            });
-          },
-        }),
-      ];
-    },
-  });
-}
+export { searchEmoji, findByShortcode, searchEmoji as searchEmojiForPicker };

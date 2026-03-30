@@ -185,116 +185,105 @@
   }
 }
 
-.composer {
+.cm-composer .cm-editor {
   color: var(--color-surface-950-50);
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+.cm-composer .cm-scroller {
   max-height: 12rem;
-  overflow-y: auto;
-  outline: none;
 }
 
-.composer [data-mx-spoiler] {
-  background-color: var(--color-surface-200-800);
-  color: inherit;
-  border-radius: 0.25rem;
-  padding: 0 0.125rem;
-  cursor: text;
-}
-
-.composer.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
+.cm-composer .cm-placeholder {
   color: var(--color-surface-500);
-  float: left;
-  height: 0;
-  pointer-events: none;
 }
 
-.composer .mention {
-  background-color: color-mix(in oklch, var(--color-primary-500) 20%, transparent);
+.cm-tooltip-autocomplete,
+.cm-tooltip-autocomplete * {
+  font-family: "Twemoji", var(--base-font-family) !important;
+}
+
+/* Markdown decorations */
+
+.cm-md-marker {
+  opacity: 0.4;
+}
+
+.cm-strong {
+  font-weight: 700;
+}
+
+.cm-em {
+  font-style: italic;
+}
+
+.cm-strikethrough {
+  text-decoration: line-through;
+}
+
+.cm-inline-code {
+  background-color: var(--color-surface-200-800);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-family: monospace;
+  font-size: 0.8125rem;
+}
+
+.cm-codeblock-line {
+  background-color: var(--color-surface-200-800);
+}
+
+.cm-codeblock-line:first-of-type {
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.cm-codeblock-line:last-of-type {
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.cm-heading {
+  font-weight: 700;
+}
+
+.cm-heading-1 { font-size: 1.25rem; }
+.cm-heading-2 { font-size: 1.125rem; }
+.cm-heading-3 { font-size: 1rem; }
+
+.cm-blockquote {
+  border-left: 3px solid var(--color-surface-300-700);
+  padding-left: 0.75rem;
+  color: var(--color-surface-600-400);
+}
+
+.cm-autolink {
   color: var(--color-primary-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cm-link-text {
+  color: var(--color-primary-500);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cm-url {
+  opacity: 0.4;
+  font-size: 0.8125rem;
+}
+
+.cm-spoiler {
+  background-color: var(--color-surface-200-800);
   border-radius: 0.25rem;
   padding: 0 0.125rem;
-  font-weight: 500;
-  text-decoration: none;
 }
 
-.mention-suggestions {
-  background-color: var(--color-surface-100-900);
-  border: 1px solid var(--color-surface-200-800);
-  border-radius: 0.5rem;
-  padding: 0.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-height: 16rem;
-  overflow-y: auto;
-  z-index: 50;
+.cm-underline {
+  text-decoration: underline;
 }
 
-.mention-suggestion-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-surface-950-50);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.mention-suggestion-item:hover,
-.mention-suggestion-item.is-selected {
-  background-color: var(--color-surface-200-800);
-}
-
-[data-scope="emoji-suggestions"][data-part="root"] {
-  background-color: var(--color-surface-100-900);
-  border: 1px solid var(--color-surface-200-800);
-  border-radius: 0.5rem;
-  padding: 0.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-height: 16rem;
-  overflow-y: auto;
-  z-index: 50;
-}
-
-[data-scope="emoji-suggestions"][data-part="item"] {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  text-align: left;
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-surface-950-50);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-[data-scope="emoji-suggestions"][data-part="item"]:hover,
-[data-scope="emoji-suggestions"][data-part="item"][data-state="selected"] {
-  background-color: var(--color-surface-200-800);
-}
-
-[data-scope="emoji-suggestions"][data-part="preview"] {
-  flex-shrink: 0;
-  width: 1.25rem;
-  height: 1.25rem;
-  font-size: 1.125rem;
-  line-height: 1.25rem;
-  text-align: center;
-}
-
-img[data-scope="emoji-suggestions"][data-part="preview"] {
-  object-fit: contain;
-}
-
-[data-scope="emoji-suggestions"][data-part="name"] {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-surface-600-400);
+.cm-subtext {
+  font-size: 0.75rem;
+  color: var(--color-surface-500-500);
 }
