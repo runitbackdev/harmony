@@ -71,6 +71,14 @@ purify.addHook("afterSanitizeAttributes", (node) => {
       node.removeAttribute("class");
     }
   }
+
+  if (node.tagName === "SPAN") {
+    const mxColor = node.getAttribute("data-mx-color") ?? "";
+    if (/^#[0-9a-fA-F]{6}$/.test(mxColor)) {
+      (node as HTMLElement).style.color = mxColor;
+      node.removeAttribute("data-mx-color");
+    }
+  }
 });
 
 export function sanitizeHtml(html: string): string {

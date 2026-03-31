@@ -165,9 +165,11 @@ function buildDecorations(view: EditorView): DecorationSet {
 export const markdownDecorations = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+
     constructor(view: EditorView) {
       this.decorations = buildDecorations(view);
     }
+
     update(update: ViewUpdate) {
       if (
         update.docChanged ||

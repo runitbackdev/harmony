@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
 function formatContent(content: TimelineContent): string {
   switch (content.type) {
     case "message":
-      return `message - ${content.body}`;
+      return `message - ${content.body}${content.formattedBody ? `\n  [html] ${content.formattedBody}` : ""}`;
     case "membershipChange":
       return `membership - ${content.userId} ${content.change}`;
     case "profileChange":

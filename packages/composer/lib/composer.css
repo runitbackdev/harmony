@@ -232,6 +232,7 @@
 
 .cm-codeblock-line {
   background-color: var(--color-surface-200-800);
+  font-family: monospace;
 }
 
 .cm-codeblock-line:first-of-type {

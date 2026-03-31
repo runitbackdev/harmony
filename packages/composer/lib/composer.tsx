@@ -28,7 +28,7 @@ export function Composer({ roomId, getMembers, onSend }: ComposerProps) {
   const completionCompartment = useMemo(() => new Compartment(), []);
 
   const handleSend = useCallback(
-    (body: string) => onSend(body, markdownToHtml(body) ?? body),
+    async (body: string) => onSend(body, (await markdownToHtml(body)) ?? body),
     [onSend],
   );
 

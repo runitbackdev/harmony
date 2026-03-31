@@ -3,7 +3,10 @@ import { EditorState, Compartment, Prec, type Extension } from "@codemirror/stat
 import { history, defaultKeymap, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { GFM } from "@lezer/markdown";
+import { syntaxTree, syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { languages } from "@codemirror/language-data";
 import { completionStatus } from "@codemirror/autocomplete";
+import { tokyoNightStyle } from "@harmony/highlight";
 import { markdownDecorations } from "./decorations";
 import { discordSyntax } from "./discord-syntax";
 import { emojiShortcodeReplace } from "./emoji-source";
@@ -18,6 +21,54 @@ export type EditConfig = {
   onCancel: () => void;
 };
 
+function isOpeningFence(view: EditorView): boolean {
+  const pos = view.state.selection.main.head;
+  let opening = false;
+  syntaxTree(view.state).iterate({
+    from: 0,
+    to: view.state.doc.length,
+    enter(node) {
+      if (node.name === "FencedCode" && pos >= node.from && pos <= node.to) {
+        const firstLine = view.state.doc.lineAt(node.from);
+        const lastLine = view.state.doc.lineAt(node.to);
+        opening = firstLine.number === lastLine.number;
+        return false;
+      }
+    },
+  });
+  return opening;
+}
+
+function handleCodeBlockEnter(view: EditorView): boolean {
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+
+  if (/^```\w*$/.test(line.text.trim()) && isOpeningFence(view)) {
+    const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
+    view.dispatch({
+      changes: { from: line.to, insert: `\n${indent}\n${indent}\`\`\`` },
+      selection: { anchor: line.to + 1 + indent.length },
+    });
+    return true;
+  }
+
+  if (inFencedCode(view)) {
+    view.dispatch(view.state.replaceSelection("\n"));
+    return true;
+  }
+
+  return false;
+}
+
+const newline = keymap.of([
+  {
+    key: "Shift-Enter",
+    run: (view) => {
+      view.dispatch(view.state.replaceSelection("\n"));
+      return true;
+    },
+  },
+]);
+
 export function sendKeymap({ onSend }: SendConfig): Extension {
   return Prec.high(
     keymap.of([
@@ -25,19 +76,12 @@ export function sendKeymap({ onSend }: SendConfig): Extension {
         key: "Enter",
         run: (view) => {
           if (completionStatus(view.state)) return false;
+          if (handleCodeBlockEnter(view)) return true;
+
           const body = view.state.doc.toString().trim();
           if (!body) return true;
           onSend(body);
-          view.dispatch({
-            changes: { from: 0, to: view.state.doc.length },
-          });
-          return true;
-        },
-      },
-      {
-        key: "Shift-Enter",
-        run: (view) => {
-          view.dispatch(view.state.replaceSelection("\n"));
+          view.dispatch({ changes: { from: 0, to: view.state.doc.length } });
           return true;
         },
       },
@@ -59,16 +103,11 @@ export function editKeymap({ onEdit, onCancel }: EditConfig): Extension {
         key: "Enter",
         run: (view) => {
           if (completionStatus(view.state)) return false;
+          if (handleCodeBlockEnter(view)) return true;
+
           const body = view.state.doc.toString().trim();
           if (!body) return true;
           onEdit(body);
-          return true;
-        },
-      },
-      {
-        key: "Shift-Enter",
-        run: (view) => {
-          view.dispatch(view.state.replaceSelection("\n"));
           return true;
         },
       },
@@ -76,7 +115,41 @@ export function editKeymap({ onEdit, onCancel }: EditConfig): Extension {
   );
 }
 
-const markdownLang = markdown({ extensions: [GFM, ...discordSyntax] });
+function inFencedCode(view: EditorView): boolean {
+  const pos = view.state.selection.main.head;
+  let inside = false;
+  syntaxTree(view.state).iterate({
+    from: 0,
+    to: view.state.doc.length,
+    enter(node) {
+      if (node.name === "FencedCode" && pos >= node.from && pos <= node.to) {
+        inside = true;
+        return false;
+      }
+    },
+  });
+  return inside;
+}
+
+const codeBlockKeymap = Prec.high(
+  keymap.of([
+    {
+      key: "Tab",
+      run: (view) => {
+        if (!inFencedCode(view)) return false;
+        view.dispatch(view.state.replaceSelection("  "));
+        return true;
+      },
+    },
+  ]),
+);
+
+const markdownLang = markdown({
+  extensions: [GFM, ...discordSyntax],
+  codeLanguages: languages,
+});
+
+const tokyoNightHighlight = syntaxHighlighting(HighlightStyle.define(tokyoNightStyle));
 
 const baseTheme = EditorView.theme({
   "&": { outline: "none", fontFamily: "inherit" },
@@ -139,11 +212,14 @@ const formattingKeymap = Prec.highest(
 
 export const baseExtensions: Extension[] = [
   markdownLang,
+  tokyoNightHighlight,
   markdownDecorations,
   emojiShortcodeReplace(),
   history(),
   EditorView.lineWrapping,
   baseTheme,
+  newline,
+  codeBlockKeymap,
   formattingKeymap,
   keymap.of([...defaultKeymap, ...historyKeymap]),
 ];

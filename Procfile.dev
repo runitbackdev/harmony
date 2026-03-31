@@ -1,4 +1,3 @@
 synapse: docker compose up synapse
 herald: cd apps/herald && bin/rails server -p 3000
 web: VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
-wasm: watchexec -w crates/wasm/src -e rs -- wasm-pack build crates/wasm --target web --dev --scope harmony --out-dir ../../packages/wasm

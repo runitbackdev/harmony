@@ -32,7 +32,7 @@ export function EditComposer({
   const keymapCompartment = useMemo(() => new Compartment(), []);
 
   const handleEdit = useCallback(
-    (body: string) => onEdit(target, body, markdownToHtml(body) ?? body),
+    async (body: string) => onEdit(target, body, (await markdownToHtml(body)) ?? body),
     [onEdit, target],
   );
 
