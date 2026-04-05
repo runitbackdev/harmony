@@ -24,6 +24,7 @@ import type {
   TimelineEdited,
   TimelinePaginated,
   TimelineReactionToggled,
+  TimelineRedacted,
   TimelineRequest,
   TimelineResponse,
   TimelineSent,
@@ -55,6 +56,7 @@ export type ResponseMap = {
   "h.timeline.send": TimelineSent;
   "h.timeline.edit": TimelineEdited;
   "h.timeline.toggleReaction": TimelineReactionToggled;
+  "h.timeline.redact": TimelineRedacted;
   "h.timeline.paginate": TimelinePaginated;
 };
 

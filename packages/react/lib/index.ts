@@ -8,6 +8,7 @@ export { createSpace, joinSpace, useSpaces } from "./spaces";
 export {
   editMessage,
   paginateTimeline,
+  redactMessage,
   sendMessage,
   subscribeTimeline,
   toggleReaction,

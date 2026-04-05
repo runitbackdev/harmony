@@ -4,6 +4,7 @@ import {
   editMessage,
   getMembers,
   paginateTimeline,
+  redactMessage,
   sendMessage,
   subscribeTimeline,
   toggleReaction,
@@ -90,6 +91,15 @@ function TimelineView() {
     [roomId],
   );
 
+  const handleDeleteMessage = useCallback(
+    (event: TimelineEvent) => {
+      const eventId = event.id ?? undefined;
+      const transactionId = event.transactionId ?? undefined;
+      void redactMessage(roomId, { eventId, transactionId });
+    },
+    [roomId],
+  );
+
   function handleEditMessage(event: TimelineEvent) {
     setEditingId(event.id ?? event.transactionId ?? null);
   }
@@ -152,6 +162,7 @@ function TimelineView() {
           events={events}
           onLoadMore={handleLoadMore}
           onEditMessage={handleEditMessage}
+          onDeleteMessage={handleDeleteMessage}
           editingEventId={editingId}
           renderEditor={renderEditor}
           currentUserId={currentUserId}

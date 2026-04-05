@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useFloating, offset, flip, shift, autoUpdate } from "@floating-ui/react";
 import { EmojiPickerButton } from "@harmony/composer";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 const QUICK_REACTIONS = ["\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F525}", "\u{1F440}"];
 
@@ -10,6 +10,7 @@ interface MessageActionBarProps {
   isOwn?: boolean;
   onToggleReaction?: (key: string) => void;
   onEdit?: () => void;
+  onDelete?: () => void;
   anchor: HTMLElement;
   onDismiss?: () => void;
 }
@@ -18,6 +19,7 @@ function MessageActionBar({
   isOwn,
   onToggleReaction,
   onEdit,
+  onDelete,
   anchor,
   onDismiss,
 }: MessageActionBarProps) {
@@ -83,6 +85,20 @@ function MessageActionBar({
           onClick={onEdit}
         >
           <Pencil size={14} />
+        </button>
+      )}
+
+      {isOwn && onDelete && (
+        <button
+          type="button"
+          aria-label="Delete message"
+          tabIndex={-1}
+          data-scope="message-action-bar"
+          data-part="action"
+          className="rounded p-1 text-surface-500 hover:bg-error-500 hover:text-white transition-colors"
+          onClick={onDelete}
+        >
+          <Trash2 size={14} />
         </button>
       )}
     </div>,

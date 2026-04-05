@@ -378,6 +378,31 @@ pub async fn toggle_reaction_impl(
     Ok(added)
 }
 
+pub async fn redact_message_impl(
+    room_id: &str,
+    event_id: Option<&str>,
+    transaction_id: Option<&str>,
+) -> Result<(), HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    let item_id = match (event_id, transaction_id) {
+        (Some(eid), _) => {
+            TimelineEventItemId::EventId(eid.try_into().map_err(|_| HarmonyError::InvalidUserId)?)
+        }
+        (_, Some(tid)) => TimelineEventItemId::TransactionId(OwnedTransactionId::from(tid)),
+        _ => return Err(HarmonyError::InvalidUserId),
+    };
+
+    timeline.redact(&item_id, None).await?;
+
+    Ok(())
+}
+
 pub async fn get_timeline_impl(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()

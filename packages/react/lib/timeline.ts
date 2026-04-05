@@ -96,6 +96,13 @@ export async function toggleReaction(
   return result.added;
 }
 
+export async function redactMessage(
+  roomId: string,
+  target: { eventId?: string; transactionId?: string },
+) {
+  await harmony.timeline.redact(roomId, target);
+}
+
 export async function paginateTimeline(roomId: string, count = 50) {
   const result = await harmony.timeline.paginate(roomId, count);
   return result.hitStart;

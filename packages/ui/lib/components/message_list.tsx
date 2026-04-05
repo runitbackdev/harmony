@@ -158,12 +158,13 @@ interface ActionBarOverlayProps {
   currentUserId?: string;
   editingEventId?: string | null;
   onEditMessage?: (event: TimelineEvent) => void;
+  onDeleteMessage?: (event: TimelineEvent) => void;
   onToggleReaction?: (eventId: string, key: string) => void;
 }
 
 const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
   function ActionBarOverlay(
-    { currentUserId, editingEventId, onEditMessage, onToggleReaction },
+    { currentUserId, editingEventId, onEditMessage, onDeleteMessage, onToggleReaction },
     ref,
   ) {
     const [hover, setHover] = useState<{ anchor: HTMLElement; event: TimelineEvent } | null>(null);
@@ -197,6 +198,7 @@ const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
           setHover(null);
         }}
         onEdit={isOwn && onEditMessage ? () => onEditMessage(event) : undefined}
+        onDelete={isOwn && onDeleteMessage ? () => onDeleteMessage(event) : undefined}
         onToggleReaction={
           onToggleReaction
             ? (key: string) => onToggleReaction(event.id ?? event.transactionId ?? "", key)
@@ -216,6 +218,7 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   events: TimelineEvent[];
   onLoadMore?: () => Promise<boolean>;
   onEditMessage?: (event: TimelineEvent) => void;
+  onDeleteMessage?: (event: TimelineEvent) => void;
   editingEventId?: string | null;
   renderEditor?: (event: TimelineEvent) => React.ReactNode;
   onToggleReaction?: (eventId: string, key: string) => void;
@@ -226,6 +229,7 @@ function MessageList({
   events,
   onLoadMore,
   onEditMessage,
+  onDeleteMessage,
   editingEventId,
   renderEditor,
   ReactionSlot,
@@ -329,6 +333,7 @@ function MessageList({
         currentUserId={currentUserId}
         editingEventId={editingEventId}
         onEditMessage={onEditMessage}
+        onDeleteMessage={onDeleteMessage}
         onToggleReaction={onToggleReaction}
       />
     </div>

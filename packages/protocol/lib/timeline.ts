@@ -65,6 +65,12 @@ export type TimelineToggleReaction = Request<
 >;
 export type TimelineReactionToggled = Response<"h.timeline.reactionToggled", { added: boolean }>;
 
+export type TimelineRedact = Request<
+  "h.timeline.redact",
+  { roomId: string; eventId?: string; transactionId?: string }
+>;
+export type TimelineRedacted = Response<"h.timeline.redacted">;
+
 export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
 export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
 
@@ -78,12 +84,14 @@ export type TimelineRequest =
   | TimelineSend
   | TimelineEdit
   | TimelineToggleReaction
+  | TimelineRedact
   | TimelinePaginate;
 export type TimelineResponse =
   | TimelineSubscribed
   | TimelineSent
   | TimelineEdited
   | TimelineReactionToggled
+  | TimelineRedacted
   | TimelinePaginated;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

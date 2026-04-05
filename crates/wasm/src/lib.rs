@@ -15,7 +15,7 @@ use crate::{
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
         TimelineEventData, edit_message_impl, get_timeline_impl, paginate_backwards_impl,
-        send_message_impl, subscribe_timeline_impl, toggle_reaction_impl,
+        redact_message_impl, send_message_impl, subscribe_timeline_impl, toggle_reaction_impl,
     },
 };
 
@@ -169,6 +169,15 @@ pub async fn toggle_reaction(
     key: &str,
 ) -> Result<bool, HarmonyError> {
     toggle_reaction_impl(room_id, event_id.as_deref(), transaction_id.as_deref(), key).await
+}
+
+#[wasm_bindgen(js_name = redactMessage)]
+pub async fn redact_message(
+    room_id: &str,
+    event_id: Option<String>,
+    transaction_id: Option<String>,
+) -> Result<(), HarmonyError> {
+    redact_message_impl(room_id, event_id.as_deref(), transaction_id.as_deref()).await
 }
 
 #[wasm_bindgen(js_name = getTimeline)]
