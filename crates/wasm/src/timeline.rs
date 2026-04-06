@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 use matrix_sdk::room::edit::EditedContent;
+use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
 use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
 use matrix_sdk::ruma::{OwnedRoomId, OwnedTransactionId, OwnedUserId};
@@ -400,6 +401,18 @@ pub async fn redact_message_impl(
 
     timeline.redact(&item_id, None).await?;
 
+    Ok(())
+}
+
+pub async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
+    let parsed_id: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidUserId)?;
+
+    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
+    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+
+    timeline.mark_as_read(ReceiptType::Read).await?;
     Ok(())
 }
 

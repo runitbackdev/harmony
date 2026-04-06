@@ -3,6 +3,7 @@ import { pipe } from "../pipe";
 import {
   editMessage,
   getTimeline,
+  markAsRead,
   paginateBackwards,
   redactMessage,
   sendMessage,
@@ -103,6 +104,12 @@ const handlePaginate: HandlerFor<"h.timeline.paginate"> = async (message, send) 
   send.respond({ type: "h.timeline.paginated", hitStart });
 };
 
+const handleMarkAsRead: HandlerFor<"h.timeline.markAsRead"> = async (message, send) => {
+  const { roomId } = message;
+  await markAsRead(roomId);
+  send.respond({ type: "h.timeline.markedAsRead" });
+};
+
 export const timelineHandlers: HandlerMap = {
   "h.timeline.subscribe": handleSubscribe,
   "h.timeline.unsubscribe": handleUnsubscribe,
@@ -111,6 +118,7 @@ export const timelineHandlers: HandlerMap = {
   "h.timeline.toggleReaction": handleToggleReaction,
   "h.timeline.redact": handleRedact,
   "h.timeline.paginate": handlePaginate,
+  "h.timeline.markAsRead": handleMarkAsRead,
 };
 
 declare module "@harmony/wasm" {
@@ -129,6 +137,7 @@ declare module "@harmony/wasm" {
     eventId?: string,
     transactionId?: string,
   ): Promise<void>;
+  export function markAsRead(roomId: string): Promise<void>;
   export function paginateBackwards(roomId: string, count: number): Promise<boolean>;
   export function toggleReaction(
     roomId: string,

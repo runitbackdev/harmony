@@ -23,6 +23,8 @@ pub struct RoomData {
     pub room_id: String,
     pub display_name: String,
     pub room_type: Option<String>,
+    pub unread_count: u64,
+    pub mention_count: u64,
 }
 
 fn convert_room_list_item(item: &RoomListItem) -> RoomData {
@@ -33,6 +35,8 @@ fn convert_room_list_item(item: &RoomListItem) -> RoomData {
             .map(|n| n.to_string())
             .unwrap_or_default(),
         room_type: item.room_type().map(|t| t.to_string()),
+        unread_count: item.num_unread_messages(),
+        mention_count: item.num_unread_mentions(),
     }
 }
 

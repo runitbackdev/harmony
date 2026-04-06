@@ -179,6 +179,8 @@ pub async fn create_room_impl(
         room_id: channel.room_id().to_string(),
         display_name: name.to_owned(),
         room_type: None,
+        unread_count: 0,
+        mention_count: 0,
     })
 }
 

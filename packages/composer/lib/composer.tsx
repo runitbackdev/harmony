@@ -1,4 +1,5 @@
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from "react";
+import type { Ref } from "react";
 import { placeholder } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
 import {
@@ -15,13 +16,20 @@ import EmojiPickerButton from "./emoji-picker";
 import type { MemberSummary } from "@harmony/protocol";
 import "./composer.css";
 
+export type ComposerHandle = {
+  focus: () => void;
+};
+
 type ComposerProps = {
   roomId: string;
   getMembers: (roomId: string) => Promise<MemberSummary[]>;
   onSend: (body: string, formattedBody: string) => void;
 };
 
-export function Composer({ roomId, getMembers, onSend }: ComposerProps) {
+export const Composer = forwardRef(function Composer(
+  { roomId, getMembers, onSend }: ComposerProps,
+  ref: Ref<ComposerHandle>,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const keymapCompartment = useMemo(() => new Compartment(), []);
@@ -96,6 +104,10 @@ export function Composer({ roomId, getMembers, onSend }: ComposerProps) {
     view.focus();
   }, []);
 
+  useImperativeHandle(ref, () => ({
+    focus: () => viewRef.current?.focus(),
+  }));
+
   return (
     <div data-scope="composer" data-part="root">
       <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
@@ -104,4 +116,4 @@ export function Composer({ roomId, getMembers, onSend }: ComposerProps) {
       </div>
     </div>
   );
-}
+});

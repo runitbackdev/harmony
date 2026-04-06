@@ -107,3 +107,7 @@ export async function paginateTimeline(roomId: string, count = 50) {
   const result = await harmony.timeline.paginate(roomId, count);
   return result.hitStart;
 }
+
+export async function markAsRead(roomId: string) {
+  await harmony.timeline.markAsRead(roomId);
+}

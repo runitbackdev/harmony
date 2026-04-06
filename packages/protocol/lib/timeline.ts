@@ -74,6 +74,9 @@ export type TimelineRedacted = Response<"h.timeline.redacted">;
 export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
 export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
 
+export type TimelineMarkAsRead = Request<"h.timeline.markAsRead", { roomId: string }>;
+export type TimelineMarkedAsRead = Response<"h.timeline.markedAsRead">;
+
 export type TimelineUpdate = Stream<
   "h.timeline.update",
   { roomId: string; events: ListDiff<TimelineEvent>[] }
@@ -85,13 +88,15 @@ export type TimelineRequest =
   | TimelineEdit
   | TimelineToggleReaction
   | TimelineRedact
-  | TimelinePaginate;
+  | TimelinePaginate
+  | TimelineMarkAsRead;
 export type TimelineResponse =
   | TimelineSubscribed
   | TimelineSent
   | TimelineEdited
   | TimelineReactionToggled
   | TimelineRedacted
-  | TimelinePaginated;
+  | TimelinePaginated
+  | TimelineMarkedAsRead;
 export type TimelineCommand = TimelineUnsubscribe;
 export type TimelineStream = TimelineUpdate;

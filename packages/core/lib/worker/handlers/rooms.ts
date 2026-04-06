@@ -109,6 +109,10 @@ declare module "@harmony/wasm" {
   export function subscribeRoomList(): Promise<ReadableStream>;
   export function setRoomFilter(roomIds: string[]): void;
   export function subscribeSpaceFilters(): Promise<[SpaceFilterData[], ReadableStream]>;
-  export function createRoom(spaceId: string, name: string, visibility: string): Promise<RoomData>;
+  export function createRoom(
+    spaceId: string,
+    name: string,
+    visibility: string,
+  ): Promise<RoomSummary>;
   export function getRoomMembers(roomId: string): Promise<MemberSummary[]>;
 }

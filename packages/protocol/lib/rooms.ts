@@ -5,6 +5,8 @@ export type RoomSummary = {
   roomId: string;
   displayName: string;
   roomType: string | null;
+  unreadCount: number;
+  mentionCount: number;
 };
 
 export type MemberSummary = {

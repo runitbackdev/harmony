@@ -7,7 +7,7 @@ module Matrix
     private
 
     def verify_hs_token
-      token = request.authorization&.delete_prefix("Bearer ")
+      token = request.authorization&.delete_prefix("Bearer ") || params[:access_token]
       head :unauthorized unless token == Rails.application.config.matrix[:hs_token]
     end
 

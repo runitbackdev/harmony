@@ -1,5 +1,6 @@
 import type {
   TimelineEdited,
+  TimelineMarkedAsRead,
   TimelinePaginated,
   TimelineReactionToggled,
   TimelineRedacted,
@@ -30,6 +31,7 @@ export type TimelineApi = {
   ) => Promise<TimelineReactionToggled>;
   redact: (roomId: string, target: EditTarget) => Promise<TimelineRedacted>;
   paginate: (roomId: string, count: number) => Promise<TimelinePaginated>;
+  markAsRead: (roomId: string) => Promise<TimelineMarkedAsRead>;
 };
 
 export function createTimelineApi(connection: WorkerConnection): TimelineApi {
@@ -60,6 +62,10 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
 
     async paginate(roomId: string, count: number) {
       return connection.request("h.timeline.paginate", { roomId, count });
+    },
+
+    async markAsRead(roomId: string) {
+      return connection.request("h.timeline.markAsRead", { roomId });
     },
   };
 }

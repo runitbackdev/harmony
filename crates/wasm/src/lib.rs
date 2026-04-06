@@ -14,8 +14,9 @@ use crate::{
     },
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
-        TimelineEventData, edit_message_impl, get_timeline_impl, paginate_backwards_impl,
-        redact_message_impl, send_message_impl, subscribe_timeline_impl, toggle_reaction_impl,
+        TimelineEventData, edit_message_impl, get_timeline_impl, mark_as_read_impl,
+        paginate_backwards_impl, redact_message_impl, send_message_impl, subscribe_timeline_impl,
+        toggle_reaction_impl,
     },
 };
 
@@ -178,6 +179,11 @@ pub async fn redact_message(
     transaction_id: Option<String>,
 ) -> Result<(), HarmonyError> {
     redact_message_impl(room_id, event_id.as_deref(), transaction_id.as_deref()).await
+}
+
+#[wasm_bindgen(js_name = markAsRead)]
+pub async fn mark_as_read(room_id: &str) -> Result<(), HarmonyError> {
+    mark_as_read_impl(room_id).await
 }
 
 #[wasm_bindgen(js_name = getTimeline)]

@@ -39,6 +39,9 @@ rc_login:
 app_service_config_files:
   - /config/herald.registration.yaml
 
+experimental_features:
+  msc3266_enabled: true
+
 report_stats: false
 suppress_key_server_warning: true
 serve_server_wellknown: true

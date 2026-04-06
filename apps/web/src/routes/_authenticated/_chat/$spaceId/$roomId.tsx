@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
   getMembers,
+  markAsRead,
   paginateTimeline,
   redactMessage,
   sendMessage,
@@ -15,7 +16,7 @@ import {
 } from "@harmony/react";
 import { MessageList, ReactionDisplay } from "@harmony/ui";
 import { Composer, EditComposer } from "@harmony/composer";
-import type { EditTarget } from "@harmony/composer";
+import type { ComposerHandle, EditTarget } from "@harmony/composer";
 import { Hash } from "lucide-react";
 import type { TimelineContent, TimelineEvent } from "@harmony/protocol";
 
@@ -80,6 +81,27 @@ function TimelineView() {
   });
   const events = useTimeline();
   const [debug, setDebug] = useState(false);
+  const composerRef = useRef<ComposerHandle>(null);
+
+  useEffect(() => {
+    void markAsRead(roomId);
+  }, [roomId]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return;
+
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if ((e.target as HTMLElement).isContentEditable) return;
+
+      composerRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const currentUserId = getSession()?.userId;
   const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
@@ -173,6 +195,7 @@ function TimelineView() {
 
       <div className="border-t border-surface-200-800 p-4">
         <Composer
+          ref={composerRef}
           roomId={roomId}
           getMembers={getMembers}
           onSend={(body, html) => void sendMessage(roomId, body, html)}

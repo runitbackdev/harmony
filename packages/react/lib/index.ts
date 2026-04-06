@@ -7,6 +7,7 @@ export { createRoom, getMembers, subscribeRooms, useRooms } from "./rooms";
 export { createSpace, joinSpace, useSpaces } from "./spaces";
 export {
   editMessage,
+  markAsRead,
   paginateTimeline,
   redactMessage,
   sendMessage,

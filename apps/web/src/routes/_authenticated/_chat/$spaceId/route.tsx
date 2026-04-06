@@ -68,6 +68,12 @@ function RouteComponent() {
                 key={room.roomId}
                 icon={<Hash size={16} />}
                 active={roomId === room.roomId}
+                unread={room.unreadCount > 0}
+                badge={
+                  room.mentionCount > 0 ? (
+                    <Sidebar.Badge count={room.mentionCount} mention />
+                  ) : undefined
+                }
                 onClick={() =>
                   navigate({
                     to: "/$spaceId/$roomId",
