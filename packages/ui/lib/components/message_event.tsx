@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
-import { Avatar } from "@skeletonlabs/skeleton-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";
+import { MxAvatar } from "./mx_avatar";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -22,12 +22,6 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   edited?: boolean;
   editing?: React.ReactNode;
   reactions?: React.ReactNode;
-}
-
-function getInitials(sender: string) {
-  const parts = sender.split(/[\s_-]+/);
-  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return sender.charAt(0).toUpperCase();
 }
 
 function MessageEvent({
@@ -76,10 +70,7 @@ function MessageEvent({
             {time}
           </span>
         ) : (
-          <Avatar className="size-10">
-            {avatar && <Avatar.Image src={avatar} alt={sender} />}
-            <Avatar.Fallback>{getInitials(sender)}</Avatar.Fallback>
-          </Avatar>
+          <MxAvatar mxc={avatar ?? null} name={sender} size={96} className="size-10" />
         )}
       </div>
       <div className="relative min-w-0 flex-1">

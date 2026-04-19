@@ -1,6 +1,7 @@
 export { Dialog } from "./dialog";
 export { MessageActionBar } from "./message_action_bar";
 export { MessageEvent } from "./message_event";
+export { MxAvatar } from "./mx_avatar";
 export { ReactionDisplay } from "./reaction_display";
 export { MessageList, type MessageListHandle } from "./message_list";
 export { Rail } from "./rail";

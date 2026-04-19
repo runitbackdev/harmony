@@ -4,6 +4,12 @@ import type { ListDiff } from "./diff";
 export type SpaceSummary = {
   roomId: string;
   displayName: string;
+  avatarUrl: string | null;
+};
+
+export type SpaceAvatar = {
+  bytes: Uint8Array;
+  contentType: string;
 };
 
 export type SpacesSubscribe = Request<"h.spaces.subscribe">;
@@ -12,7 +18,7 @@ export type SpacesUnsubscribe = Command<"h.spaces.unsubscribe">;
 
 export type SpacesUpdate = Stream<"h.spaces.update", { spaces: ListDiff<SpaceSummary>[] }>;
 
-export type SpacesCreate = Request<"h.spaces.create", { name: string }>;
+export type SpacesCreate = Request<"h.spaces.create", { name: string; avatar: SpaceAvatar | null }>;
 export type SpacesCreated = Response<"h.spaces.created", { space: SpaceSummary }>;
 
 export type SpacesJoin = Request<"h.spaces.join", { spaceId: string }>;

@@ -20,8 +20,12 @@ export const spaces = createSubscription<SpaceSummary>((items) =>
 
 export const useSpaces = spaces.useValue;
 
-export async function createSpace(name: string) {
-  const { space } = await harmony.spaces.create(name);
+export async function createSpace(name: string, avatar?: File | null) {
+  const avatarPayload = avatar
+    ? { bytes: new Uint8Array(await avatar.arrayBuffer()), contentType: avatar.type }
+    : null;
+
+  const { space } = await harmony.spaces.create(name, avatarPayload);
 
   return space;
 }

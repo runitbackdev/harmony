@@ -42,9 +42,9 @@ const handleUnsubscribe: HandlerFor<"h.spaces.unsubscribe"> = async (_message, s
 };
 
 const handleCreate: HandlerFor<"h.spaces.create"> = async (message, send) => {
-  const { name } = message;
+  const { name, avatar } = message;
 
-  const space = await createSpace(name);
+  const space = await createSpace(name, avatar?.bytes, avatar?.contentType);
 
   send.respond({ type: "h.spaces.created", space });
 };

@@ -87,8 +87,12 @@ pub async fn get_spaces() -> Result<Vec<SpaceData>, HarmonyError> {
 }
 
 #[wasm_bindgen(js_name = createSpace)]
-pub async fn create_space(name: &str) -> Result<SpaceData, HarmonyError> {
-    create_space_impl(name).await
+pub async fn create_space(
+    name: &str,
+    avatar_bytes: Option<Vec<u8>>,
+    avatar_content_type: Option<String>,
+) -> Result<SpaceData, HarmonyError> {
+    create_space_impl(name, avatar_bytes, avatar_content_type).await
 }
 
 #[wasm_bindgen(js_name = joinSpace)]

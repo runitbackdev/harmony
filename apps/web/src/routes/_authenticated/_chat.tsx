@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Rail, TextField } from "@harmony/ui";
-import { Home, Plus, X } from "lucide-react";
+import { Dialog, MxAvatar, Rail, TextField } from "@harmony/ui";
+import { Home, ImagePlus, Plus, X } from "lucide-react";
 import { createSpace, useSpaces } from "@harmony/react";
 import * as v from "valibot";
 
@@ -10,12 +10,62 @@ export const Route = createFileRoute("/_authenticated/_chat")({
   component: RouteComponent,
 });
 
+function AvatarPicker({
+  file,
+  onChange,
+}: {
+  file: File | null;
+  onChange: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+
+  useEffect(() => {
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="flex size-20 items-center justify-center overflow-hidden rounded-full bg-surface-300-700 transition-opacity hover:opacity-80"
+        aria-label="Choose space avatar"
+      >
+        {previewUrl ? (
+          <img src={previewUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <ImagePlus size={24} className="text-surface-500" />
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+      />
+      {file && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
+        >
+          Remove
+        </button>
+      )}
+    </div>
+  );
+}
+
 const createSpaceSchema = v.object({
   name: v.pipe(
     v.string(),
     v.minLength(1, "Name is required"),
     v.maxLength(255, "Name is too long"),
   ),
+  avatar: v.nullable(v.instance(File)),
 });
 
 function RouteComponent() {
@@ -25,10 +75,10 @@ function RouteComponent() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const form = useForm({
-    defaultValues: { name: "" },
+    defaultValues: { name: "", avatar: null as File | null },
     validators: { onSubmit: createSpaceSchema },
     onSubmit: async ({ value }) => {
-      await createSpace(value.name);
+      await createSpace(value.name, value.avatar);
       setCreateOpen(false);
       form.reset();
     },
@@ -59,7 +109,12 @@ function RouteComponent() {
                   })
                 }
               >
-                <span className="text-xs font-semibold">{space.displayName[0]}</span>
+                <MxAvatar
+                  mxc={space.avatarUrl}
+                  name={space.displayName}
+                  size={96}
+                  className="size-full !rounded-[inherit] text-xs font-semibold"
+                />
               </Rail.Item>
             ))}
 
@@ -87,6 +142,10 @@ function RouteComponent() {
               }}
               className="mt-4 space-y-4"
             >
+              <form.Field name="avatar">
+                {(field) => <AvatarPicker file={field.state.value} onChange={field.handleChange} />}
+              </form.Field>
+
               <form.Field name="name">
                 {(field) => (
                   <TextField

@@ -7,7 +7,10 @@ use matrix_sdk::ruma::{
     },
     events::{
         EmptyStateKey, InitialStateEvent,
-        room::join_rules::{AllowRule, JoinRule, RoomJoinRulesEventContent},
+        room::{
+            avatar::RoomAvatarEventContent,
+            join_rules::{AllowRule, JoinRule, RoomJoinRulesEventContent},
+        },
         space::child::SpaceChildEventContent,
     },
     room::RoomType,
@@ -54,6 +57,7 @@ pub enum ChannelVisibility {
 pub struct SpaceData {
     pub room_id: String,
     pub display_name: String,
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -77,6 +81,7 @@ fn convert_space(space: &matrix_sdk_ui::spaces::SpaceRoom) -> SpaceData {
     SpaceData {
         room_id: space.room_id.to_string(),
         display_name: space.display_name.clone(),
+        avatar_url: space.avatar_url.as_ref().map(ToString::to_string),
     }
 }
 
@@ -213,14 +218,32 @@ pub async fn join_space_impl(space_id: &str) -> Result<SpaceData, HarmonyError> 
         let _ = client.join_room_by_id(child_room_id).await;
     }
 
+    let avatar_url = space.avatar_url().map(|url| url.to_string());
+
     Ok(SpaceData {
         room_id: space.room_id().to_string(),
         display_name,
+        avatar_url,
     })
 }
 
-pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
+pub async fn create_space_impl(
+    name: &str,
+    avatar_bytes: Option<Vec<u8>>,
+    avatar_content_type: Option<String>,
+) -> Result<SpaceData, HarmonyError> {
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+
+    let avatar_mxc = if let (Some(bytes), Some(content_type)) = (avatar_bytes, avatar_content_type)
+    {
+        let mime: mime::Mime = content_type
+            .parse()
+            .map_err(|_| HarmonyError::InvalidContentType)?;
+        let upload = client.media().upload(&mime, bytes, None).await?;
+        Some(upload.content_uri)
+    } else {
+        None
+    };
 
     let mut creation_content = CreationContent::new();
     creation_content.room_type = Some(RoomType::Space);
@@ -230,11 +253,23 @@ pub async fn create_space_impl(name: &str) -> Result<SpaceData, HarmonyError> {
     request.creation_content =
         Some(Raw::new(&creation_content).map_err(|_| HarmonyError::SerializationFailed)?);
 
+    if let Some(ref mxc) = avatar_mxc {
+        let mut avatar_event = RoomAvatarEventContent::new();
+        avatar_event.url = Some(mxc.clone());
+        let avatar_initial = InitialStateEvent::new(EmptyStateKey, avatar_event);
+        request.initial_state.push(
+            Raw::new(&avatar_initial)
+                .map_err(|_| HarmonyError::SerializationFailed)?
+                .cast(),
+        );
+    }
+
     let space = client.create_room(request).await?;
     create_channel(&space, "general", ChannelVisibility::Public).await?;
 
     Ok(SpaceData {
         room_id: space.room_id().to_string(),
         display_name: name.to_owned(),
+        avatar_url: avatar_mxc.as_ref().map(ToString::to_string),
     })
 }

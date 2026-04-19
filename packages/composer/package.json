@@ -44,6 +44,7 @@
     "vite": "catalog:"
   },
   "peerDependencies": {
-    "react": "catalog:"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   }
 }

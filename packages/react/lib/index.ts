@@ -1,5 +1,5 @@
 export { restoreSession, useLogin, useLogout } from "./auth";
-export { getSession } from "@harmony/core";
+export { getSession, HOMESERVER_ORIGIN, listenForTokenRequests } from "@harmony/core";
 export { initialize } from "./init";
 export { useInvite, useCreateInvite, useRedeemInvite, useRevokeInvite } from "./invites";
 export { useSyncStatus } from "./sync";

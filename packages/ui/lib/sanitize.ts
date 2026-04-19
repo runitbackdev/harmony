@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { mxcToHttpThumbnail } from "./media";
 
 const ALLOWED_TAGS = [
   "font",
@@ -69,9 +70,16 @@ function tagMatrixUserMentions(el: Element) {
   }
 }
 
-function stripNonMxcImageSrc(el: Element) {
+function rewriteMxcImageSrc(el: Element) {
   const src = el.getAttribute("src") ?? "";
   if (!src.startsWith("mxc://")) {
+    el.removeAttribute("src");
+    return;
+  }
+  const resolved = mxcToHttpThumbnail(src, 320);
+  if (resolved) {
+    el.setAttribute("src", resolved);
+  } else {
     el.removeAttribute("src");
   }
 }
@@ -93,7 +101,7 @@ function inlineMxColor(el: Element) {
 
 const RULES: Record<string, ElementRule[]> = {
   A: [enforceSafeLinkAttrs, tagMatrixUserMentions],
-  IMG: [stripNonMxcImageSrc],
+  IMG: [rewriteMxcImageSrc],
   CODE: [stripInvalidLanguageClass],
   SPAN: [inlineMxColor],
 };

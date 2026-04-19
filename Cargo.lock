@@ -3937,6 +3937,7 @@ dependencies = [
  "js-sys",
  "matrix-sdk",
  "matrix-sdk-ui",
+ "mime",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

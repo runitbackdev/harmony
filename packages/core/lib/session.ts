@@ -1,4 +1,6 @@
 import type { Session } from "@harmony/protocol";
+import { HOMESERVER_ORIGIN } from "./config";
+import { clearMediaAuth, setMediaAuth } from "./media-worker";
 
 const STORAGE_KEY = "harmony_session";
 
@@ -16,10 +18,12 @@ export function getSession(): Session | null {
 
 export function setSession(session: Session) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  setMediaAuth(session.accessToken, HOMESERVER_ORIGIN);
 }
 
 export async function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
+  clearMediaAuth();
 
   const [registrations, cacheKeys] = await Promise.all([
     navigator.serviceWorker.getRegistrations(),
