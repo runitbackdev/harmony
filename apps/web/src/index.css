@@ -17,6 +17,7 @@
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";
+@source "../../../packages/composer/lib";
 
 body {
   font-family: "Twemoji", var(--base-font-family);

@@ -155,6 +155,13 @@ md.renderer.rules.fence = async (tokens, idx) => {
   return highlightCode(token.content.replace(/\n$/, ""), lang);
 };
 
+md.renderer.rules.paragraph_open = () => "<span>";
+md.renderer.rules.paragraph_close = (tokens, idx) => {
+  const next = tokens[idx + 1];
+  const needsBreak = next && next.type === "paragraph_open";
+  return needsBreak ? "</span><br><br>" : "</span>";
+};
+
 md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
   tokens[idx].attrSet("rel", "noopener noreferrer");
   tokens[idx].attrSet("target", "_blank");
@@ -164,7 +171,7 @@ md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
 export async function markdownToHtml(source: string): Promise<string | undefined> {
   const result = (await md.renderAsync(source)).trim();
 
-  const stripped = result.replace(/^<p>(.*)<\/p>$/s, "$1");
+  const stripped = result.replace(/^<span>(.*)<\/span>$/s, "$1");
   if (stripped === source) return undefined;
 
   return result;

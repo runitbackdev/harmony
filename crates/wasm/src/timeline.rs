@@ -79,6 +79,7 @@ pub enum TimelineContent {
         formatted_body: Option<String>,
         msgtype: String,
         mentions: Option<Mentions>,
+        edited: bool,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -204,6 +205,7 @@ fn convert_content(content: &TimelineItemContent) -> TimelineContent {
                             everyone: m.room,
                             user_ids: m.user_ids.clone(),
                         }),
+                        edited: message.is_edited(),
                     }
                 })
         }

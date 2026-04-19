@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFloating, offset, flip, shift, autoUpdate } from "@floating-ui/react";
 import { EmojiPickerButton } from "@harmony/composer";
 import { Pencil, Trash2 } from "lucide-react";
+import { Dialog } from "./dialog";
 
 const QUICK_REACTIONS = ["\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F525}", "\u{1F440}"];
 
@@ -23,6 +24,8 @@ function MessageActionBar({
   anchor,
   onDismiss,
 }: MessageActionBarProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const { floatingStyles, refs } = useFloating({
     placement: "top-end",
     middleware: [offset(-16), flip(), shift({ padding: 8 })],
@@ -33,7 +36,7 @@ function MessageActionBar({
     refs.setReference(anchor);
   }, [refs, anchor]);
 
-  return createPortal(
+  const bar = createPortal(
     <div
       ref={refs.setFloating}
       data-scope="message-action-bar"
@@ -41,6 +44,7 @@ function MessageActionBar({
       style={floatingStyles}
       className="z-50 flex items-center gap-0.5 rounded-md border border-surface-300-700 bg-surface-50-950 px-1 py-0.5 shadow-sm"
       onPointerLeave={(e) => {
+        if (confirmDelete) return;
         if ("emojiPickerOpen" in document.documentElement.dataset) return;
         const related = e.relatedTarget;
         if (related instanceof Node && anchor.contains(related)) return;
@@ -96,13 +100,63 @@ function MessageActionBar({
           data-scope="message-action-bar"
           data-part="action"
           className="rounded p-1 text-surface-500 hover:bg-error-500 hover:text-white transition-colors"
-          onClick={onDelete}
+          onClick={() => setConfirmDelete(true)}
         >
           <Trash2 size={14} />
         </button>
       )}
     </div>,
     document.body,
+  );
+
+  return (
+    <>
+      {!confirmDelete && bar}
+      {confirmDelete && (
+        <Dialog
+          open
+          onOpenChange={(details) => {
+            if (!details.open) {
+              setConfirmDelete(false);
+              onDismiss?.();
+            }
+          }}
+        >
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Title>Delete message</Dialog.Title>
+              <Dialog.Description>
+                Are you sure you want to delete this message? This can't be undone.
+              </Dialog.Description>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-surface-600-400 hover:bg-surface-200-800 transition-colors"
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    onDismiss?.();
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg bg-error-500 px-4 py-2 text-sm font-medium text-white hover:bg-error-600 transition-colors"
+                  onClick={() => {
+                    onDelete?.();
+                    setConfirmDelete(false);
+                    onDismiss?.();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Dialog>
+      )}
+    </>
   );
 }
 

@@ -66,9 +66,6 @@
   margin: 0.125rem 0;
 }
 
-.rich-text p { margin: 0; }
-.rich-text p + p { margin-top: 0.25rem; }
-
 .rich-text [data-mx-spoiler] {
   background-color: var(--color-surface-200-800);
   color: transparent;
@@ -81,4 +78,10 @@
 .rich-text [data-mx-spoiler].revealed {
   background-color: var(--color-surface-200-800);
   color: inherit;
+}
+
+[data-scope="message-event"][data-part="body"][data-edited]::after {
+  content: " (edited)";
+  font-size: 0.75rem;
+  color: var(--color-surface-500);
 }

@@ -8,6 +8,7 @@ export type TimelineContent =
       formattedBody?: string;
       msgtype: string;
       mentions?: { everyone: boolean; userIds: string[] };
+      edited: boolean;
     }
   | { type: "membershipChange"; userId: string; change: string }
   | {

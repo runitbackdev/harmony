@@ -30,18 +30,23 @@ export function EditComposer({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const keymapCompartment = useMemo(() => new Compartment(), []);
+  const originalBody = useRef(markdownSource ?? htmlToMarkdown(content));
 
   const handleEdit = useCallback(
-    async (body: string) => onEdit(target, body, (await markdownToHtml(body)) ?? body),
-    [onEdit, target],
+    async (body: string) => {
+      if (body === originalBody.current) return onCancel();
+      onEdit(target, body, (await markdownToHtml(body)) ?? body);
+    },
+    [onEdit, onCancel, target],
   );
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const initialDoc = markdownSource ?? htmlToMarkdown(content);
     const view = new EditorView({
       state: EditorState.create({
-        doc: markdownSource ?? htmlToMarkdown(content),
+        doc: initialDoc,
         extensions: [
           ...baseExtensions,
           placeholder("Editing message..."),
@@ -68,6 +73,7 @@ export function EditComposer({
       view.destroy();
       viewRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
 
   useEffect(() => {
@@ -76,5 +82,32 @@ export function EditComposer({
     });
   }, [handleEdit, onCancel, keymapCompartment]);
 
-  return <div ref={containerRef} className="cm-composer" />;
+  return (
+    <div>
+      <div data-scope="composer" data-part="root">
+        <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
+      </div>
+      <span className="text-xs text-surface-500 mt-1 block">
+        press escape to{" "}
+        <button
+          type="button"
+          className="bg-transparent border-none p-0 text-xs text-primary-500 cursor-pointer hover:underline"
+          onClick={onCancel}
+        >
+          cancel
+        </button>{" "}
+        · enter to{" "}
+        <button
+          type="button"
+          className="bg-transparent border-none p-0 text-xs text-primary-500 cursor-pointer hover:underline"
+          onClick={() => {
+            const body = viewRef.current?.state.doc.toString().trim();
+            if (body) void handleEdit(body);
+          }}
+        >
+          save
+        </button>
+      </span>
+    </div>
+  );
 }

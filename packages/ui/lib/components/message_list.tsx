@@ -118,6 +118,7 @@ const MessageRow = memo(function MessageRow({
           pending={isPending(event)}
           grouped={grouped}
           highlight={highlight}
+          edited={event.content.edited}
           editing={editingNode}
           reactions={ReactionSlot && event.id ? <ReactionSlot eventId={event.id} /> : undefined}
         />
@@ -136,7 +137,10 @@ const MessageRow = memo(function MessageRow({
         containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
         overflowAnchor: "none",
       }}
-      className="px-4 hover:bg-surface-100-900 data-hovered:bg-surface-100-900"
+      className={cn(
+        "px-4",
+        !editingNode && "hover:bg-surface-100-900 data-hovered:bg-surface-100-900",
+      )}
       onPointerEnter={(e) => onPointerEnter(event, index, e.currentTarget)}
       onPointerLeave={onPointerLeave}
     >

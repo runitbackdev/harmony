@@ -19,6 +19,7 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   pending?: boolean;
   grouped?: boolean;
   highlight?: boolean;
+  edited?: boolean;
   editing?: React.ReactNode;
   reactions?: React.ReactNode;
 }
@@ -39,6 +40,7 @@ function MessageEvent({
   grouped,
   className,
   highlight,
+  edited,
   editing,
   reactions,
   ...props
@@ -104,14 +106,16 @@ function MessageEvent({
             <div
               data-scope="message-event"
               data-part="body"
-              className="rich-text text-sm text-surface-800-200"
+              data-edited={edited || undefined}
+              className="rich-text text-sm leading-5 text-surface-800-200"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedBody) }}
             />
           ) : (
             <div
               data-scope="message-event"
               data-part="body"
-              className="text-sm text-surface-800-200"
+              data-edited={edited || undefined}
+              className="text-sm leading-5 text-surface-800-200"
             >
               {body}
             </div>

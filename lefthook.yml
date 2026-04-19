@@ -17,6 +17,10 @@ pre-commit:
 
     - name: lint
       glob: "*.{ts,tsx}"
+      run: vp lint --deny-warnings
+
+    - name: typecheck
+      glob: "*.{ts,tsx}"
       run: vp check --no-fmt
 
     - name: typos

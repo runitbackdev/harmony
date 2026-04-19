@@ -77,6 +77,7 @@ export const Composer = forwardRef(function Composer(
       view.destroy();
       viewRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   useEffect(() => {
