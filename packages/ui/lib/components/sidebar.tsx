@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
@@ -107,7 +108,15 @@ interface ItemProps extends HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-function Item({ active, unread, icon, badge, children, className, ...props }: ItemProps) {
+const Item = memo(function Item({
+  active,
+  unread,
+  icon,
+  badge,
+  children,
+  className,
+  ...props
+}: ItemProps) {
   return (
     <li data-scope="sidebar" data-part="item-wrapper">
       <button
@@ -138,7 +147,7 @@ function Item({ active, unread, icon, badge, children, className, ...props }: It
       </button>
     </li>
   );
-}
+});
 
 // #endregion
 

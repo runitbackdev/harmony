@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
@@ -14,7 +14,7 @@ import {
   useTimeline,
   getSession,
 } from "@harmony/react";
-import { MessageList, ReactionDisplay } from "@harmony/ui";
+import { MessageList, type MessageListHandle, ReactionDisplay } from "@harmony/ui";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { ComposerHandle, EditTarget } from "@harmony/composer";
 import { Hash } from "lucide-react";
@@ -75,90 +75,55 @@ function RoomHeader({ roomId }: { roomId: string }) {
   );
 }
 
-function TimelineView() {
-  const { roomId } = useParams({
-    from: "/_authenticated/_chat/$spaceId/$roomId",
-  });
-  const events = useTimeline();
-  const [debug, setDebug] = useState(false);
-  const composerRef = useRef<ComposerHandle>(null);
+const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug: boolean }>(
+  function ConnectedTimeline({ roomId, debug }, ref) {
+    const events = useTimeline();
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const currentUserId = getSession()?.userId;
+    const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
 
-  useEffect(() => {
-    void markAsRead(roomId);
-  }, [roomId]);
+    const handleToggleReaction = useCallback(
+      (eventId: string, key: string) => {
+        void toggleReaction(roomId, { eventId }, key);
+      },
+      [roomId],
+    );
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length !== 1) return;
+    const handleDeleteMessage = useCallback(
+      (event: TimelineEvent) => {
+        const eventId = event.id ?? undefined;
+        const transactionId = event.transactionId ?? undefined;
+        void redactMessage(roomId, { eventId, transactionId });
+      },
+      [roomId],
+    );
 
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if ((e.target as HTMLElement).isContentEditable) return;
-
-      composerRef.current?.focus();
+    function handleEditMessage(event: TimelineEvent) {
+      setEditingId(event.id ?? event.transactionId ?? null);
     }
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const currentUserId = getSession()?.userId;
-  const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
+    function handleEdit(target: EditTarget, body: string, html: string) {
+      void editMessage(roomId, target, body, html);
+      setEditingId(null);
+    }
 
-  const handleToggleReaction = useCallback(
-    (eventId: string, key: string) => {
-      void toggleReaction(roomId, { eventId }, key);
-    },
-    [roomId],
-  );
+    function renderEditor(event: TimelineEvent) {
+      if (event.content.type !== "message") return null;
+      return (
+        <EditComposer
+          target={{
+            eventId: event.id ?? undefined,
+            transactionId: event.transactionId ?? undefined,
+          }}
+          content={event.content.formattedBody ?? event.content.body}
+          onEdit={handleEdit}
+          onCancel={() => setEditingId(null)}
+        />
+      );
+    }
 
-  const handleDeleteMessage = useCallback(
-    (event: TimelineEvent) => {
-      const eventId = event.id ?? undefined;
-      const transactionId = event.transactionId ?? undefined;
-      void redactMessage(roomId, { eventId, transactionId });
-    },
-    [roomId],
-  );
-
-  function handleEditMessage(event: TimelineEvent) {
-    setEditingId(event.id ?? event.transactionId ?? null);
-  }
-
-  function handleEdit(target: EditTarget, body: string, html: string) {
-    void editMessage(roomId, target, body, html);
-    setEditingId(null);
-  }
-
-  function renderEditor(event: TimelineEvent) {
-    if (event.content.type !== "message") return null;
-    return (
-      <EditComposer
-        target={{ eventId: event.id ?? undefined, transactionId: event.transactionId ?? undefined }}
-        content={event.content.formattedBody ?? event.content.body}
-        onEdit={handleEdit}
-        onCancel={() => setEditingId(null)}
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
-        <RoomHeader roomId={roomId} />
-        {import.meta.env.DEV && (
-          <button
-            type="button"
-            onClick={() => setDebug((d) => !d)}
-            className="ml-auto text-xs text-surface-500 transition-colors hover:text-surface-950-50"
-          >
-            {debug ? "pretty" : "debug"}
-          </button>
-        )}
-      </header>
-
-      {debug ? (
+    if (debug) {
+      return (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           <ul className="space-y-1 font-mono text-sm text-surface-950-50">
             {events.map((event, i) => (
@@ -179,26 +144,80 @@ function TimelineView() {
             ))}
           </ul>
         </div>
-      ) : (
-        <MessageList
-          events={events}
-          onLoadMore={handleLoadMore}
-          onEditMessage={handleEditMessage}
-          onDeleteMessage={handleDeleteMessage}
-          editingEventId={editingId}
-          renderEditor={renderEditor}
-          currentUserId={currentUserId}
-          onToggleReaction={handleToggleReaction}
-          ReactionSlot={ConnectedReactions}
-        />
-      )}
+      );
+    }
+
+    return (
+      <MessageList
+        ref={ref}
+        events={events}
+        onLoadMore={handleLoadMore}
+        onEditMessage={handleEditMessage}
+        onDeleteMessage={handleDeleteMessage}
+        editingEventId={editingId}
+        renderEditor={renderEditor}
+        currentUserId={currentUserId}
+        onToggleReaction={handleToggleReaction}
+        ReactionSlot={ConnectedReactions}
+      />
+    );
+  },
+);
+
+function TimelineView() {
+  const { roomId } = useParams({
+    from: "/_authenticated/_chat/$spaceId/$roomId",
+  });
+  const [debug, setDebug] = useState(false);
+  const composerRef = useRef<ComposerHandle>(null);
+  const messageListRef = useRef<MessageListHandle>(null);
+
+  useEffect(() => {
+    void markAsRead(roomId);
+  }, [roomId]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key.length !== 1) return;
+
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if ((e.target as HTMLElement).isContentEditable) return;
+
+      composerRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
+        <RoomHeader roomId={roomId} />
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={() => setDebug((d) => !d)}
+            className="ml-auto text-xs text-surface-500 transition-colors hover:text-surface-950-50"
+          >
+            {debug ? "pretty" : "debug"}
+          </button>
+        )}
+      </header>
+
+      <ConnectedTimeline ref={messageListRef} roomId={roomId} debug={debug} />
 
       <div className="border-t border-surface-200-800 p-4">
         <Composer
           ref={composerRef}
           roomId={roomId}
           getMembers={getMembers}
-          onSend={(body, html) => void sendMessage(roomId, body, html)}
+          onSend={(body, html) => {
+            void sendMessage(roomId, body, html);
+            messageListRef.current?.scrollToBottom();
+          }}
         />
       </div>
     </div>

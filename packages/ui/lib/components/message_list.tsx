@@ -10,7 +10,7 @@ import {
 import type { HTMLAttributes } from "react";
 import type { TimelineEvent } from "@harmony/protocol";
 import { cn } from "../utils";
-import { useLoadMoreOnScroll, useStickToBottom } from "../hooks/scroll";
+import { useLoadMoreOnScroll, useNewMessageIndicator, useStickToBottom } from "../hooks/scroll";
 import { MessageActionBar } from "./message_action_bar";
 import { MessageEvent } from "./message_event";
 import { SystemEvent } from "./system_event";
@@ -217,6 +217,10 @@ const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
 
 // #region MessageList
 
+export interface MessageListHandle {
+  scrollToBottom: () => void;
+}
+
 interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   currentUserId?: string;
   events: TimelineEvent[];
@@ -229,19 +233,22 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   ReactionSlot?: React.ComponentType<ReactionSlotProps>;
 }
 
-function MessageList({
-  events,
-  onLoadMore,
-  onEditMessage,
-  onDeleteMessage,
-  editingEventId,
-  renderEditor,
-  ReactionSlot,
-  className,
-  currentUserId,
-  onToggleReaction,
-  ...props
-}: MessageListProps) {
+const MessageList = forwardRef<MessageListHandle, MessageListProps>(function MessageList(
+  {
+    events,
+    onLoadMore,
+    onEditMessage,
+    onDeleteMessage,
+    editingEventId,
+    renderEditor,
+    ReactionSlot,
+    className,
+    currentUserId,
+    onToggleReaction,
+    ...props
+  },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -291,18 +298,32 @@ function MessageList({
 
   const grouping = useMemo(() => computeGrouping(filtered), [filtered]);
 
-  useStickToBottom(containerRef, anchorRef, filtered.length);
+  const { isAtBottom, scrollToBottom } = useStickToBottom(containerRef, anchorRef, filtered.length);
+  const { newCount } = useNewMessageIndicator(isAtBottom, filtered.length);
   useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
+
+  useImperativeHandle(ref, () => ({ scrollToBottom }), [scrollToBottom]);
 
   return (
     <div
       data-scope="message-list"
       data-part="root"
       ref={containerRef}
-      className={cn("flex-1 overflow-y-auto", className)}
+      className={cn("relative flex-1 overflow-y-auto", className)}
       onScroll={handleScroll}
       {...props}
     >
+      {newCount > 0 && (
+        <button
+          type="button"
+          data-scope="message-list"
+          data-part="new-messages"
+          onClick={scrollToBottom}
+          className="sticky top-0 z-10 flex w-full cursor-pointer items-center justify-center gap-1 bg-primary-500 py-1 text-xs font-medium text-on-primary"
+        >
+          {newCount} new {newCount === 1 ? "message" : "messages"} — Jump to latest
+        </button>
+      )}
       <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />
       {filtered.map((event, i) => {
         const isEditing =
@@ -342,7 +363,7 @@ function MessageList({
       />
     </div>
   );
-}
+});
 
 // #endregion
 

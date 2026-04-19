@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Sidebar, TextField } from "@harmony/ui";
@@ -39,10 +39,43 @@ function PendingSkeleton() {
   );
 }
 
-function RouteComponent() {
+function RoomList() {
   const rooms = useRooms();
   const navigate = useNavigate();
   const { spaceId, roomId } = useParams({ strict: false });
+
+  const handleClick = useCallback(
+    (targetRoomId: string) => {
+      void navigate({
+        to: "/$spaceId/$roomId",
+        params: { spaceId: spaceId!, roomId: targetRoomId },
+      });
+    },
+    [navigate, spaceId],
+  );
+
+  return (
+    <Sidebar.List>
+      {rooms.map((room) => (
+        <Sidebar.Item
+          key={room.roomId}
+          icon={<Hash size={16} />}
+          active={roomId === room.roomId}
+          unread={room.unreadCount > 0}
+          badge={
+            room.mentionCount > 0 ? <Sidebar.Badge count={room.mentionCount} mention /> : undefined
+          }
+          onClick={() => handleClick(room.roomId)}
+        >
+          {room.displayName}
+        </Sidebar.Item>
+      ))}
+    </Sidebar.List>
+  );
+}
+
+function RouteComponent() {
+  const { spaceId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const createInvite = useCreateInvite();
@@ -62,29 +95,7 @@ function RouteComponent() {
       <Sidebar>
         <Sidebar.Header data-sidebar="header">Channels</Sidebar.Header>
         <div className="flex-1 overflow-y-auto">
-          <Sidebar.List>
-            {rooms.map((room) => (
-              <Sidebar.Item
-                key={room.roomId}
-                icon={<Hash size={16} />}
-                active={roomId === room.roomId}
-                unread={room.unreadCount > 0}
-                badge={
-                  room.mentionCount > 0 ? (
-                    <Sidebar.Badge count={room.mentionCount} mention />
-                  ) : undefined
-                }
-                onClick={() =>
-                  navigate({
-                    to: "/$spaceId/$roomId",
-                    params: { spaceId: spaceId!, roomId: room.roomId },
-                  })
-                }
-              >
-                {room.displayName}
-              </Sidebar.Item>
-            ))}
-          </Sidebar.List>
+          <RoomList />
         </div>
         <div className="space-y-1 p-2">
           <button

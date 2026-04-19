@@ -2,7 +2,7 @@ export { Dialog } from "./dialog";
 export { MessageActionBar } from "./message_action_bar";
 export { MessageEvent } from "./message_event";
 export { ReactionDisplay } from "./reaction_display";
-export { MessageList } from "./message_list";
+export { MessageList, type MessageListHandle } from "./message_list";
 export { Rail } from "./rail";
 export { Sidebar } from "./sidebar";
 export { SystemEvent } from "./system_event";
