@@ -10,6 +10,15 @@
   text-underline-offset: 2px;
 }
 
+.rich-text a[data-mx-mention] {
+  background-color: oklch(from var(--color-primary-500) l c h / 0.15);
+  color: var(--color-primary-500);
+  border-radius: var(--radius-md);
+  padding: 0 calc(var(--spacing) * 0.5);
+  text-decoration: none;
+  font-weight: 500;
+}
+
 .rich-text code {
   background-color: var(--color-surface-200-800);
   border-radius: 0.25rem;
