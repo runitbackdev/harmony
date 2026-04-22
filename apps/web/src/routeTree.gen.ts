@@ -16,6 +16,7 @@ import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticat
 import { Route as AuthenticatedChatRouteImport } from "./routes/_authenticated/_chat";
 import { Route as AuthenticatedChatIndexRouteImport } from "./routes/_authenticated/_chat/index";
 import { Route as AuthenticatedChatSpaceIdRouteRouteImport } from "./routes/_authenticated/_chat/$spaceId/route";
+import { Route as AuthenticatedChatSpaceIdIndexRouteImport } from "./routes/_authenticated/_chat/$spaceId/index";
 import { Route as AuthenticatedChatSpaceIdRoomIdRouteImport } from "./routes/_authenticated/_chat/$spaceId/$roomId";
 
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +53,12 @@ const AuthenticatedChatSpaceIdRouteRoute =
     path: "/$spaceId",
     getParentRoute: () => AuthenticatedChatRoute,
   } as any);
+const AuthenticatedChatSpaceIdIndexRoute =
+  AuthenticatedChatSpaceIdIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AuthenticatedChatSpaceIdRouteRoute,
+  } as any);
 const AuthenticatedChatSpaceIdRoomIdRoute =
   AuthenticatedChatSpaceIdRoomIdRouteImport.update({
     id: "/$roomId",
@@ -66,14 +73,15 @@ export interface FileRoutesByFullPath {
   "/invite/$code": typeof InviteCodeRoute;
   "/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
+  "/$spaceId/": typeof AuthenticatedChatSpaceIdIndexRoute;
 }
 export interface FileRoutesByTo {
   "/": typeof AuthenticatedChatIndexRoute;
   "/login": typeof LoginRoute;
   "/settings": typeof AuthenticatedSettingsRoute;
   "/invite/$code": typeof InviteCodeRoute;
-  "/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
+  "/$spaceId": typeof AuthenticatedChatSpaceIdIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   "/_authenticated/_chat/$spaceId": typeof AuthenticatedChatSpaceIdRouteRouteWithChildren;
   "/_authenticated/_chat/": typeof AuthenticatedChatIndexRoute;
   "/_authenticated/_chat/$spaceId/$roomId": typeof AuthenticatedChatSpaceIdRoomIdRoute;
+  "/_authenticated/_chat/$spaceId/": typeof AuthenticatedChatSpaceIdIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -94,15 +103,16 @@ export interface FileRouteTypes {
     | "/settings"
     | "/invite/$code"
     | "/$spaceId"
-    | "/$spaceId/$roomId";
+    | "/$spaceId/$roomId"
+    | "/$spaceId/";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/"
     | "/login"
     | "/settings"
     | "/invite/$code"
-    | "/$spaceId"
-    | "/$spaceId/$roomId";
+    | "/$spaceId/$roomId"
+    | "/$spaceId";
   id:
     | "__root__"
     | "/_authenticated"
@@ -112,7 +122,8 @@ export interface FileRouteTypes {
     | "/invite/$code"
     | "/_authenticated/_chat/$spaceId"
     | "/_authenticated/_chat/"
-    | "/_authenticated/_chat/$spaceId/$roomId";
+    | "/_authenticated/_chat/$spaceId/$roomId"
+    | "/_authenticated/_chat/$spaceId/";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -172,6 +183,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedChatSpaceIdRouteRouteImport;
       parentRoute: typeof AuthenticatedChatRoute;
     };
+    "/_authenticated/_chat/$spaceId/": {
+      id: "/_authenticated/_chat/$spaceId/";
+      path: "/";
+      fullPath: "/$spaceId/";
+      preLoaderRoute: typeof AuthenticatedChatSpaceIdIndexRouteImport;
+      parentRoute: typeof AuthenticatedChatSpaceIdRouteRoute;
+    };
     "/_authenticated/_chat/$spaceId/$roomId": {
       id: "/_authenticated/_chat/$spaceId/$roomId";
       path: "/$roomId";
@@ -184,11 +202,13 @@ declare module "@tanstack/react-router" {
 
 interface AuthenticatedChatSpaceIdRouteRouteChildren {
   AuthenticatedChatSpaceIdRoomIdRoute: typeof AuthenticatedChatSpaceIdRoomIdRoute;
+  AuthenticatedChatSpaceIdIndexRoute: typeof AuthenticatedChatSpaceIdIndexRoute;
 }
 
 const AuthenticatedChatSpaceIdRouteRouteChildren: AuthenticatedChatSpaceIdRouteRouteChildren =
   {
     AuthenticatedChatSpaceIdRoomIdRoute: AuthenticatedChatSpaceIdRoomIdRoute,
+    AuthenticatedChatSpaceIdIndexRoute: AuthenticatedChatSpaceIdIndexRoute,
   };
 
 const AuthenticatedChatSpaceIdRouteRouteWithChildren =

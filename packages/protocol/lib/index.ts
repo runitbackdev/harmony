@@ -2,8 +2,11 @@ import type { AuthCommand, AuthError, AuthLoggedIn, AuthRequest, AuthResponse } 
 import type { ErrorResponse } from "./error";
 import type {
   MembersGot,
+  MembersSubscribed,
+  MembersUpdate,
   RoomsCommand,
   RoomsCreated,
+  RoomsGotIds,
   RoomsRequest,
   RoomsResponse,
   RoomsSubscribed,
@@ -51,8 +54,10 @@ export type ResponseMap = {
   "h.spaces.create": SpacesCreated;
   "h.spaces.join": SpacesJoined;
   "h.rooms.subscribe": RoomsSubscribed;
+  "h.rooms.getIds": RoomsGotIds;
   "h.rooms.create": RoomsCreated;
   "h.members.get": MembersGot;
+  "h.members.subscribe": MembersSubscribed;
   "h.timeline.subscribe": TimelineSubscribed;
   "h.timeline.send": TimelineSent;
   "h.timeline.edit": TimelineEdited;
@@ -73,6 +78,7 @@ export type StreamMap = {
   "h.sync.status": SyncStatus;
   "h.spaces.update": SpacesUpdate;
   "h.rooms.update": RoomsUpdate;
+  "h.members.update": MembersUpdate;
   "h.timeline.update": TimelineUpdate;
 };
 

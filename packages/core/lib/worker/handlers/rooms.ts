@@ -5,6 +5,7 @@ import {
   getRoomMembers,
   setRoomFilter,
   subscribeRoomList,
+  subscribeRoomMembers,
   subscribeSpaceFilters,
 } from "@harmony/wasm";
 import { applyListDiff } from "@harmony/protocol";
@@ -82,8 +83,22 @@ const handleUnsubscribe: HandlerFor<"h.rooms.unsubscribe"> = async (_message, se
   subscribedPorts.delete(send.port);
 };
 
+const handleGetIds: HandlerFor<"h.rooms.getIds"> = async (message, send) => {
+  await initializeIfNeeded();
+  send.respond({ type: "h.rooms.gotIds", roomIds: descendantsForSpace(message.spaceId) });
+};
+
 export function removeRoomsSubscriber(port: MessagePort) {
   subscribedPorts.delete(port);
+
+  for (const [roomId, sub] of memberSubs) {
+    if (!sub.ports.has(port)) continue;
+    sub.ports.delete(port);
+    if (sub.ports.size === 0) {
+      sub.reader.cancel().catch(() => {});
+      memberSubs.delete(roomId);
+    }
+  }
 }
 
 const handleCreate: HandlerFor<"h.rooms.create"> = async (message, send) => {
@@ -98,11 +113,67 @@ const handleGetMembers: HandlerFor<"h.members.get"> = async (message, send) => {
   send.respond({ type: "h.members.got", members });
 };
 
+type MemberSubscription = {
+  reader: ReadableStreamDefaultReader<ListDiff<MemberSummary>[]>;
+  ports: Set<MessagePort>;
+  members: MemberSummary[];
+};
+
+const memberSubs = new Map<string, MemberSubscription>();
+
+const handleMembersSubscribe: HandlerFor<"h.members.subscribe"> = async (message, send) => {
+  const { roomId } = message;
+  const existing = memberSubs.get(roomId);
+
+  if (existing) {
+    existing.ports.add(send.port);
+    send.respond({ type: "h.members.subscribed", members: existing.members });
+    return;
+  }
+
+  const [initial, stream] = await subscribeRoomMembers(roomId);
+  const reader = stream.getReader();
+  const sub: MemberSubscription = {
+    reader,
+    ports: new Set([send.port]),
+    members: [...initial],
+  };
+  memberSubs.set(roomId, sub);
+
+  send.respond({ type: "h.members.subscribed", members: initial });
+
+  void pipe(
+    reader,
+    (diffs) => {
+      for (const diff of diffs) applyListDiff(sub.members, diff);
+      for (const port of sub.ports) {
+        port.postMessage({ type: "h.members.update", roomId, members: diffs });
+      }
+    },
+    (error) => console.error("[members] stream error:", error),
+  );
+};
+
+const handleMembersUnsubscribe: HandlerFor<"h.members.unsubscribe"> = async (message, send) => {
+  const { roomId } = message;
+  const sub = memberSubs.get(roomId);
+  if (!sub) return;
+
+  sub.ports.delete(send.port);
+  if (sub.ports.size === 0) {
+    sub.reader.cancel().catch(() => {});
+    memberSubs.delete(roomId);
+  }
+};
+
 export const roomsHandlers: HandlerMap = {
   "h.rooms.subscribe": handleSubscribe,
   "h.rooms.unsubscribe": handleUnsubscribe,
+  "h.rooms.getIds": handleGetIds,
   "h.rooms.create": handleCreate,
   "h.members.get": handleGetMembers,
+  "h.members.subscribe": handleMembersSubscribe,
+  "h.members.unsubscribe": handleMembersUnsubscribe,
 };
 
 declare module "@harmony/wasm" {
@@ -115,4 +186,5 @@ declare module "@harmony/wasm" {
     visibility: string,
   ): Promise<RoomSummary>;
   export function getRoomMembers(roomId: string): Promise<MemberSummary[]>;
+  export function subscribeRoomMembers(roomId: string): Promise<[MemberSummary[], ReadableStream]>;
 }

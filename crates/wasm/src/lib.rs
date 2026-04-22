@@ -6,7 +6,8 @@ use crate::{
     auth::{LoginRequest, RestoreRequest, SessionData, login_impl, logout_impl, restore_impl},
     errors::HarmonyError,
     rooms::{
-        MemberData, RoomData, get_room_members_impl, set_room_filter_impl, subscribe_room_list_impl,
+        MemberData, RoomData, get_room_members_impl, set_room_filter_impl,
+        subscribe_room_list_impl, subscribe_room_members_impl,
     },
     spaces::{
         ChannelVisibility, SpaceData, create_room_impl, create_space_impl, get_spaces_impl,
@@ -122,6 +123,11 @@ pub fn set_room_filter(room_ids: Vec<String>) -> Result<(), HarmonyError> {
 #[wasm_bindgen(js_name = getRoomMembers)]
 pub async fn get_room_members(room_id: &str) -> Result<Vec<MemberData>, HarmonyError> {
     get_room_members_impl(room_id).await
+}
+
+#[wasm_bindgen(js_name = subscribeRoomMembers)]
+pub async fn subscribe_room_members(room_id: &str) -> Result<JsValue, JsValue> {
+    subscribe_room_members_impl(room_id).await?.try_into()
 }
 
 #[wasm_bindgen(js_name = subscribeSpaceFilters)]

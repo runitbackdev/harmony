@@ -6,9 +6,16 @@ use matrix_sdk::ruma::{OwnedRoomId, RoomId};
 use matrix_sdk_ui::room_list_service::filters::new_filter_identifiers;
 use matrix_sdk_ui::room_list_service::{RoomList, RoomListDynamicEntriesController, RoomListItem};
 use serde::{Deserialize, Serialize};
+use tokio_stream::wrappers::BroadcastStream;
 use tsify_next::Tsify;
 
-use crate::{client, diff::convert_diffs, errors::HarmonyError, sync};
+use crate::{
+    client,
+    diff::{ListDiff, convert_diffs},
+    errors::HarmonyError,
+    subscription::Subscription,
+    sync,
+};
 
 type ControllerCell = RefCell<Option<RoomListDynamicEntriesController>>;
 
@@ -88,13 +95,8 @@ pub struct MemberData {
     pub avatar_url: Option<String>,
 }
 
-pub async fn get_room_members_impl(room_id: &str) -> Result<Vec<MemberData>, HarmonyError> {
-    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
-    let room_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
-    let room = client.get_room(room_id).ok_or(HarmonyError::RoomNotFound)?;
-
+async fn fetch_joined_members(room: &matrix_sdk::Room) -> Result<Vec<MemberData>, HarmonyError> {
     let members = room.members(RoomMemberships::JOIN).await?;
-
     Ok(members
         .into_iter()
         .map(|m| MemberData {
@@ -103,4 +105,39 @@ pub async fn get_room_members_impl(room_id: &str) -> Result<Vec<MemberData>, Har
             avatar_url: m.avatar_url().map(ToString::to_string),
         })
         .collect())
+}
+
+pub async fn get_room_members_impl(room_id: &str) -> Result<Vec<MemberData>, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let room_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
+    let room = client.get_room(room_id).ok_or(HarmonyError::RoomNotFound)?;
+    fetch_joined_members(&room).await
+}
+
+pub async fn subscribe_room_members_impl(
+    room_id: &str,
+) -> Result<Subscription<MemberData>, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let parsed_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
+    let room = client
+        .get_room(parsed_id)
+        .ok_or(HarmonyError::RoomNotFound)?;
+
+    let receiver = room.room_member_updates_sender.subscribe();
+    let initial = fetch_joined_members(&room).await?;
+
+    let updates = BroadcastStream::new(receiver).filter_map(move |_| {
+        let room = room.clone();
+        async move {
+            let members = fetch_joined_members(&room).await.ok()?;
+            let diffs = vec![ListDiff::Reset { values: members }];
+            Some(
+                serde_wasm_bindgen::to_value(&diffs)
+                    .map_err(|e| wasm_bindgen::JsValue::from_str(&e.to_string())),
+            )
+        }
+    });
+
+    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
+    Ok(Subscription { initial, stream })
 }

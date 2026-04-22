@@ -1,4 +1,5 @@
 export { Dialog } from "./dialog";
+export { MemberList } from "./member_list";
 export { MessageActionBar } from "./message_action_bar";
 export { MessageEvent } from "./message_event";
 export { MxAvatar } from "./mx_avatar";

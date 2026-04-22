@@ -3942,6 +3942,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio-stream",
  "tracing",
  "tracing-wasm",
  "tsify-next",

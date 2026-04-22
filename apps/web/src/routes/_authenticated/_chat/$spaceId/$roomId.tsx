@@ -7,22 +7,25 @@ import {
   paginateTimeline,
   redactMessage,
   sendMessage,
+  subscribeMembers,
   subscribeTimeline,
   toggleReaction,
+  useMembers,
   useReactions,
   useRooms,
   useTimeline,
   getSession,
 } from "@harmony/react";
-import { MessageList, type MessageListHandle, ReactionDisplay } from "@harmony/ui";
+import { MemberList, MessageList, type MessageListHandle, ReactionDisplay } from "@harmony/ui";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { ComposerHandle, EditTarget } from "@harmony/composer";
-import { Hash } from "lucide-react";
+import { Hash, Users } from "lucide-react";
 import type { TimelineContent, TimelineEvent } from "@harmony/protocol";
+import { setLastRoom } from "@/lib/last-room";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
-    await subscribeTimeline(params.roomId);
+    await Promise.all([subscribeTimeline(params.roomId), subscribeMembers(params.roomId)]);
   },
   component: TimelineView,
 });
@@ -164,17 +167,67 @@ const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug:
   },
 );
 
+function ConnectedMemberList({ roomId }: { roomId: string }) {
+  const members = useMembers();
+  const sorted = [...members].sort((a, b) =>
+    (a.displayName ?? a.userId).localeCompare(b.displayName ?? b.userId),
+  );
+  void roomId;
+
+  return (
+    <MemberList>
+      <MemberList.Header>Members — {sorted.length}</MemberList.Header>
+      <div className="flex-1 overflow-y-auto">
+        <MemberList.List>
+          {sorted.map((member) => (
+            <MemberList.Row
+              key={member.userId}
+              name={member.displayName ?? member.userId}
+              avatarUrl={member.avatarUrl}
+            />
+          ))}
+        </MemberList.List>
+      </div>
+    </MemberList>
+  );
+}
+
+const MEMBER_PANEL_KEY = "harmony_members_open";
+
+function useMembersPanelOpen(): [boolean, (open: boolean) => void] {
+  const [open, setOpen] = useState<boolean>(() => {
+    const stored = localStorage.getItem(MEMBER_PANEL_KEY);
+    if (stored !== null) return stored === "true";
+    if (typeof window !== "undefined" && "matchMedia" in window) {
+      return window.matchMedia("(min-width: 768px)").matches;
+    }
+    return true;
+  });
+
+  const set = useCallback((next: boolean) => {
+    setOpen(next);
+    localStorage.setItem(MEMBER_PANEL_KEY, String(next));
+  }, []);
+
+  return [open, set];
+}
+
 function TimelineView() {
-  const { roomId } = useParams({
+  const { spaceId, roomId } = useParams({
     from: "/_authenticated/_chat/$spaceId/$roomId",
   });
   const [debug, setDebug] = useState(false);
+  const [membersOpen, setMembersOpen] = useMembersPanelOpen();
   const composerRef = useRef<ComposerHandle>(null);
   const messageListRef = useRef<MessageListHandle>(null);
 
   useEffect(() => {
     void markAsRead(roomId);
   }, [roomId]);
+
+  useEffect(() => {
+    setLastRoom(spaceId, roomId);
+  }, [spaceId, roomId]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -193,33 +246,48 @@ function TimelineView() {
   }, []);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
-        <RoomHeader roomId={roomId} />
-        {import.meta.env.DEV && (
-          <button
-            type="button"
-            onClick={() => setDebug((d) => !d)}
-            className="ml-auto text-xs text-surface-500 transition-colors hover:text-surface-950-50"
-          >
-            {debug ? "pretty" : "debug"}
-          </button>
-        )}
-      </header>
+    <div className="flex flex-1">
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2">
+          <RoomHeader roomId={roomId} />
+          <div className="ml-auto flex items-center gap-3">
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                onClick={() => setDebug((d) => !d)}
+                className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
+              >
+                {debug ? "pretty" : "debug"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setMembersOpen(!membersOpen)}
+              aria-label={membersOpen ? "Hide members" : "Show members"}
+              aria-pressed={membersOpen}
+              className="text-surface-500 transition-colors hover:text-surface-950-50 aria-pressed:text-surface-950-50"
+            >
+              <Users size={16} />
+            </button>
+          </div>
+        </header>
 
-      <ConnectedTimeline ref={messageListRef} roomId={roomId} debug={debug} />
+        <ConnectedTimeline ref={messageListRef} roomId={roomId} debug={debug} />
 
-      <div className="border-t border-surface-200-800 p-4">
-        <Composer
-          ref={composerRef}
-          roomId={roomId}
-          getMembers={getMembers}
-          onSend={(body, html) => {
-            void sendMessage(roomId, body, html);
-            messageListRef.current?.scrollToBottom();
-          }}
-        />
+        <div className="border-t border-surface-200-800 p-4">
+          <Composer
+            ref={composerRef}
+            roomId={roomId}
+            getMembers={getMembers}
+            onSend={(body, html) => {
+              void sendMessage(roomId, body, html);
+              messageListRef.current?.scrollToBottom();
+            }}
+          />
+        </div>
       </div>
+
+      {membersOpen && <ConnectedMemberList roomId={roomId} />}
     </div>
   );
 }
