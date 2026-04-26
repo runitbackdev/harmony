@@ -74,14 +74,7 @@ function RoomList() {
             icon={<Hash size={16} />}
             active={roomId === room.roomId}
             unread={hasUnread}
-            badge={
-              hasMention || hasUnread ? (
-                <Sidebar.Badge
-                  count={hasMention ? room.mentionCount : room.unreadCount}
-                  mention={hasMention}
-                />
-              ) : undefined
-            }
+            badge={hasMention || hasUnread ? <Sidebar.Dot mention={hasMention} /> : undefined}
             onClick={() => handleClick(room.roomId)}
           >
             {room.displayName}

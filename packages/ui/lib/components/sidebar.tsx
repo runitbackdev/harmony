@@ -151,31 +151,35 @@ const Item = memo(function Item({
 
 // #endregion
 
-// #region Badge
+// #region Dot
 
-const BADGE_MAX = 99;
-
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  count: number;
+interface DotProps extends HTMLAttributes<HTMLSpanElement> {
   mention?: boolean;
 }
 
-function Badge({ count, mention, className, ...props }: BadgeProps) {
-  const display = count > BADGE_MAX ? `${BADGE_MAX}+` : count;
-
+function Dot({ mention, className, ...props }: DotProps) {
   return (
     <span
       data-scope="sidebar"
-      data-part="badge"
+      data-part="dot"
       data-mention={mention || undefined}
-      className={cn(
-        "badge-icon ml-auto",
-        mention ? "preset-filled-primary-500" : "preset-filled-surface-300-700",
-        className,
-      )}
+      aria-label={mention ? "Mention" : "Unread"}
+      className={cn("relative ml-auto flex size-2", className)}
       {...props}
     >
-      {display}
+      {mention && (
+        <span
+          aria-hidden
+          className="absolute inline-flex size-full rounded-full bg-primary-500 opacity-75 motion-safe:animate-ping"
+        />
+      )}
+      <span
+        aria-hidden
+        className={cn(
+          "relative inline-flex size-2 rounded-full bg-primary-500",
+          !mention && "opacity-60",
+        )}
+      />
     </span>
   );
 }
@@ -188,7 +192,7 @@ Sidebar.Header = Header;
 Sidebar.SectionLabel = SectionLabel;
 Sidebar.List = List;
 Sidebar.Item = Item;
-Sidebar.Badge = Badge;
+Sidebar.Dot = Dot;
 
 export { Sidebar };
 
