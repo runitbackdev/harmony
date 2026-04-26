@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
+@layer reset, base, components, utilities, themes, motion;
+
 @font-face {
   font-family: "Twemoji";
   src: url("/fonts/Twemoji_GlyfColr1.woff2") format("woff2");
   font-display: swap;
-  unicode-range: U+200D, U+2300-23FF, U+2600-27BF, U+2B50, U+FE00-FE0F,
-    U+1F000-1FAFF, U+E0020-E007F;
+  unicode-range:
+    U+200D, U+2300-23FF, U+2600-27BF, U+2B50, U+FE00-FE0F, U+1F000-1FAFF, U+E0020-E007F;
 }
 @plugin "@tailwindcss/forms";
 
 @import "@skeletonlabs/skeleton";
 @import "@skeletonlabs/skeleton-react";
-@import "@skeletonlabs/skeleton/themes/cerberus";
-@import "@skeletonlabs/skeleton/themes/mona";
-@import "@skeletonlabs/skeleton/themes/vox";
+@import "@skeletonlabs/skeleton/themes/cerberus" layer(themes);
+@import "@skeletonlabs/skeleton/themes/mona" layer(themes);
+@import "@skeletonlabs/skeleton/themes/vox" layer(themes);
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";
