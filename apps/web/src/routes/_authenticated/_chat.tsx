@@ -3,10 +3,13 @@ import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react
 import { useForm } from "@tanstack/react-form";
 import { Dialog, MxAvatar, Rail, TextField } from "@harmony/ui";
 import { Home, ImagePlus, Plus, X } from "lucide-react";
-import { createSpace, useSpaces } from "@harmony/react";
+import { createSpace, subscribeSpaces, useSpaces } from "@harmony/react";
 import * as v from "valibot";
 
 export const Route = createFileRoute("/_authenticated/_chat")({
+  loader: async () => {
+    await subscribeSpaces();
+  },
   component: RouteComponent,
 });
 

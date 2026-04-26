@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Sidebar, TextField } from "@harmony/ui";
-import { createRoom, subscribeRooms, useCreateInvite, useRooms } from "@harmony/react";
+import { createRoom, subscribeRooms, useCreateInvite, useRooms, useSpaces } from "@harmony/react";
 import { Check, Copy, Hash, Link, Plus, X } from "lucide-react";
 import * as v from "valibot";
 
@@ -54,28 +54,48 @@ function RoomList() {
     [navigate, spaceId],
   );
 
+  if (rooms.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <p className="text-sm text-surface-500">No channels yet.</p>
+      </div>
+    );
+  }
+
   return (
     <Sidebar.List>
-      {rooms.map((room) => (
-        <Sidebar.Item
-          key={room.roomId}
-          icon={<Hash size={16} />}
-          active={roomId === room.roomId}
-          unread={room.unreadCount > 0}
-          badge={
-            room.mentionCount > 0 ? <Sidebar.Badge count={room.mentionCount} mention /> : undefined
-          }
-          onClick={() => handleClick(room.roomId)}
-        >
-          {room.displayName}
-        </Sidebar.Item>
-      ))}
+      {rooms.map((room) => {
+        const hasMention = room.mentionCount > 0;
+        const hasUnread = room.unreadCount > 0;
+
+        return (
+          <Sidebar.Item
+            key={room.roomId}
+            icon={<Hash size={16} />}
+            active={roomId === room.roomId}
+            unread={hasUnread}
+            badge={
+              hasMention || hasUnread ? (
+                <Sidebar.Badge
+                  count={hasMention ? room.mentionCount : room.unreadCount}
+                  mention={hasMention}
+                />
+              ) : undefined
+            }
+            onClick={() => handleClick(room.roomId)}
+          >
+            {room.displayName}
+          </Sidebar.Item>
+        );
+      })}
     </Sidebar.List>
   );
 }
 
 function RouteComponent() {
   const { spaceId } = useParams({ strict: false });
+  const spaces = useSpaces();
+  const currentSpace = spaces.find((s) => s.roomId === spaceId);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const createInvite = useCreateInvite();
@@ -93,7 +113,9 @@ function RouteComponent() {
   return (
     <>
       <Sidebar>
-        <Sidebar.Header data-sidebar="header">Channels</Sidebar.Header>
+        <Sidebar.Header data-sidebar="header">
+          {currentSpace?.displayName ?? "Channels"}
+        </Sidebar.Header>
         <div className="flex-1 overflow-y-auto">
           <RoomList />
         </div>

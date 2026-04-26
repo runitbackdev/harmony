@@ -19,6 +19,7 @@ export const spaces = createSubscription<SpaceSummary>((items) =>
 );
 
 export const useSpaces = spaces.useValue;
+export const subscribeSpaces = spaces.start;
 
 export async function createSpace(name: string, avatar?: File | null) {
   const avatarPayload = avatar

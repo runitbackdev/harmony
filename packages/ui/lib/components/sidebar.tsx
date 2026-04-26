@@ -153,12 +153,16 @@ const Item = memo(function Item({
 
 // #region Badge
 
+const BADGE_MAX = 99;
+
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   count: number;
   mention?: boolean;
 }
 
 function Badge({ count, mention, className, ...props }: BadgeProps) {
+  const display = count > BADGE_MAX ? `${BADGE_MAX}+` : count;
+
   return (
     <span
       data-scope="sidebar"
@@ -171,7 +175,7 @@ function Badge({ count, mention, className, ...props }: BadgeProps) {
       )}
       {...props}
     >
-      {count}
+      {display}
     </span>
   );
 }

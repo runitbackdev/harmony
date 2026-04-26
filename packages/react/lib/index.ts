@@ -13,7 +13,7 @@ export {
   useMembers,
   useRooms,
 } from "./rooms";
-export { createSpace, joinSpace, useSpaces } from "./spaces";
+export { createSpace, joinSpace, subscribeSpaces, useSpaces } from "./spaces";
 export {
   editMessage,
   markAsRead,
