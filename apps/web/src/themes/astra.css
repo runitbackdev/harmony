@@ -841,10 +841,8 @@
     opacity: 0;
     transition: opacity 100ms linear;
   }
-  [data-theme="astra"]
   [data-theme="astra"] [data-scope="sidebar"][data-part="dot"] > span:last-child {
     animation: none;
-  }
   }
   [data-theme="astra"] [data-scope="sidebar"][data-part="dot"] {
     animation: none;
