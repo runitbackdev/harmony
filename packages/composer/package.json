@@ -15,6 +15,7 @@
     "@codemirror/view": "^6.40.0",
     "@floating-ui/react": "catalog:",
     "@harmony/highlight": "workspace:*",
+    "@harmony/primitives": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.6.3",

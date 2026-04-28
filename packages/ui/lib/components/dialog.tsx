@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { Dialog as SkeletonDialog } from "@skeletonlabs/skeleton-react";
+import { Dialog as SkeletonDialog, Portal as SkeletonPortal } from "@skeletonlabs/skeleton-react";
 import { cn } from "../../lib/utils";
 
 // #region Root
@@ -29,10 +29,20 @@ type BackdropProps = ComponentProps<typeof SkeletonDialog.Backdrop>;
 function Backdrop({ className, ...props }: BackdropProps) {
   return (
     <SkeletonDialog.Backdrop
-      className={cn("fixed inset-0 bg-black/60 backdrop-blur-xs", className)}
+      className={cn("fixed inset-0 z-50 bg-black/60 backdrop-blur-xs", className)}
       {...props}
     />
   );
+}
+
+// #endregion
+
+// #region Portal
+
+type PortalProps = ComponentProps<typeof SkeletonPortal>;
+
+function Portal(props: PortalProps) {
+  return <SkeletonPortal {...props} />;
 }
 
 // #endregion
@@ -44,7 +54,7 @@ type PositionerProps = ComponentProps<typeof SkeletonDialog.Positioner>;
 function Positioner({ className, ...props }: PositionerProps) {
   return (
     <SkeletonDialog.Positioner
-      className={cn("fixed inset-0 flex items-center justify-center p-4", className)}
+      className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", className)}
       {...props}
     />
   );
@@ -122,6 +132,7 @@ function CloseTrigger({ className, ...props }: CloseTriggerProps) {
 // #region Export
 
 Dialog.Trigger = Trigger;
+Dialog.Portal = Portal;
 Dialog.Backdrop = Backdrop;
 Dialog.Positioner = Positioner;
 Dialog.Content = Content;

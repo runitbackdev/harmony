@@ -131,52 +131,57 @@ function RouteComponent() {
       </Rail>
 
       <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Create a Space</Dialog.Title>
-            <Dialog.Description>Give your space a name to get started.</Dialog.Description>
+        <Dialog.Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Title>Create a Space</Dialog.Title>
+              <Dialog.Description>Give your space a name to get started.</Dialog.Description>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                void form.handleSubmit();
-              }}
-              className="mt-4 space-y-4"
-            >
-              <form.Field name="avatar">
-                {(field) => <AvatarPicker file={field.state.value} onChange={field.handleChange} />}
-              </form.Field>
-
-              <form.Field name="name">
-                {(field) => (
-                  <TextField
-                    label="Name"
-                    type="text"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    error={field.state.meta.errors[0]?.message}
-                    autoFocus
-                  />
-                )}
-              </form.Field>
-
-              <button
-                className="btn preset-filled-primary-500 w-full"
-                type="submit"
-                disabled={form.state.isSubmitting}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void form.handleSubmit();
+                }}
+                className="mt-4 space-y-4"
               >
-                {form.state.isSubmitting ? "Creating…" : "Create"}
-              </button>
-            </form>
+                <form.Field name="avatar">
+                  {(field) => (
+                    <AvatarPicker file={field.state.value} onChange={field.handleChange} />
+                  )}
+                </form.Field>
 
-            <Dialog.CloseTrigger>
-              <X size={16} />
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+                <form.Field name="name">
+                  {(field) => (
+                    <TextField
+                      label="Name"
+                      type="text"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      error={field.state.meta.errors[0]?.message}
+                      autoFocus
+                    />
+                  )}
+                </form.Field>
+
+                <button
+                  className="btn preset-filled-primary-500 w-full"
+                  type="submit"
+                  disabled={form.state.isSubmitting}
+                >
+                  {form.state.isSubmitting ? "Creating…" : "Create"}
+                </button>
+              </form>
+
+              <Dialog.CloseTrigger>
+                <X size={16} aria-hidden="true" />
+                <span className="sr-only">Close</span>
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Dialog.Portal>
       </Dialog>
 
       <Outlet />

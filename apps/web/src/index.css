@@ -16,6 +16,8 @@
 @import "@skeletonlabs/skeleton/themes/cerberus" layer(themes);
 @import "@skeletonlabs/skeleton/themes/mona" layer(themes);
 @import "@skeletonlabs/skeleton/themes/vox" layer(themes);
+@import "./themes/astra.css" layer(themes);
+@import "./themes/kyoto.css" layer(themes);
 
 @source inline("font-bold italic line-through underline font-mono");
 @source "../../../packages/ui/lib/components";

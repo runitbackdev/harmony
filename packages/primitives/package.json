@@ -1,0 +1,16 @@
+{
+  "name": "@harmony/primitives",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.ts"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
+  }
+}

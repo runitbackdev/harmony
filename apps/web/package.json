@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@harmony/composer": "workspace:*",
-
+    "@harmony/primitives": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "@harmony/react": "workspace:*",
     "@harmony/ui": "workspace:*",

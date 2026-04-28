@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from "react";
 import type { Ref } from "react";
+import { useAnimationCue } from "@harmony/primitives";
 import { placeholder } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
 import {
@@ -31,13 +32,18 @@ export const Composer = forwardRef(function Composer(
   ref: Ref<ComposerHandle>,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const keymapCompartment = useMemo(() => new Compartment(), []);
   const completionCompartment = useMemo(() => new Compartment(), []);
+  const [sending, fireSend] = useAnimationCue(rootRef);
 
   const handleSend = useCallback(
-    async (body: string) => onSend(body, (await markdownToHtml(body)) ?? body),
-    [onSend],
+    async (body: string) => {
+      fireSend();
+      onSend(body, (await markdownToHtml(body)) ?? body);
+    },
+    [onSend, fireSend],
   );
 
   const mentionSource = useMemo(
@@ -110,7 +116,12 @@ export const Composer = forwardRef(function Composer(
   }));
 
   return (
-    <div data-scope="composer" data-part="root">
+    <div
+      ref={rootRef}
+      data-scope="composer"
+      data-part="root"
+      data-state={sending ? "sending" : undefined}
+    >
       <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
       <div data-scope="composer" data-part="toolbar">
         <EmojiPickerButton onSelect={handleEmojiSelect} />

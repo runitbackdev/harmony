@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo, type KeyboardEvent } from "react";
-import { createPortal } from "react-dom";
-import { useFloating, offset, flip, shift, autoUpdate } from "@floating-ui/react";
+import { useFloating, FloatingPortal, offset, flip, shift, autoUpdate } from "@floating-ui/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Transition } from "@harmony/primitives";
 import {
   type EmojiResult,
   type EmojiGroup,
@@ -12,7 +12,7 @@ import {
 } from "./emoji";
 
 type EmojiPickerButtonProps = {
-  onSelect: (emoji: { native?: string }) => void;
+  onSelect: (emoji: { native?: string }, meta: { keepOpen: boolean }) => void;
   placement?: "top-end" | "left-start" | "right-start" | "bottom-end";
 };
 
@@ -30,7 +30,9 @@ export default function EmojiPickerButton({
 
   const { floatingStyles, refs } = useFloating({
     open,
+    onOpenChange: setOpen,
     placement,
+    transform: false,
     middleware: [offset(8), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   });
@@ -38,7 +40,7 @@ export default function EmojiPickerButton({
   const handleSelect = useCallback(
     (emoji: EmojiResult, event: Pick<MouseEvent | KeyboardEvent, "shiftKey">) => {
       recordUsage(emoji.id);
-      onSelect({ native: emoji.native });
+      onSelect({ native: emoji.native }, { keepOpen: event.shiftKey });
       if (!event.shiftKey) setOpen(false);
     },
     [onSelect],
@@ -93,8 +95,8 @@ export default function EmojiPickerButton({
           <line x1="15" y1="9" x2="15.01" y2="9" />
         </svg>
       </button>
-      {open &&
-        createPortal(
+      <FloatingPortal>
+        <Transition open={open}>
           <div
             ref={refs.setFloating}
             style={floatingStyles}
@@ -102,9 +104,9 @@ export default function EmojiPickerButton({
             data-part="popover"
           >
             <PickerDialog onSelect={handleSelect} onClose={handleClose} />
-          </div>,
-          document.body,
-        )}
+          </div>
+        </Transition>
+      </FloatingPortal>
     </>
   );
 }

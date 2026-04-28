@@ -8,6 +8,7 @@
   "dependencies": {
     "@floating-ui/react": "catalog:",
     "@harmony/composer": "workspace:*",
+    "@harmony/primitives": "workspace:*",
     "@harmony/protocol": "workspace:*",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.4",

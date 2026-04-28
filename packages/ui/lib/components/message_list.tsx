@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -61,6 +62,10 @@ function computeGrouping(events: TimelineEvent[]) {
 
 function isPending(event: TimelineEvent): boolean {
   return event.sendState?.state === "notSentYet";
+}
+
+function eventKey(event: TimelineEvent, index: number): string {
+  return event.id ?? `pending-${index}`;
 }
 
 // #endregion
@@ -132,6 +137,8 @@ const MessageRow = memo(function MessageRow({
 
   return (
     <div
+      data-scope="message-row"
+      data-part="root"
       style={{
         contentVisibility: "auto",
         containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
@@ -139,7 +146,7 @@ const MessageRow = memo(function MessageRow({
       }}
       className={cn(
         "px-4",
-        !editingNode && "hover:bg-surface-100-900 data-hovered:bg-surface-100-900",
+        !editingNode && "hover:bg-surface-100-900 data-active:bg-surface-100-900",
       )}
       onPointerEnter={(e) => onPointerEnter(event, index, e.currentTarget)}
       onPointerLeave={onPointerLeave}
@@ -152,6 +159,8 @@ const MessageRow = memo(function MessageRow({
 // #endregion
 
 // #region ActionBarOverlay
+
+type Target = { anchor: HTMLElement; event: TimelineEvent };
 
 interface ActionBarHandle {
   show: (anchor: HTMLElement, event: TimelineEvent) => void;
@@ -171,35 +180,60 @@ const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
     { currentUserId, editingEventId, onEditMessage, onDeleteMessage, onToggleReaction },
     ref,
   ) {
-    const [hover, setHover] = useState<{ anchor: HTMLElement; event: TimelineEvent } | null>(null);
+    const [current, setCurrent] = useState<Target | null>(null);
+    // Keep the last target around so the close animation has an anchor to position against
+    // even after `current` flips to null.
+    const [lastTarget, setLastTarget] = useState<Target | null>(null);
+    const currentRef = useRef<Target | null>(null);
 
-    useImperativeHandle(ref, () => ({
-      show: (anchor, event) => setHover({ anchor, event }),
-      hide: () => {
-        setHover((prev) => {
-          prev?.anchor.removeAttribute("data-hovered");
-          return null;
-        });
-      },
-    }));
+    const close = useCallback(() => {
+      const prev = currentRef.current;
+      if (prev) prev.anchor.removeAttribute("data-active");
+      currentRef.current = null;
+      setCurrent(null);
+    }, []);
 
-    if (!hover) return null;
+    useImperativeHandle(
+      ref,
+      () => ({
+        show: (anchor, event) => {
+          const prev = currentRef.current;
+          if (prev && prev.anchor !== anchor) prev.anchor.removeAttribute("data-active");
+          anchor.setAttribute("data-active", "");
+          const next = { anchor, event };
+          currentRef.current = next;
+          setCurrent(next);
+          setLastTarget(next);
+        },
+        hide: close,
+      }),
+      [close],
+    );
 
-    const { anchor, event } = hover;
+    // When the currently-shown row enters edit mode, fully close so the bar doesn't
+    // reappear after editing ends (and so `data-active` is cleared on the row).
+    useEffect(() => {
+      if (!current || editingEventId == null) return;
+      const matches =
+        current.event.id === editingEventId || current.event.transactionId === editingEventId;
+      if (matches) close();
+    }, [current, editingEventId, close]);
+
+    if (!lastTarget) return null;
+
+    const { anchor, event } = lastTarget;
     const isOwn = !!currentUserId && event.sender === currentUserId;
     const isEditing =
       editingEventId != null &&
       (event.id === editingEventId || event.transactionId === editingEventId);
 
-    if (isEditing) return null;
-
     return (
       <MessageActionBar
         anchor={anchor}
         isOwn={isOwn}
-        onDismiss={() => {
-          anchor.removeAttribute("data-hovered");
-          setHover(null);
+        open={!!current && !isEditing}
+        onOpenChange={(next) => {
+          if (!next) close();
         }}
         onEdit={isOwn && onEditMessage ? () => onEditMessage(event) : undefined}
         onDelete={isOwn && onDeleteMessage ? () => onDeleteMessage(event) : undefined}
@@ -253,24 +287,22 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<ActionBarHandle>(null);
-  const hoveredAnchorRef = useRef<HTMLElement | null>(null);
 
-  const handlePointerEnter = useCallback((event: TimelineEvent, _: number, el: HTMLElement) => {
+  const handlePointerEnter = useCallback((event: TimelineEvent, _i: number, el: HTMLElement) => {
     if (event.content.type !== "message") return;
-    hoveredAnchorRef.current?.removeAttribute("data-hovered");
-    el.setAttribute("data-hovered", "");
-    hoveredAnchorRef.current = el;
     actionBarRef.current?.show(el, event);
   }, []);
 
   const handlePointerLeave = useCallback((e: React.PointerEvent) => {
     if ("emojiPickerOpen" in document.documentElement.dataset) return;
     const related = e.relatedTarget;
-    if (related instanceof Node) {
+    if (related instanceof Element) {
+      // Pointer moved to the action bar — keep current active so the bar stays open.
       const actionBar = document.querySelector('[data-scope="message-action-bar"]');
       if (actionBar?.contains(related)) return;
+      // Pointer moved to another row — let that row's enter handler set the new active.
+      if (related.closest('[data-scope="message-row"]')) return;
     }
-    hoveredAnchorRef.current = null;
     actionBarRef.current?.hide();
   }, []);
 
@@ -280,8 +312,6 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     const container = containerRef.current;
     if (!container) return;
 
-    hoveredAnchorRef.current?.removeAttribute("data-hovered");
-    hoveredAnchorRef.current = null;
     actionBarRef.current?.hide();
     container.style.pointerEvents = "none";
 
@@ -326,6 +356,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
       )}
       <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />
       {filtered.map((event, i) => {
+        const rowKey = eventKey(event, i);
         const isEditing =
           editingEventId != null &&
           renderEditor != null &&
@@ -333,7 +364,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
 
         return (
           <MessageRow
-            key={event.id ?? `pending-${i}`}
+            key={rowKey}
             event={event}
             grouped={grouping[i]}
             index={i}

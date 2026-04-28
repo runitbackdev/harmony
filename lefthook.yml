@@ -24,7 +24,9 @@ pre-commit:
       run: vp check --no-fmt
 
     - name: typos
-      exclude: "*.woff2"
+      exclude:
+        - "*.woff2"
+        - "*.css"
       run: typos {staged_files}
 
 commit-msg:

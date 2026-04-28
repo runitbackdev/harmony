@@ -136,48 +136,50 @@ function RouteComponent() {
       </Sidebar>
 
       <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Create a Channel</Dialog.Title>
-            <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
+        <Dialog.Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Title>Create a Channel</Dialog.Title>
+              <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                void form.handleSubmit();
-              }}
-              className="mt-4 space-y-4"
-            >
-              <form.Field name="name">
-                {(field) => (
-                  <TextField
-                    label="Name"
-                    type="text"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    error={field.state.meta.errors[0]?.message}
-                    autoFocus
-                  />
-                )}
-              </form.Field>
-
-              <button
-                className="btn preset-filled-primary-500 w-full"
-                type="submit"
-                disabled={form.state.isSubmitting}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void form.handleSubmit();
+                }}
+                className="mt-4 space-y-4"
               >
-                {form.state.isSubmitting ? "Creating…" : "Create"}
-              </button>
-            </form>
+                <form.Field name="name">
+                  {(field) => (
+                    <TextField
+                      label="Name"
+                      type="text"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      error={field.state.meta.errors[0]?.message}
+                      autoFocus
+                    />
+                  )}
+                </form.Field>
 
-            <Dialog.CloseTrigger>
-              <X size={16} />
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+                <button
+                  className="btn preset-filled-primary-500 w-full"
+                  type="submit"
+                  disabled={form.state.isSubmitting}
+                >
+                  {form.state.isSubmitting ? "Creating…" : "Create"}
+                </button>
+              </form>
+
+              <Dialog.CloseTrigger>
+                <X size={16} />
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Dialog.Portal>
       </Dialog>
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
@@ -216,43 +218,45 @@ function InviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <Dialog.Backdrop />
-      <Dialog.Positioner>
-        <Dialog.Content>
-          <Dialog.Title>Invite People</Dialog.Title>
-          <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
+      <Dialog.Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Title>Invite People</Dialog.Title>
+            <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
 
-          <div className="mt-4">
-            {createInvite.isPending ? (
-              <div className="h-10 animate-pulse rounded bg-surface-200-800" />
-            ) : createInvite.isError ? (
-              <p className="text-error-500 text-sm">Failed to create invite link.</p>
-            ) : inviteUrl ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={inviteUrl}
-                  aria-label="Invite link"
-                  className="input flex-1 truncate bg-surface-200-800 px-3 py-2 text-sm"
-                  onClick={(e) => e.currentTarget.select()}
-                />
-                <button
-                  className="btn preset-filled-primary-500 shrink-0 gap-1.5"
-                  onClick={() => void handleCopy()}
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-            ) : null}
-          </div>
+            <div className="mt-4">
+              {createInvite.isPending ? (
+                <div className="h-10 animate-pulse rounded bg-surface-200-800" />
+              ) : createInvite.isError ? (
+                <p className="text-error-500 text-sm">Failed to create invite link.</p>
+              ) : inviteUrl ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={inviteUrl}
+                    aria-label="Invite link"
+                    className="input flex-1 truncate bg-surface-200-800 px-3 py-2 text-sm"
+                    onClick={(e) => e.currentTarget.select()}
+                  />
+                  <button
+                    className="btn preset-filled-primary-500 shrink-0 gap-1.5"
+                    onClick={() => void handleCopy()}
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
 
-          <Dialog.CloseTrigger>
-            <X size={16} />
-          </Dialog.CloseTrigger>
-        </Dialog.Content>
-      </Dialog.Positioner>
+            <Dialog.CloseTrigger>
+              <X size={16} />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Portal>
     </Dialog>
   );
 }

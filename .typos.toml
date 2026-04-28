@@ -1,2 +1,2 @@
 [files]
-extend-exclude = ["*.woff2"]
+extend-exclude = ["*.woff2", "*.css"]

@@ -57,6 +57,9 @@ importers:
       '@harmony/composer':
         specifier: workspace:*
         version: link:../../packages/composer
+      '@harmony/primitives':
+        specifier: workspace:*
+        version: link:../../packages/primitives
       '@harmony/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -181,6 +184,9 @@ importers:
       '@harmony/highlight':
         specifier: workspace:*
         version: link:../highlight
+      '@harmony/primitives':
+        specifier: workspace:*
+        version: link:../primitives
       '@harmony/protocol':
         specifier: workspace:*
         version: link:../protocol
@@ -347,6 +353,22 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-core@latest
         version: '@voidzero-dev/vite-plus-core@0.1.15(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(typescript@6.0.2)'
 
+  packages/primitives:
+    dependencies:
+      react:
+        specifier: 'catalog:'
+        version: 19.2.4
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.4(react@19.2.4)
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.14)
+
   packages/protocol: {}
 
   packages/react:
@@ -385,6 +407,9 @@ importers:
       '@harmony/composer':
         specifier: workspace:*
         version: link:../composer
+      '@harmony/primitives':
+        specifier: workspace:*
+        version: link:../primitives
       '@harmony/protocol':
         specifier: workspace:*
         version: link:../protocol

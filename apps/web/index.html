@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="en" data-theme="cerberus">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>web</title>
+    <script>
+      (function () {
+        var stored = localStorage.getItem("harmony.theme");
+        var allowed = ["cerberus", "mona", "vox", "astra", "kyoto"];
+        var theme = allowed.indexOf(stored) >= 0 ? stored : "astra";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
