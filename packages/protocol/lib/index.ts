@@ -6,6 +6,7 @@ import type {
   MembersUpdate,
   RoomsCommand,
   RoomsCreated,
+  RoomsGotAll,
   RoomsGotIds,
   RoomsRequest,
   RoomsResponse,
@@ -55,6 +56,7 @@ export type ResponseMap = {
   "h.spaces.join": SpacesJoined;
   "h.rooms.subscribe": RoomsSubscribed;
   "h.rooms.getIds": RoomsGotIds;
+  "h.rooms.getAll": RoomsGotAll;
   "h.rooms.create": RoomsCreated;
   "h.members.get": MembersGot;
   "h.members.subscribe": MembersSubscribed;
@@ -77,10 +79,9 @@ export type CommandMessage =
 export type StreamMap = {
   "h.sync.status": SyncStatus;
   "h.spaces.update": SpacesUpdate;
-  "h.rooms.update": RoomsUpdate;
   "h.members.update": MembersUpdate;
   "h.timeline.update": TimelineUpdate;
-};
+} & Record<`h.space.${string}.rooms.update`, RoomsUpdate>;
 
 export type StreamMessage = StreamMap[keyof StreamMap];
 

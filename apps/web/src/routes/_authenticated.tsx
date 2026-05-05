@@ -1,5 +1,6 @@
 import { getSession, initialize, restoreSession } from "@harmony/react";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useAccountCommands } from "@/auth/commands";
 
 export const Route = createFileRoute("/_authenticated")({
   component: RouteComponent,
@@ -26,5 +27,6 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function RouteComponent() {
+  useAccountCommands();
   return <Outlet />;
 }

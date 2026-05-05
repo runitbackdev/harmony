@@ -261,7 +261,7 @@ pub async fn subscribe_timeline_impl(
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let room = client
         .get_room(&parsed_id)
@@ -289,7 +289,7 @@ pub async fn subscribe_timeline_impl(
 pub async fn paginate_backwards_impl(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -305,7 +305,7 @@ pub async fn send_message_impl(
 ) -> Result<(), HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -331,7 +331,7 @@ pub async fn edit_message_impl(
 ) -> Result<(), HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -364,7 +364,7 @@ pub async fn toggle_reaction_impl(
 ) -> Result<bool, HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -388,7 +388,7 @@ pub async fn redact_message_impl(
 ) -> Result<(), HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -409,7 +409,7 @@ pub async fn redact_message_impl(
 pub async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
     let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
@@ -421,7 +421,7 @@ pub async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
 pub async fn get_timeline_impl(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
     let parsed_id: OwnedRoomId = room_id
         .try_into()
-        .map_err(|_| HarmonyError::InvalidUserId)?;
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
 
     let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
 

@@ -16,14 +16,17 @@
     "@harmony/ui": "workspace:*",
     "@tailwindcss/vite": "^4.2.0",
     "@tanstack/react-form": "^1.28.5",
+    "@tanstack/react-hotkeys": "catalog:",
     "@tanstack/react-query": "^5.95.0",
     "@tanstack/react-router": "^1.167.1",
     "@tanstack/react-router-devtools": "^1.166.8",
+    "fzf": "^0.5.2",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "^4.2.0",
-    "valibot": "^1.2.0"
+    "valibot": "^1.2.0",
+    "valtio": "^2.3.1"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.1",

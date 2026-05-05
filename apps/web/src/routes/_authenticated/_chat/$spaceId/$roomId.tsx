@@ -20,10 +20,12 @@ import { MemberList, MessageList, type MessageListHandle, ReactionDisplay } from
 import { Transition } from "@harmony/primitives";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { ComposerHandle, EditTarget } from "@harmony/composer";
-import { Hash, Users } from "lucide-react";
+import { Bug, Hash, PanelRight, Users } from "lucide-react";
 import type { ReactionGroup, TimelineContent, TimelineEvent } from "@harmony/protocol";
 import { setLastRoom } from "@/lib/last-room";
-import { cycleTheme, useTheme } from "@/lib/theme";
+import { useOmnibarCommands } from "@/omnibar";
+import { recordUsage } from "@/omnibar/store";
+import { useRoomCommands } from "@/rooms/commands";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
@@ -223,7 +225,6 @@ function TimelineView() {
   });
   const [debug, setDebug] = useState(false);
   const [membersOpen, setMembersOpen] = useMembersPanelOpen();
-  const [theme, setTheme] = useTheme();
   const composerRef = useRef<ComposerHandle>(null);
   const messageListRef = useRef<MessageListHandle>(null);
 
@@ -233,7 +234,34 @@ function TimelineView() {
 
   useEffect(() => {
     setLastRoom(spaceId, roomId);
+    recordUsage({ id: roomId, kind: "room" });
   }, [spaceId, roomId]);
+
+  useRoomCommands(spaceId, roomId);
+
+  useOmnibarCommands(
+    [
+      {
+        id: "view.toggle-members",
+        label: membersOpen ? "Hide members panel" : "Show members panel",
+        icon: PanelRight,
+        keywords: ["sidebar", "panel", "list", "toggle", "members"],
+        perform: () => setMembersOpen(!membersOpen),
+      },
+      ...(import.meta.env.DEV
+        ? [
+            {
+              id: "debug.toggle-timeline",
+              label: debug ? "Disable debug view" : "Enable debug view",
+              icon: Bug,
+              keywords: ["enable", "disable", "pretty", "raw", "json", "toggle"],
+              perform: () => setDebug((d) => !d),
+            },
+          ]
+        : []),
+    ],
+    [membersOpen, debug],
+  );
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -261,23 +289,6 @@ function TimelineView() {
         >
           <RoomHeader roomId={roomId} />
           <div className="ml-auto flex items-center gap-3">
-            {import.meta.env.DEV && (
-              <button
-                type="button"
-                onClick={() => setDebug((d) => !d)}
-                className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
-              >
-                {debug ? "pretty" : "debug"}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setTheme(cycleTheme(theme))}
-              aria-label={`Theme: ${theme}. Click to cycle.`}
-              className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
-            >
-              {theme}
-            </button>
             <button
               type="button"
               onClick={() => setMembersOpen(!membersOpen)}

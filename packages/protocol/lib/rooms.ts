@@ -1,5 +1,6 @@
 import type { Command, Request, Response, Stream } from "./base";
 import type { ListDiff } from "./diff";
+import type { SpaceSummary } from "./spaces";
 
 export type RoomSummary = {
   roomId: string;
@@ -9,16 +10,18 @@ export type RoomSummary = {
   mentionCount: number;
 };
 
+export type RoomWithSpaceSummary = {
+  roomId: string;
+  displayName: string;
+  unreadCount: number;
+  mentionCount: number;
+  parentSpace: SpaceSummary | null;
+};
+
 export type MemberSummary = {
   userId: string;
   displayName: string | null;
   avatarUrl: string | null;
-};
-
-export type SpaceFilterSummary = {
-  spaceId: string;
-  level: number;
-  descendants: string[];
 };
 
 export type RoomsSubscribe = Request<"h.rooms.subscribe", { spaceId: string }>;
@@ -28,7 +31,13 @@ export type RoomsUnsubscribe = Command<"h.rooms.unsubscribe", { spaceId: string 
 export type RoomsGetIds = Request<"h.rooms.getIds", { spaceId: string }>;
 export type RoomsGotIds = Response<"h.rooms.gotIds", { roomIds: string[] }>;
 
-export type RoomsUpdate = Stream<"h.rooms.update", { rooms: ListDiff<RoomSummary>[] }>;
+export type RoomsGetAll = Request<"h.rooms.getAll">;
+export type RoomsGotAll = Response<"h.rooms.gotAll", { rooms: RoomWithSpaceSummary[] }>;
+
+export type RoomsUpdate = Stream<
+  `h.space.${string}.rooms.update`,
+  { rooms: ListDiff<RoomSummary>[] }
+>;
 
 export type ChannelVisibility = "public" | "private";
 
@@ -53,12 +62,14 @@ export type MembersUpdate = Stream<
 export type RoomsRequest =
   | RoomsSubscribe
   | RoomsGetIds
+  | RoomsGetAll
   | RoomsCreate
   | MembersGet
   | MembersSubscribe;
 export type RoomsResponse =
   | RoomsSubscribed
   | RoomsGotIds
+  | RoomsGotAll
   | RoomsCreated
   | MembersGot
   | MembersSubscribed;

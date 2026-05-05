@@ -3,6 +3,7 @@ import type {
   MembersGot,
   MembersSubscribed,
   RoomsCreated,
+  RoomsGotAll,
   RoomsGotIds,
   RoomsSubscribed,
 } from "@harmony/protocol";
@@ -12,6 +13,7 @@ export type RoomsApi = {
   subscribe: (spaceId: string) => Promise<RoomsSubscribed>;
   unsubscribe: (spaceId: string) => void;
   getIds: (spaceId: string) => Promise<RoomsGotIds>;
+  getAll: () => Promise<RoomsGotAll>;
   create: (spaceId: string, name: string, visibility: ChannelVisibility) => Promise<RoomsCreated>;
   getMembers: (roomId: string) => Promise<MembersGot>;
   subscribeMembers: (roomId: string) => Promise<MembersSubscribed>;
@@ -30,6 +32,10 @@ export function createRoomsApi(connection: WorkerConnection): RoomsApi {
 
     async getIds(spaceId: string) {
       return connection.request("h.rooms.getIds", { spaceId });
+    },
+
+    async getAll() {
+      return connection.request("h.rooms.getAll", {});
     },
 
     async create(spaceId: string, name: string, visibility: ChannelVisibility) {

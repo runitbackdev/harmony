@@ -5,6 +5,7 @@ export { useInvite, useCreateInvite, useRedeemInvite, useRevokeInvite } from "./
 export { useSyncStatus } from "./sync";
 export {
   createRoom,
+  getAllRooms,
   getMembers,
   getRoomIdsInSpace,
   subscribeMembers,

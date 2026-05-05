@@ -1,26 +1,62 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 
 use futures_util::StreamExt;
 use matrix_sdk::RoomMemberships;
+use matrix_sdk::executor::{AbortOnDrop, JoinHandleExt, spawn};
 use matrix_sdk::ruma::{OwnedRoomId, RoomId};
-use matrix_sdk_ui::room_list_service::filters::new_filter_identifiers;
-use matrix_sdk_ui::room_list_service::{RoomList, RoomListDynamicEntriesController, RoomListItem};
+use matrix_sdk_ui::eyeball_im::Vector;
+use matrix_sdk_ui::room_list_service::filters::{new_filter_all, new_filter_identifiers};
+use matrix_sdk_ui::room_list_service::{RoomList, RoomListItem, RoomListLoadingState};
+use matrix_sdk_ui::spaces::SpaceFilter;
 use serde::{Deserialize, Serialize};
 use tokio_stream::wrappers::BroadcastStream;
 use tsify_next::Tsify;
+use wasm_bindgen::JsValue;
 
 use crate::{
     client,
     diff::{ListDiff, convert_diffs},
     errors::HarmonyError,
+    spaces,
     subscription::Subscription,
     sync,
 };
 
-type ControllerCell = RefCell<Option<RoomListDynamicEntriesController>>;
+struct RoomSubscription {
+    _watcher: AbortOnDrop<()>,
+}
 
 thread_local! {
-    static CONTROLLER: ControllerCell = const { RefCell::new(None) };
+    static SUBSCRIPTIONS: RefCell<HashMap<u32, RoomSubscription>> =
+        RefCell::new(HashMap::new());
+    static NEXT_SUBSCRIPTION_ID: Cell<u32> = const { Cell::new(0) };
+    static ROOM_LIST: RefCell<Option<&'static RoomList>> = const { RefCell::new(None) };
+}
+
+async fn ensure_room_list() -> Result<&'static RoomList, HarmonyError> {
+    if let Some(rl) = ROOM_LIST.with(|cell| *cell.borrow()) {
+        return Ok(rl);
+    }
+    let rls = sync::get_room_list_service().ok_or(HarmonyError::ClientNotReady)?;
+    let room_list = rls
+        .all_rooms()
+        .await
+        .map_err(|err| HarmonyError::Sync(err.to_string()))?;
+    if let Some(rl) = ROOM_LIST.with(|cell| *cell.borrow()) {
+        return Ok(rl);
+    }
+    let leaked: &'static RoomList = Box::leak(Box::new(room_list));
+    ROOM_LIST.with(|cell| *cell.borrow_mut() = Some(leaked));
+    Ok(leaked)
+}
+
+fn allocate_subscription_id() -> u32 {
+    NEXT_SUBSCRIPTION_ID.with(|c| {
+        let v = c.get();
+        c.set(v.wrapping_add(1));
+        v
+    })
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -47,43 +83,158 @@ fn convert_room_list_item(item: &RoomListItem) -> RoomData {
     }
 }
 
-pub async fn subscribe_room_list_impl() -> Result<web_sys::ReadableStream, HarmonyError> {
-    let rls = sync::get_room_list_service().ok_or(HarmonyError::ClientNotReady)?;
-    let room_list = rls
-        .all_rooms()
-        .await
-        .map_err(|err| HarmonyError::Sync(err.to_string()))?;
+fn descendants_for(filters: &Vector<SpaceFilter>, space_id: &RoomId) -> Vec<OwnedRoomId> {
+    filters
+        .iter()
+        .find(|f| f.space_room.room_id == *space_id)
+        .map(|f| f.descendants.clone())
+        .unwrap_or_default()
+}
 
-    // Leak the RoomList so the entries stream (which borrows it) can be 'static.
-    // This is fine — we only subscribe once for the app's lifetime.
-    let room_list: &'static RoomList = Box::leak(Box::new(room_list));
+pub async fn subscribe_rooms_in_space_impl(space_id: String) -> Result<JsValue, JsValue> {
+    let space_id: OwnedRoomId = space_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
+
+    let room_list = ensure_room_list().await?;
+    let space_service = spaces::get_service().await?;
+
+    let (initial_filters, mut diff_stream) = space_service.subscribe_to_space_filters().await;
+    let mut filters: Vector<SpaceFilter> = initial_filters;
 
     let (entries, controller) = room_list.entries_with_dynamic_adapters(100);
-    CONTROLLER.with(|cell| *cell.borrow_mut() = Some(controller));
+
+    let mut last_descendants = descendants_for(&filters, &space_id);
+    controller.set_filter(Box::new(new_filter_identifiers(last_descendants.clone())));
+
+    let watcher = spawn(async move {
+        while let Some(batch) = diff_stream.next().await {
+            for d in batch {
+                d.apply(&mut filters);
+            }
+            let next = descendants_for(&filters, &space_id);
+            if next != last_descendants {
+                last_descendants.clone_from(&next);
+                controller.set_filter(Box::new(new_filter_identifiers(next)));
+            }
+        }
+    });
+
+    let id = allocate_subscription_id();
+    SUBSCRIPTIONS.with(|s| {
+        s.borrow_mut().insert(
+            id,
+            RoomSubscription {
+                _watcher: watcher.abort_on_drop(),
+            },
+        );
+    });
 
     let updates = entries.map(|diffs| {
         let list_diffs = convert_diffs(diffs, convert_room_list_item);
-        serde_wasm_bindgen::to_value(&list_diffs)
-            .map_err(|err| wasm_bindgen::JsValue::from_str(&err.to_string()))
+        serde_wasm_bindgen::to_value(&list_diffs).map_err(|e| JsValue::from_str(&e.to_string()))
     });
-
     let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
-    Ok(stream)
+
+    let arr = js_sys::Array::new();
+    arr.push(&JsValue::from(id));
+    arr.push(&stream);
+    Ok(arr.into())
 }
 
-pub fn set_room_filter_impl(room_ids: Vec<String>) -> Result<(), HarmonyError> {
-    CONTROLLER.with(|cell| {
-        let controller = cell.borrow();
-        let controller = controller.as_ref().ok_or(HarmonyError::ClientNotReady)?;
+pub fn unsubscribe_rooms_in_space_impl(id: u32) {
+    SUBSCRIPTIONS.with(|s| {
+        s.borrow_mut().remove(&id);
+    });
+}
 
-        let owned_ids: Vec<OwnedRoomId> = room_ids
-            .into_iter()
-            .filter_map(|id| id.try_into().ok())
-            .collect();
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct RoomDataWithSpace {
+    pub room_id: String,
+    pub display_name: String,
+    pub unread_count: u64,
+    pub mention_count: u64,
+    pub parent_space: Option<spaces::SpaceData>,
+}
 
-        controller.set_filter(Box::new(new_filter_identifiers(owned_ids)));
-        Ok(())
-    })
+pub async fn get_all_rooms_impl() -> Result<Vec<RoomDataWithSpace>, HarmonyError> {
+    let room_list = ensure_room_list().await?;
+    let space_service = spaces::get_service().await?;
+
+    let (filters, _stream) = space_service.subscribe_to_space_filters().await;
+    let parents: HashMap<OwnedRoomId, spaces::SpaceData> = filters
+        .iter()
+        .filter(|f| f.level == 0)
+        .flat_map(|f| {
+            let parent = spaces::SpaceData {
+                room_id: f.space_room.room_id.to_string(),
+                display_name: f.space_room.display_name.clone(),
+                avatar_url: f.space_room.avatar_url.as_ref().map(ToString::to_string),
+            };
+            f.descendants
+                .iter()
+                .map(move |d| (d.clone(), parent.clone()))
+        })
+        .collect();
+
+    let mut loading = room_list.loading_state();
+    let max_rooms = loop {
+        match loading.get() {
+            RoomListLoadingState::Loaded {
+                maximum_number_of_rooms,
+            } => {
+                break maximum_number_of_rooms;
+            }
+            RoomListLoadingState::NotLoaded => {
+                if loading.next().await.is_none() {
+                    return Err(HarmonyError::Sync(
+                        "Room list loading stream ended unexpectedly".to_string(),
+                    ));
+                }
+            }
+        }
+    };
+    let page_size = max_rooms.map_or(1000, |n| n as usize).max(1);
+
+    let (entries, controller) = room_list.entries_with_dynamic_adapters(page_size);
+    let mut entries = std::pin::pin!(entries);
+    controller.set_filter(Box::new(new_filter_all(vec![])));
+
+    // Drain initial batches until the buffer holds every room the room list
+    // claims (`max_rooms`). The dynamic adapter may emit the initial state in
+    // one Reset or as several Append batches; reading only the first risks
+    // returning a partial list.
+    let target = max_rooms.unwrap_or(0) as usize;
+    let mut buffer: Vector<RoomListItem> = Vector::new();
+    if let Some(initial) = entries.next().await {
+        for diff in initial {
+            diff.apply(&mut buffer);
+        }
+    }
+    while target > 0 && buffer.len() < target {
+        let Some(batch) = entries.next().await else {
+            break;
+        };
+        for diff in batch {
+            diff.apply(&mut buffer);
+        }
+    }
+
+    Ok(buffer
+        .iter()
+        .map(|item| RoomDataWithSpace {
+            room_id: item.room_id().to_string(),
+            display_name: item
+                .cached_display_name()
+                .map(|n| n.to_string())
+                .unwrap_or_default(),
+            unread_count: item.num_unread_messages(),
+            mention_count: item.num_unread_mentions(),
+            parent_space: parents.get(item.room_id()).cloned(),
+        })
+        .collect())
 }
 
 #[derive(Tsify, Serialize)]
@@ -109,7 +260,7 @@ async fn fetch_joined_members(room: &matrix_sdk::Room) -> Result<Vec<MemberData>
 
 pub async fn get_room_members_impl(room_id: &str) -> Result<Vec<MemberData>, HarmonyError> {
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
-    let room_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
+    let room_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::InvalidRoomId)?;
     let room = client.get_room(room_id).ok_or(HarmonyError::RoomNotFound)?;
     fetch_joined_members(&room).await
 }
@@ -118,7 +269,7 @@ pub async fn subscribe_room_members_impl(
     room_id: &str,
 ) -> Result<Subscription<MemberData>, HarmonyError> {
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
-    let parsed_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::RoomNotFound)?;
+    let parsed_id = <&RoomId>::try_from(room_id).map_err(|_| HarmonyError::InvalidRoomId)?;
     let room = client
         .get_room(parsed_id)
         .ok_or(HarmonyError::RoomNotFound)?;

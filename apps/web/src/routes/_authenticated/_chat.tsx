@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { Dialog, MxAvatar, Rail, TextField } from "@harmony/ui";
-import { Home, ImagePlus, Plus, X } from "lucide-react";
+import { AtSign, Boxes, ChevronDown, ChevronUp, Home, ImagePlus, Plus, X } from "lucide-react";
 import { createSpace, subscribeSpaces, useSpaces } from "@harmony/react";
 import * as v from "valibot";
+import { useOmnibarCommands } from "@/omnibar";
+import { jumpToRoom } from "@/rooms/navigation";
 
 export const Route = createFileRoute("/_authenticated/_chat")({
   loader: async () => {
@@ -74,8 +76,44 @@ const createSpaceSchema = v.object({
 function RouteComponent() {
   const spaces = useSpaces();
   const navigate = useNavigate();
-  const { spaceId } = useParams({ strict: false });
+  const { spaceId, roomId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
+
+  useOmnibarCommands(
+    [
+      {
+        id: "comm.create-space",
+        label: "Create new space…",
+        icon: Boxes,
+        keywords: ["new", "server", "community"],
+        defaultScore: 0.6,
+        perform: () => setCreateOpen(true),
+      },
+      {
+        id: "nav.unread-next",
+        label: "Jump to next unread room",
+        icon: ChevronDown,
+        defaultScore: 0.7,
+        perform: () =>
+          void jumpToRoom(navigate, roomId, (r) => r.unreadCount > 0, "next", "No unread rooms"),
+      },
+      {
+        id: "nav.unread-prev",
+        label: "Jump to previous unread room",
+        icon: ChevronUp,
+        perform: () =>
+          void jumpToRoom(navigate, roomId, (r) => r.unreadCount > 0, "prev", "No unread rooms"),
+      },
+      {
+        id: "nav.mention-next",
+        label: "Jump to next mention",
+        icon: AtSign,
+        perform: () =>
+          void jumpToRoom(navigate, roomId, (r) => r.mentionCount > 0, "next", "No mentions"),
+      },
+    ],
+    [roomId],
+  );
 
   const form = useForm({
     defaultValues: { name: "", avatar: null as File | null },
@@ -116,7 +154,7 @@ function RouteComponent() {
                   mxc={space.avatarUrl}
                   name={space.displayName}
                   size={96}
-                  className="size-full !rounded-[inherit] text-xs font-semibold"
+                  className="size-full rounded-[inherit]! text-xs font-semibold"
                 />
               </Rail.Item>
             ))}

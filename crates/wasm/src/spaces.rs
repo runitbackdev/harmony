@@ -51,30 +51,13 @@ pub enum ChannelVisibility {
     Private,
 }
 
-#[derive(Tsify, Serialize, Deserialize)]
+#[derive(Clone, Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SpaceData {
     pub room_id: String,
     pub display_name: String,
     pub avatar_url: Option<String>,
-}
-
-#[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi)]
-#[serde(rename_all = "camelCase")]
-pub struct SpaceFilterData {
-    pub space_id: String,
-    pub level: u8,
-    pub descendants: Vec<String>,
-}
-
-fn convert_space_filter(filter: &matrix_sdk_ui::spaces::SpaceFilter) -> SpaceFilterData {
-    SpaceFilterData {
-        space_id: filter.space_room.room_id.to_string(),
-        level: filter.level,
-        descendants: filter.descendants.iter().map(ToString::to_string).collect(),
-    }
 }
 
 fn convert_space(space: &matrix_sdk_ui::spaces::SpaceRoom) -> SpaceData {
@@ -109,15 +92,21 @@ pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
     Ok(spaces)
 }
 
-pub async fn subscribe_space_filters_impl() -> Result<Subscription<SpaceFilterData>, HarmonyError> {
+pub async fn get_space_descendants_impl(space_id: String) -> Result<Vec<String>, HarmonyError> {
+    let parsed: matrix_sdk::ruma::OwnedRoomId = space_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
     let service = get_service().await?;
 
-    let (initial_values, incoming) = service.subscribe_to_space_filters().await;
-    let initial = initial_values.iter().map(convert_space_filter).collect();
-    let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_space_filter));
-    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
+    let descendants = service
+        .space_filters()
+        .await
+        .into_iter()
+        .find(|f| f.space_room.room_id == parsed)
+        .map(|f| f.descendants.iter().map(ToString::to_string).collect())
+        .unwrap_or_default();
 
-    Ok(Subscription { initial, stream })
+    Ok(descendants)
 }
 
 fn join_rules_for_space(

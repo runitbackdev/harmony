@@ -3,8 +3,10 @@ import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react
 import { useForm } from "@tanstack/react-form";
 import { Dialog, Sidebar, TextField } from "@harmony/ui";
 import { createRoom, subscribeRooms, useCreateInvite, useRooms, useSpaces } from "@harmony/react";
-import { Check, Copy, Hash, Link, Plus, X } from "lucide-react";
+import { Check, Copy, Hash, Link, Plus, UserPlus, X } from "lucide-react";
 import * as v from "valibot";
+import { useOmnibarCommands } from "@/omnibar";
+import { useSpaceCommands } from "@/spaces/commands";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId")({
   loader: async ({ params }) => {
@@ -92,6 +94,31 @@ function RouteComponent() {
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const createInvite = useCreateInvite();
+
+  useSpaceCommands(spaceId!);
+
+  useOmnibarCommands(
+    [
+      {
+        id: "space.create-channel",
+        label: "Create channel in this space",
+        icon: Plus,
+        keywords: ["new", "room"],
+        perform: () => setCreateOpen(true),
+      },
+      {
+        id: "space.invite",
+        label: "Invite people to this space",
+        icon: UserPlus,
+        keywords: ["share", "members"],
+        perform: () => {
+          setInviteOpen(true);
+          if (!createInvite.data) createInvite.mutate({ spaceMxid: spaceId! });
+        },
+      },
+    ],
+    [spaceId, createInvite.data],
+  );
 
   const form = useForm({
     defaultValues: { name: "" },

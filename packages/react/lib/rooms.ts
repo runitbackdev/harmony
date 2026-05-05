@@ -1,10 +1,15 @@
 import { harmony } from "@harmony/core";
-import { applyListDiff, type MemberSummary, type RoomSummary } from "@harmony/protocol";
+import {
+  applyListDiff,
+  type MemberSummary,
+  type RoomSummary,
+  type RoomWithSpaceSummary,
+} from "@harmony/protocol";
 import { createKeyedSubscription } from "./subscription";
 
 const rooms = createKeyedSubscription<string, RoomSummary>((spaceId, items) =>
   harmony.rooms.subscribe(spaceId).then(() => {
-    const unsub = harmony.on("h.rooms.update", ({ rooms: diffs }) => {
+    const unsub = harmony.on(`h.space.${spaceId}.rooms.update`, ({ rooms: diffs }) => {
       for (const diff of diffs) applyListDiff(items, diff);
     });
 
@@ -24,6 +29,11 @@ export const subscribeRooms = rooms.start;
 export async function getRoomIdsInSpace(spaceId: string): Promise<string[]> {
   const { roomIds } = await harmony.rooms.getIds(spaceId);
   return roomIds;
+}
+
+export async function getAllRooms(): Promise<RoomWithSpaceSummary[]> {
+  const { rooms } = await harmony.rooms.getAll();
+  return rooms;
 }
 
 const members = createKeyedSubscription<string, MemberSummary>((roomId, items) =>
