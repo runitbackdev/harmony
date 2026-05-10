@@ -17,6 +17,9 @@ dev:
   @test -d packages/wasm || just build-wasm-dev
   overmind start -f Procfile.dev
 
+web:
+  VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
+
 build: build-wasm build-web
 
 build-wasm-dev:
