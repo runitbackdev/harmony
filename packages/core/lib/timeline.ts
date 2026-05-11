@@ -1,9 +1,12 @@
 import type {
+  PaginationDirection,
   TimelineEdited,
+  TimelineFocusedOnEvent,
   TimelineMarkedAsRead,
   TimelinePaginated,
   TimelineReactionToggled,
   TimelineRedacted,
+  TimelineReturnedToLive,
   TimelineSent,
   TimelineSubscribed,
 } from "@harmony/protocol";
@@ -17,7 +20,18 @@ export type EditTarget = {
 export type TimelineApi = {
   subscribe: (roomId: string) => Promise<TimelineSubscribed>;
   unsubscribe: (roomId: string) => void;
-  send: (roomId: string, body: string, formattedBody?: string) => Promise<TimelineSent>;
+  focusOnEvent: (
+    roomId: string,
+    targetEventId: string,
+    numContextEvents?: number,
+  ) => Promise<TimelineFocusedOnEvent>;
+  returnToLive: (roomId: string) => Promise<TimelineReturnedToLive>;
+  send: (
+    roomId: string,
+    body: string,
+    formattedBody?: string,
+    replyToEventId?: string,
+  ) => Promise<TimelineSent>;
   edit: (
     roomId: string,
     target: EditTarget,
@@ -30,7 +44,11 @@ export type TimelineApi = {
     key: string,
   ) => Promise<TimelineReactionToggled>;
   redact: (roomId: string, target: EditTarget) => Promise<TimelineRedacted>;
-  paginate: (roomId: string, count: number) => Promise<TimelinePaginated>;
+  paginate: (
+    roomId: string,
+    direction: PaginationDirection,
+    count: number,
+  ) => Promise<TimelinePaginated>;
   markAsRead: (roomId: string) => Promise<TimelineMarkedAsRead>;
 };
 
@@ -44,8 +62,25 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
       connection.command("h.timeline.unsubscribe", { roomId });
     },
 
-    async send(roomId: string, body: string, formattedBody?: string) {
-      return connection.request("h.timeline.send", { roomId, body, formattedBody });
+    async focusOnEvent(roomId: string, targetEventId: string, numContextEvents?: number) {
+      return connection.request("h.timeline.focusOnEvent", {
+        roomId,
+        targetEventId,
+        numContextEvents,
+      });
+    },
+
+    async returnToLive(roomId: string) {
+      return connection.request("h.timeline.returnToLive", { roomId });
+    },
+
+    async send(roomId: string, body: string, formattedBody?: string, replyToEventId?: string) {
+      return connection.request("h.timeline.send", {
+        roomId,
+        body,
+        formattedBody,
+        replyToEventId,
+      });
     },
 
     async edit(roomId: string, target: EditTarget, body: string, formattedBody?: string) {
@@ -60,8 +95,8 @@ export function createTimelineApi(connection: WorkerConnection): TimelineApi {
       return connection.request("h.timeline.redact", { roomId, ...target });
     },
 
-    async paginate(roomId: string, count: number) {
-      return connection.request("h.timeline.paginate", { roomId, count });
+    async paginate(roomId: string, direction: PaginationDirection, count: number) {
+      return connection.request("h.timeline.paginate", { roomId, direction, count });
     },
 
     async markAsRead(roomId: string) {

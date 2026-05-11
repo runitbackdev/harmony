@@ -33,6 +33,7 @@
     "emojibase": "^17.0.0",
     "emojibase-data": "^17.0.0",
     "linkify-it": "^5.0.0",
+    "lucide-react": "catalog:",
     "marked": "^17.0.5",
     "turndown": "^7.2.2"
   },

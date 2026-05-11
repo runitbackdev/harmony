@@ -97,7 +97,7 @@ function RouteComponent() {
       <CreateRoomDialog spaceId={spaceId!} open={createOpen} onOpenChange={setCreateOpen} />
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
 
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-h-0 min-w-0">
         {!roomId ? (
           <div className="flex flex-1 flex-col">
             <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2 md:hidden">

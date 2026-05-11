@@ -1,5 +1,10 @@
 import { harmony } from "@harmony/core";
-import { applyListDiff, type ListDiff, type TimelineEvent } from "@harmony/protocol";
+import {
+  applyListDiff,
+  type ListDiff,
+  type PaginationDirection,
+  type TimelineEvent,
+} from "@harmony/protocol";
 import { createKeyedSubscription } from "./subscription";
 import { seedReactions, updateReactions, clearReactions } from "./reactions";
 
@@ -47,33 +52,55 @@ function processAndApply(items: TimelineEvent[], diff: ListDiff<TimelineEvent>) 
   applyListDiff(items, diff);
 }
 
-const timeline = createKeyedSubscription<string, TimelineEvent>((roomId, items) =>
-  harmony.timeline.subscribe(roomId).then(({ events: initial }) => {
-    seedReactions(initial);
-    for (let i = 0; i < initial.length; i++) initial[i] = stripReactions(initial[i]);
+const generationByRoom = new Map<string, number>();
 
-    const unsub = harmony.on("h.timeline.update", ({ roomId: rid, events: diffs }) => {
-      if (rid !== roomId) return;
-      for (const diff of diffs) processAndApply(items, diff);
-    });
+function applySnapshot(roomId: string, events: TimelineEvent[], generation: number) {
+  generationByRoom.set(roomId, generation);
+  clearReactions();
+  seedReactions(events);
+  const stripped = events.map(stripReactions);
+  timeline.replace(roomId, stripped);
+}
 
-    return {
-      initial,
-      cleanup: () => {
-        unsub();
-        clearReactions();
-        harmony.timeline.unsubscribe(roomId);
-      },
-    };
-  }),
-);
+const timeline = createKeyedSubscription<string, TimelineEvent>(async (roomId, items) => {
+  const { events, generation } = await harmony.timeline.subscribe(roomId);
+  generationByRoom.set(roomId, generation);
+  seedReactions(events);
+  const stripped = events.map(stripReactions);
+
+  const unsub = harmony.on("h.timeline.update", ({ roomId: rid, message }) => {
+    if (rid !== roomId) return;
+    if (message.kind === "error") {
+      console.error(`[timeline] stream error for ${roomId}:`, message.message);
+      return;
+    }
+    const expected = generationByRoom.get(roomId);
+    if (expected !== undefined && message.generation !== expected) return;
+    for (const diff of message.diffs) processAndApply(items, diff);
+  });
+
+  return {
+    initial: stripped,
+    cleanup: () => {
+      unsub();
+      clearReactions();
+      generationByRoom.delete(roomId);
+      harmony.timeline.unsubscribe(roomId);
+    },
+  };
+});
 
 export const useTimeline = timeline.useValue;
 export const subscribeTimeline = timeline.start;
 export const unsubscribeTimeline = timeline.stop;
 
-export async function sendMessage(roomId: string, body: string, formattedBody?: string) {
-  await harmony.timeline.send(roomId, body, formattedBody);
+export async function sendMessage(
+  roomId: string,
+  body: string,
+  formattedBody?: string,
+  replyToEventId?: string,
+) {
+  await harmony.timeline.send(roomId, body, formattedBody, replyToEventId);
 }
 
 export type { EditTarget } from "@harmony/core";
@@ -103,9 +130,32 @@ export async function redactMessage(
   await harmony.timeline.redact(roomId, target);
 }
 
-export async function paginateTimeline(roomId: string, count = 50) {
-  const result = await harmony.timeline.paginate(roomId, count);
-  return result.hitStart;
+export async function paginateTimeline(
+  roomId: string,
+  direction: PaginationDirection = "backward",
+  count = 50,
+) {
+  const result = await harmony.timeline.paginate(roomId, direction, count);
+  if (result.events && result.generation !== undefined) {
+    applySnapshot(roomId, result.events, result.generation);
+  }
+  return result;
+}
+
+export async function focusOnEvent(
+  roomId: string,
+  targetEventId: string,
+  numContextEvents?: number,
+) {
+  const result = await harmony.timeline.focusOnEvent(roomId, targetEventId, numContextEvents);
+  applySnapshot(roomId, result.events, result.generation);
+  return result;
+}
+
+export async function returnToLive(roomId: string) {
+  const result = await harmony.timeline.returnToLive(roomId);
+  applySnapshot(roomId, result.events, result.generation);
+  return result;
 }
 
 export async function markAsRead(roomId: string) {

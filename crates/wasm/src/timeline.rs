@@ -3,24 +3,155 @@ use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use futures_util::StreamExt;
+use futures_channel::{mpsc, oneshot};
+use futures_util::{FutureExt, StreamExt};
 use matrix_sdk::room::edit::EditedContent;
 use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
 use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
-use matrix_sdk::ruma::{OwnedRoomId, OwnedTransactionId, OwnedUserId};
+use matrix_sdk::ruma::{OwnedEventId, OwnedRoomId, OwnedTransactionId, OwnedUserId};
 use matrix_sdk_ui::timeline::{
-    EventSendState, MembershipChange, ReactionStatus, TimelineDetails, TimelineEventItemId,
-    TimelineItem, TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
+    EmbeddedEvent, EventSendState, MembershipChange, ReactionStatus, TimelineDetails,
+    TimelineEventFocusThreadMode, TimelineEventItemId, TimelineFocus, TimelineItem,
+    TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tsify_next::Tsify;
+use wasm_bindgen::JsValue;
 
-use crate::{client, diff::serialize_diffs, errors::HarmonyError, subscription::Subscription};
+use crate::{
+    client,
+    diff::{ListDiff, convert_diffs},
+    errors::HarmonyError,
+};
+
+const DEFAULT_FOCUS_CONTEXT_EVENTS: u16 = 50;
+
+#[derive(Tsify, Serialize, Clone, Copy, Debug)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "lowercase")]
+pub enum TimelineMode {
+    Live,
+    Detached,
+}
+
+#[derive(Tsify, Deserialize, Clone, Copy, Debug)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "lowercase")]
+pub enum PaginationDirection {
+    Forward,
+    Backward,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum TimelineStreamMessage {
+    #[serde(rename_all = "camelCase")]
+    Diffs {
+        generation: u32,
+        diffs: Vec<ListDiff<TimelineEventData>>,
+    },
+    Error {
+        message: String,
+    },
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginateResult {
+    pub exhausted: bool,
+    pub mode: TimelineMode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub events: Option<Vec<TimelineEventData>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generation: Option<u32>,
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ModeSwapResult {
+    pub events: Vec<TimelineEventData>,
+    pub mode: TimelineMode,
+    pub generation: u32,
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct RoomStateSnapshot {
+    pub events: Vec<TimelineEventData>,
+    pub mode: TimelineMode,
+    pub generation: u32,
+}
+
+pub struct SubscribeResult {
+    pub events: Vec<TimelineEventData>,
+    pub mode: TimelineMode,
+    pub generation: u32,
+    pub stream: web_sys::ReadableStream,
+}
+
+impl TryFrom<SubscribeResult> for JsValue {
+    type Error = Self;
+
+    fn try_from(result: SubscribeResult) -> Result<Self, Self::Error> {
+        let snapshot = RoomStateSnapshot {
+            events: result.events,
+            mode: result.mode,
+            generation: result.generation,
+        };
+        let snapshot_value =
+            serde_wasm_bindgen::to_value(&snapshot).map_err(|e| Self::from_str(&e.to_string()))?;
+        let array = js_sys::Array::new();
+        array.push(&snapshot_value);
+        array.push(&result.stream);
+        Ok(array.into())
+    }
+}
+
+struct RoomState {
+    live: Rc<matrix_sdk_ui::timeline::Timeline>,
+    detached: Option<Rc<matrix_sdk_ui::timeline::Timeline>>,
+    mode: TimelineMode,
+    generation: u32,
+    output_tx: mpsc::UnboundedSender<JsValue>,
+    cancel_active: Option<oneshot::Sender<()>>,
+}
 
 thread_local! {
-    static TIMELINES: RefCell<HashMap<OwnedRoomId, Rc<matrix_sdk_ui::timeline::Timeline>>> =
-        RefCell::new(HashMap::new());
+    static ROOMS: RefCell<HashMap<OwnedRoomId, RoomState>> = RefCell::new(HashMap::new());
+}
+
+fn current_timeline(state: &RoomState) -> Rc<matrix_sdk_ui::timeline::Timeline> {
+    match state.mode {
+        TimelineMode::Live => state.live.clone(),
+        TimelineMode::Detached => state.detached.clone().unwrap_or_else(|| state.live.clone()),
+    }
+}
+
+fn with_room<F, R>(room_id: &str, f: F) -> Result<R, HarmonyError>
+where
+    F: FnOnce(&mut RoomState) -> Result<R, HarmonyError>,
+{
+    let parsed: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
+    ROOMS.with(|rooms| {
+        let mut rooms = rooms.borrow_mut();
+        let state = rooms.get_mut(&parsed).ok_or(HarmonyError::RoomNotFound)?;
+        f(state)
+    })
+}
+
+fn live_for_room(room_id: &str) -> Result<Rc<matrix_sdk_ui::timeline::Timeline>, HarmonyError> {
+    let parsed: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
+    ROOMS
+        .with(|rooms| rooms.borrow().get(&parsed).map(|s| s.live.clone()))
+        .ok_or(HarmonyError::RoomNotFound)
 }
 
 #[derive(Tsify, Serialize)]
@@ -49,6 +180,17 @@ pub struct ReactionGroup {
 #[derive(Tsify, Serialize)]
 #[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
+pub struct ReplyTarget {
+    pub event_id: String,
+    pub sender: Option<String>,
+    pub sender_name: Option<String>,
+    pub body: Option<String>,
+    pub redacted: bool,
+}
+
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
+#[serde(rename_all = "camelCase")]
 pub struct TimelineEventData {
     pub id: Option<String>,
     pub transaction_id: Option<String>,
@@ -59,6 +201,7 @@ pub struct TimelineEventData {
     pub content: TimelineContent,
     pub send_state: Option<SendState>,
     pub reactions: Option<Vec<ReactionGroup>>,
+    pub reply_to: Option<ReplyTarget>,
 }
 
 #[derive(Tsify, Serialize)]
@@ -107,6 +250,42 @@ pub enum TimelineContent {
     Unknown {},
 }
 
+fn extract_reply_target(content: &TimelineItemContent) -> Option<ReplyTarget> {
+    let details = content.in_reply_to()?;
+    let event_id = details.event_id.to_string();
+
+    match details.event {
+        TimelineDetails::Ready(boxed) => {
+            let embedded: EmbeddedEvent = *boxed;
+            let sender = Some(embedded.sender.to_string());
+            let sender_name = match &embedded.sender_profile {
+                TimelineDetails::Ready(profile) => profile.display_name.clone(),
+                _ => None,
+            };
+            let msglike = embedded.content.as_msglike();
+            let body = msglike
+                .and_then(matrix_sdk_ui::timeline::MsgLikeContent::as_message)
+                .map(|msg| msg.body().to_owned());
+            let redacted = msglike
+                .is_some_and(|m| matches!(m.kind, matrix_sdk_ui::timeline::MsgLikeKind::Redacted));
+            Some(ReplyTarget {
+                event_id,
+                sender,
+                sender_name,
+                body,
+                redacted,
+            })
+        }
+        _ => Some(ReplyTarget {
+            event_id,
+            sender: None,
+            sender_name: None,
+            body: None,
+            redacted: false,
+        }),
+    }
+}
+
 fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
     match item.kind() {
         TimelineItemKind::Event(event) => {
@@ -149,6 +328,8 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                     .collect()
             });
 
+            let reply_to = extract_reply_target(event.content());
+
             TimelineEventData {
                 id: event.event_id().map(ToString::to_string),
                 transaction_id,
@@ -159,6 +340,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 content: convert_content(event.content()),
                 send_state,
                 reactions,
+                reply_to,
             }
         }
 
@@ -179,6 +361,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 content: TimelineContent::Virtual { kind },
                 send_state: None,
                 reactions: None,
+                reply_to: None,
             }
         }
     }
@@ -255,69 +438,307 @@ fn convert_content(content: &TimelineItemContent) -> TimelineContent {
     }
 }
 
-pub async fn subscribe_timeline_impl(
-    room_id: &str,
-) -> Result<Subscription<TimelineEventData>, HarmonyError> {
-    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let room = client
-        .get_room(&parsed_id)
-        .ok_or(HarmonyError::RoomNotFound)?;
-
-    let timeline = matrix_sdk_ui::timeline::TimelineBuilder::new(&room)
+async fn build_live_timeline(
+    room: &matrix_sdk::Room,
+) -> Result<Rc<matrix_sdk_ui::timeline::Timeline>, HarmonyError> {
+    let timeline = matrix_sdk_ui::timeline::TimelineBuilder::new(room)
+        .with_focus(TimelineFocus::Live {
+            hide_threaded_events: false,
+        })
         .build()
         .await?;
-
-    let timeline = Rc::new(timeline);
-
-    TIMELINES.with(|timelines| timelines.borrow_mut().insert(parsed_id, timeline.clone()));
-
-    let _ = timeline.paginate_backwards(50).await;
-
-    let (initial_items, incoming) = timeline.subscribe().await;
-
-    let initial = initial_items.iter().map(convert_item).collect();
-    let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_item));
-    let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
-
-    Ok(Subscription { initial, stream })
+    Ok(Rc::new(timeline))
 }
 
-pub async fn paginate_backwards_impl(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
+async fn build_detached_timeline(
+    room: &matrix_sdk::Room,
+    target_event_id: OwnedEventId,
+    num_context_events: u16,
+) -> Result<Rc<matrix_sdk_ui::timeline::Timeline>, HarmonyError> {
+    let timeline = matrix_sdk_ui::timeline::TimelineBuilder::new(room)
+        .with_focus(TimelineFocus::Event {
+            target: target_event_id,
+            num_context_events,
+            thread_mode: TimelineEventFocusThreadMode::Automatic {
+                hide_threaded_events: false,
+            },
+        })
+        .build()
+        .await?;
+    Ok(Rc::new(timeline))
+}
+
+async fn snapshot_and_forward(
+    timeline: Rc<matrix_sdk_ui::timeline::Timeline>,
+    generation: u32,
+    output_tx: mpsc::UnboundedSender<JsValue>,
+) -> (Vec<TimelineEventData>, oneshot::Sender<()>) {
+    let (initial_items, incoming) = timeline.subscribe().await;
+    let events: Vec<TimelineEventData> = initial_items.iter().map(convert_item).collect();
+    let cancel = forward_diffs(incoming, generation, output_tx);
+    (events, cancel)
+}
+
+fn forward_diffs<S>(
+    incoming: S,
+    generation: u32,
+    output_tx: mpsc::UnboundedSender<JsValue>,
+) -> oneshot::Sender<()>
+where
+    S: futures_util::Stream<Item = Vec<matrix_sdk_ui::eyeball_im::VectorDiff<Arc<TimelineItem>>>>
+        + 'static,
+{
+    let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
+
+    wasm_bindgen_futures::spawn_local(async move {
+        let mut cancel = cancel_rx.fuse();
+        let mut stream = Box::pin(incoming).fuse();
+
+        loop {
+            futures_util::select_biased! {
+                _ = cancel => break,
+                next = stream.next() => {
+                    let Some(diffs) = next else { break };
+                    let msg = TimelineStreamMessage::Diffs {
+                        generation,
+                        diffs: convert_diffs(diffs, convert_item),
+                    };
+                    match serde_wasm_bindgen::to_value(&msg) {
+                        Ok(value) => {
+                            if output_tx.unbounded_send(value).is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!("timeline diff serialization failed: {e}");
+                            let err = TimelineStreamMessage::Error {
+                                message: format!("serialization failed: {e}"),
+                            };
+                            if let Ok(v) = serde_wasm_bindgen::to_value(&err) {
+                                let _ = output_tx.unbounded_send(v);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    cancel_tx
+}
+
+pub async fn subscribe_room_impl(room_id: &str) -> Result<SubscribeResult, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let parsed: OwnedRoomId = room_id
         .try_into()
         .map_err(|_| HarmonyError::InvalidRoomId)?;
 
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+    let room = client.get_room(&parsed).ok_or(HarmonyError::RoomNotFound)?;
+    let live = build_live_timeline(&room).await?;
+    let _ = live.paginate_backwards(50).await;
 
-    let hit_start = timeline.paginate_backwards(count).await?;
-    Ok(hit_start)
+    let (output_tx, output_rx) = mpsc::unbounded::<JsValue>();
+    let generation: u32 = 1;
+    let (events, cancel) = snapshot_and_forward(live.clone(), generation, output_tx.clone()).await;
+
+    ROOMS.with(|rooms| {
+        rooms.borrow_mut().insert(
+            parsed,
+            RoomState {
+                live,
+                detached: None,
+                mode: TimelineMode::Live,
+                generation,
+                output_tx,
+                cancel_active: Some(cancel),
+            },
+        )
+    });
+
+    let stream =
+        wasm_streams::ReadableStream::from_stream(output_rx.map(Ok::<_, JsValue>)).into_raw();
+
+    Ok(SubscribeResult {
+        events,
+        mode: TimelineMode::Live,
+        generation,
+        stream,
+    })
+}
+
+pub fn unsubscribe_room_impl(room_id: &str) -> Result<(), HarmonyError> {
+    let parsed: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
+    ROOMS.with(|rooms| {
+        rooms.borrow_mut().remove(&parsed);
+    });
+    Ok(())
+}
+
+pub async fn focus_on_event_impl(
+    room_id: &str,
+    target_event_id: &str,
+    num_context_events: Option<u16>,
+) -> Result<ModeSwapResult, HarmonyError> {
+    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
+    let parsed_room: OwnedRoomId = room_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidRoomId)?;
+    let parsed_event: OwnedEventId = target_event_id
+        .try_into()
+        .map_err(|_| HarmonyError::InvalidEventId)?;
+
+    let room = client
+        .get_room(&parsed_room)
+        .ok_or(HarmonyError::RoomNotFound)?;
+    let detached = build_detached_timeline(
+        &room,
+        parsed_event,
+        num_context_events.unwrap_or(DEFAULT_FOCUS_CONTEXT_EVENTS),
+    )
+    .await?;
+
+    let (output_tx, generation) = ROOMS.with(|rooms| -> Result<_, HarmonyError> {
+        let mut rooms = rooms.borrow_mut();
+        let state = rooms
+            .get_mut(&parsed_room)
+            .ok_or(HarmonyError::RoomNotFound)?;
+        if let Some(c) = state.cancel_active.take() {
+            let _ = c.send(());
+        }
+        state.detached = Some(detached.clone());
+        state.mode = TimelineMode::Detached;
+        state.generation = state.generation.wrapping_add(1);
+        Ok((state.output_tx.clone(), state.generation))
+    })?;
+
+    let (events, cancel) = snapshot_and_forward(detached, generation, output_tx).await;
+
+    ROOMS.with(|rooms| -> Result<(), HarmonyError> {
+        let mut rooms = rooms.borrow_mut();
+        let state = rooms
+            .get_mut(&parsed_room)
+            .ok_or(HarmonyError::RoomNotFound)?;
+        if state.generation == generation {
+            state.cancel_active = Some(cancel);
+        }
+        Ok(())
+    })?;
+
+    Ok(ModeSwapResult {
+        events,
+        mode: TimelineMode::Detached,
+        generation,
+    })
+}
+
+pub async fn return_to_live_impl(room_id: &str) -> Result<ModeSwapResult, HarmonyError> {
+    let (live, output_tx, generation, was_already_live) = with_room(room_id, |state| {
+        if matches!(state.mode, TimelineMode::Live) {
+            return Ok((
+                state.live.clone(),
+                state.output_tx.clone(),
+                state.generation,
+                true,
+            ));
+        }
+        if let Some(c) = state.cancel_active.take() {
+            let _ = c.send(());
+        }
+        state.detached = None;
+        state.mode = TimelineMode::Live;
+        state.generation = state.generation.wrapping_add(1);
+        Ok((
+            state.live.clone(),
+            state.output_tx.clone(),
+            state.generation,
+            false,
+        ))
+    })?;
+
+    if was_already_live {
+        let items = live.items().await;
+        let events = items.iter().map(convert_item).collect();
+        return Ok(ModeSwapResult {
+            events,
+            mode: TimelineMode::Live,
+            generation,
+        });
+    }
+
+    let (events, cancel) = snapshot_and_forward(live, generation, output_tx).await;
+
+    with_room(room_id, |state| {
+        if state.generation == generation {
+            state.cancel_active = Some(cancel);
+        }
+        Ok(())
+    })?;
+
+    Ok(ModeSwapResult {
+        events,
+        mode: TimelineMode::Live,
+        generation,
+    })
+}
+
+pub async fn paginate_room_impl(
+    room_id: &str,
+    direction: PaginationDirection,
+    count: u16,
+) -> Result<PaginateResult, HarmonyError> {
+    let (timeline, mode) = with_room(room_id, |state| Ok((current_timeline(state), state.mode)))?;
+
+    let exhausted = match direction {
+        PaginationDirection::Backward => timeline.paginate_backwards(count).await?,
+        PaginationDirection::Forward => timeline.paginate_forwards(count).await?,
+    };
+
+    if matches!(direction, PaginationDirection::Forward)
+        && exhausted
+        && matches!(mode, TimelineMode::Detached)
+    {
+        let swap = return_to_live_impl(room_id).await?;
+        return Ok(PaginateResult {
+            exhausted,
+            mode: swap.mode,
+            events: Some(swap.events),
+            generation: Some(swap.generation),
+        });
+    }
+
+    Ok(PaginateResult {
+        exhausted,
+        mode,
+        events: None,
+        generation: None,
+    })
 }
 
 pub async fn send_message_impl(
     room_id: &str,
     body: &str,
     formatted_body: Option<&str>,
+    reply_to_event_id: Option<&str>,
 ) -> Result<(), HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+    let timeline = live_for_room(room_id)?;
 
     let content = formatted_body.map_or_else(
         || RoomMessageEventContent::text_plain(body),
         |html| RoomMessageEventContent::text_html(body, html),
     );
 
-    timeline
-        .send(AnyMessageLikeEventContent::RoomMessage(content))
-        .await?;
+    if let Some(reply_id) = reply_to_event_id {
+        let parsed: OwnedEventId = reply_id
+            .try_into()
+            .map_err(|_| HarmonyError::InvalidEventId)?;
+        timeline.send_reply(content.into(), parsed).await?;
+    } else {
+        timeline
+            .send(AnyMessageLikeEventContent::RoomMessage(content))
+            .await?;
+    }
 
     Ok(())
 }
@@ -329,12 +750,7 @@ pub async fn edit_message_impl(
     body: &str,
     formatted_body: Option<&str>,
 ) -> Result<(), HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+    let timeline = live_for_room(room_id)?;
 
     let item_id = match (event_id, transaction_id) {
         (Some(eid), _) => {
@@ -362,12 +778,7 @@ pub async fn toggle_reaction_impl(
     transaction_id: Option<&str>,
     key: &str,
 ) -> Result<bool, HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+    let timeline = live_for_room(room_id)?;
 
     let item_id = match (event_id, transaction_id) {
         (Some(eid), _) => {
@@ -386,12 +797,7 @@ pub async fn redact_message_impl(
     event_id: Option<&str>,
     transaction_id: Option<&str>,
 ) -> Result<(), HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
+    let timeline = live_for_room(room_id)?;
 
     let item_id = match (event_id, transaction_id) {
         (Some(eid), _) => {
@@ -407,28 +813,19 @@ pub async fn redact_message_impl(
 }
 
 pub async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-    let timeline = timeline.ok_or(HarmonyError::RoomNotFound)?;
-
+    let timeline = live_for_room(room_id)?;
     timeline.mark_as_read(ReceiptType::Read).await?;
     Ok(())
 }
 
-pub async fn get_timeline_impl(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
-    let parsed_id: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-
-    let timeline = TIMELINES.with(|timelines| timelines.borrow().get(&parsed_id).cloned());
-
-    let Some(timeline) = timeline else {
-        return Ok(vec![]);
-    };
-
+pub async fn get_room_state_impl(room_id: &str) -> Result<RoomStateSnapshot, HarmonyError> {
+    let (timeline, mode, generation) = with_room(room_id, |state| {
+        Ok((current_timeline(state), state.mode, state.generation))
+    })?;
     let items = timeline.items().await;
-    Ok(items.iter().map(convert_item).collect())
+    Ok(RoomStateSnapshot {
+        events: items.iter().map(convert_item).collect(),
+        mode,
+        generation,
+    })
 }

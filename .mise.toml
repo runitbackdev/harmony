@@ -1,0 +1,11 @@
+[tools]
+rust = "stable"
+node = "22"
+pnpm = "10.32.1"
+ruby = "4.0.2"
+just = "latest"
+"cargo:wasm-pack" = "latest"
+"cargo:typos-cli" = "latest"
+"cargo:committed" = "latest"
+"cargo:watchexec-cli" = "latest"
+"ubi:DarthSim/hivemind" = "latest"

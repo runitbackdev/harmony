@@ -63,43 +63,61 @@ Matrix has a UX problem — most clients feel like they were built for protocol 
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs) (via rustup)
-- [pnpm](https://pnpm.io)
-- [just](https://github.com/casey/just) (command runner)
-- [Docker](https://docs.docker.com/get-docker/) (optional, for local Synapse)
+- [mise](https://mise.jdx.dev) — pins Rust, Node, pnpm, Ruby, `just`, `wasm-pack`, `hivemind`, and other dev tools
+- A container runtime — [Docker](https://docs.docker.com/get-docker/) or [Podman](https://podman.io). Only required if running a local Synapse (the default frontend dev path uses a hosted homeserver).
+
+> **Atomic desktops (Bazzite, Silverblue, Bluefin, NixOS):** install `mise` via Homebrew (`brew install mise`) — no `rpm-ostree` layering required. Podman ships out of the box; the justfile auto-detects it.
 
 ### Setup
 
 ```sh
 git clone ssh://git@codeberg.org/harmonychat/harmony.git
 cd harmony
-just
+mise install        # installs every pinned tool
+pnpm install        # node deps
+pnpm lefthook install  # git hooks
+just build-wasm-dev    # initial WASM build
 ```
 
-This installs the WASM target, builds the WASM crate, installs node dependencies, and sets up git hooks.
+That's it. `mise install` reads `.mise.toml` and provisions `rust`, `node`, `pnpm`, `ruby`, `just`, `wasm-pack`, `typos`, `committed`, `watchexec`, and `hivemind` — all into `~/.local/share/mise`, no system package manager involved.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Usage
 
-Start the development server:
+Three modes, pick what you need:
 
 ```sh
-just dev
+just web        # frontend only — points at hosted homeserver, no local backend
+just dev        # frontend + local synapse + herald (full local stack)
+just build      # production build
 ```
 
 | Command      | Description                            |
 | ------------ | -------------------------------------- |
+| `just web`   | Vite only, hosted homeserver           |
+| `just dev`   | Synapse (detached) + herald + web      |
 | `just build` | Production build (WASM + web)          |
 | `just check` | Run cargo check, clippy, eslint, typos |
 | `just fmt`   | Format Rust and TypeScript files       |
 | `just clean` | Remove build artifacts                 |
 
+### Why two dev commands?
+
+- `just web` is for UI work. It runs the Vite dev server only and points at our hosted dev homeserver (`chat.lycanthropy.dev` by default). No container runtime, no Ruby, no supervisor.
+- `just dev` is for protocol/backend work. It spins up Synapse via `compose` (detached, so Ctrl-C on the dev server doesn't tear it down) and then runs Herald + web under [hivemind](https://github.com/DarthSim/hivemind).
+
+Override the homeserver any time:
+
+```sh
+VITE_HOMESERVER_URL=http://localhost:8008 just web
+```
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Local Synapse
 
-A local [Synapse](https://github.com/element-hq/synapse) homeserver is included for development and testing. Requires [Docker](https://docs.docker.com/get-docker/).
+A local [Synapse](https://github.com/element-hq/synapse) homeserver is included for development and testing. Requires Docker or Podman — the justfile picks whichever is installed.
 
 Start Synapse:
 
@@ -107,26 +125,26 @@ Start Synapse:
 just synapse
 ```
 
-Seed test data (users, rooms, messages):
+Seed test users:
 
 ```sh
-just synapse-seed
+just setup-users
 ```
 
 | Command              | Description                            |
 | -------------------- | -------------------------------------- |
 | `just synapse`       | Start local Synapse (port 8008)        |
-| `just synapse-seed`  | Create test users, rooms, and messages |
+| `just setup-users`   | Create test users                      |
 | `just synapse-stop`  | Stop Synapse                           |
-| `just synapse-reset` | Stop Synapse and delete all data       |
+| `just synapse-reset` | Stop Synapse, delete all data, reseed  |
 
 ### Test Accounts
 
-| User    | Password    | Role  |
-| ------- | ----------- | ----- |
-| alice   | password123 | Admin |
-| bob     | password123 | User  |
-| charlie | password123 | User  |
+| User  | Password | Role  |
+| ----- | -------- | ----- |
+| admin | admin    | Admin |
+| alice | alice    | User  |
+| bob   | bob      | User  |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

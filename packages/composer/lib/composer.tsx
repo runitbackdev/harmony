@@ -3,6 +3,7 @@ import type { Ref } from "react";
 import { useAnimationCue } from "@harmony/primitives";
 import { placeholder } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
+import { Reply, X } from "lucide-react";
 import {
   Compartment,
   EditorState,
@@ -14,7 +15,7 @@ import {
 import { emojiCompletionSource } from "./emoji-source";
 import { markdownToHtml } from "./md-to-html";
 import EmojiPickerButton from "./emoji-picker";
-import type { MemberSummary } from "@harmony/protocol";
+import type { MemberSummary, ReplyTarget } from "@harmony/protocol";
 import "./composer.css";
 
 export type ComposerHandle = {
@@ -25,10 +26,12 @@ type ComposerProps = {
   roomId: string;
   getMembers: (roomId: string) => Promise<MemberSummary[]>;
   onSend: (body: string, formattedBody: string) => void;
+  replyTarget?: ReplyTarget | null;
+  onCancelReply?: () => void;
 };
 
 export const Composer = forwardRef(function Composer(
-  { roomId, getMembers, onSend }: ComposerProps,
+  { roomId, getMembers, onSend, replyTarget, onCancelReply }: ComposerProps,
   ref: Ref<ComposerHandle>,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,16 +119,57 @@ export const Composer = forwardRef(function Composer(
   }));
 
   return (
-    <div
-      ref={rootRef}
-      data-scope="composer"
-      data-part="root"
-      data-state={sending ? "sending" : undefined}
-    >
-      <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
-      <div data-scope="composer" data-part="toolbar">
-        <EmojiPickerButton onSelect={handleEmojiSelect} />
+    <div className="flex flex-col gap-1.5">
+      {replyTarget && (
+        <ReplyBanner replyTarget={replyTarget} onCancel={onCancelReply ?? (() => {})} />
+      )}
+      <div
+        ref={rootRef}
+        data-scope="composer"
+        data-part="root"
+        data-state={sending ? "sending" : undefined}
+      >
+        <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
+        <div data-scope="composer" data-part="toolbar">
+          <EmojiPickerButton onSelect={handleEmojiSelect} />
+        </div>
       </div>
     </div>
   );
 });
+
+function ReplyBanner({
+  replyTarget,
+  onCancel,
+}: {
+  replyTarget: ReplyTarget;
+  onCancel: () => void;
+}) {
+  const name = replyTarget.senderName ?? replyTarget.sender ?? "unknown";
+  const snippet = replyTarget.redacted
+    ? "[deleted message]"
+    : (replyTarget.body ?? "[unavailable]");
+
+  return (
+    <div
+      data-scope="composer"
+      data-part="reply-banner"
+      className="flex items-center gap-2 rounded-md border-l-2 border-primary-500 bg-surface-100-900 px-3 py-1.5 text-xs"
+    >
+      <Reply size={14} className="shrink-0 text-primary-500" />
+      <div className="flex-1 min-w-0 truncate">
+        <span className="text-surface-500">Replying to </span>
+        <span className="font-medium text-surface-950-50">{name}</span>
+        <span className="text-surface-500">: {snippet}</span>
+      </div>
+      <button
+        type="button"
+        aria-label="Cancel reply"
+        onClick={onCancel}
+        className="rounded p-1 text-surface-500 hover:bg-surface-200-800 hover:text-surface-950-50 transition-colors"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}

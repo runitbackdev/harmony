@@ -26,12 +26,14 @@ import type { SyncCommand, SyncRequest, SyncResponse, SyncStarted, SyncStatus } 
 import type {
   TimelineCommand,
   TimelineEdited,
+  TimelineFocusedOnEvent,
   TimelinePaginated,
   TimelineReactionToggled,
   TimelineMarkedAsRead,
   TimelineRedacted,
   TimelineRequest,
   TimelineResponse,
+  TimelineReturnedToLive,
   TimelineSent,
   TimelineSubscribed,
   TimelineUpdate,
@@ -61,6 +63,8 @@ export type ResponseMap = {
   "h.members.get": MembersGot;
   "h.members.subscribe": MembersSubscribed;
   "h.timeline.subscribe": TimelineSubscribed;
+  "h.timeline.focusOnEvent": TimelineFocusedOnEvent;
+  "h.timeline.returnToLive": TimelineReturnedToLive;
   "h.timeline.send": TimelineSent;
   "h.timeline.edit": TimelineEdited;
   "h.timeline.toggleReaction": TimelineReactionToggled;

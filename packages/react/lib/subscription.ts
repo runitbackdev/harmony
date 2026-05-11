@@ -105,7 +105,10 @@ export function createKeyedSubscription<K, T>(subscribe: KeyedSubscriber<K, T>) 
     const gen = ++generation;
 
     state.ready = subscribe(key, state.items).then((result) => {
-      if (gen !== generation) return;
+      if (gen !== generation) {
+        result.cleanup();
+        return;
+      }
       state.items.splice(0, state.items.length, ...result.initial);
       cleanup = result.cleanup;
     });
@@ -113,10 +116,15 @@ export function createKeyedSubscription<K, T>(subscribe: KeyedSubscriber<K, T>) 
     return state.ready;
   }
 
+  function replace(key: K, items: T[]) {
+    if (state.key !== key) return;
+    state.items.splice(0, state.items.length, ...items);
+  }
+
   function useValue(): T[] {
     const snap = useSnapshot(state);
     return snap.items as T[];
   }
 
-  return { state, start, stop, useValue };
+  return { state, start, stop, replace, useValue };
 }

@@ -32,6 +32,14 @@ export type SendState =
   | { state: "sent" }
   | { state: "sendingFailed"; error: string; isRecoverable: boolean };
 
+export type ReplyTarget = {
+  eventId: string;
+  sender: string | null;
+  senderName: string | null;
+  body: string | null;
+  redacted: boolean;
+};
+
 export type TimelineEvent = {
   id: string | null;
   transactionId: string | null;
@@ -42,15 +50,42 @@ export type TimelineEvent = {
   content: TimelineContent;
   sendState: SendState | null;
   reactions: ReactionGroup[] | null;
+  replyTo: ReplyTarget | null;
 };
 
+export type TimelineMode = "live" | "detached";
+
+export type PaginationDirection = "forward" | "backward";
+
+export type TimelineStreamMessage =
+  | { kind: "diffs"; generation: number; diffs: ListDiff<TimelineEvent>[] }
+  | { kind: "error"; message: string };
+
 export type TimelineSubscribe = Request<"h.timeline.subscribe", { roomId: string }>;
-export type TimelineSubscribed = Response<"h.timeline.subscribed", { events: TimelineEvent[] }>;
+export type TimelineSubscribed = Response<
+  "h.timeline.subscribed",
+  { events: TimelineEvent[]; mode: TimelineMode; generation: number }
+>;
 export type TimelineUnsubscribe = Command<"h.timeline.unsubscribe", { roomId: string }>;
+
+export type TimelineFocusOnEvent = Request<
+  "h.timeline.focusOnEvent",
+  { roomId: string; targetEventId: string; numContextEvents?: number }
+>;
+export type TimelineFocusedOnEvent = Response<
+  "h.timeline.focusedOnEvent",
+  { events: TimelineEvent[]; mode: TimelineMode; generation: number }
+>;
+
+export type TimelineReturnToLive = Request<"h.timeline.returnToLive", { roomId: string }>;
+export type TimelineReturnedToLive = Response<
+  "h.timeline.returnedToLive",
+  { events: TimelineEvent[]; mode: TimelineMode; generation: number }
+>;
 
 export type TimelineSend = Request<
   "h.timeline.send",
-  { roomId: string; body: string; formattedBody?: string }
+  { roomId: string; body: string; formattedBody?: string; replyToEventId?: string }
 >;
 export type TimelineSent = Response<"h.timeline.sent">;
 
@@ -72,19 +107,32 @@ export type TimelineRedact = Request<
 >;
 export type TimelineRedacted = Response<"h.timeline.redacted">;
 
-export type TimelinePaginate = Request<"h.timeline.paginate", { roomId: string; count: number }>;
-export type TimelinePaginated = Response<"h.timeline.paginated", { hitStart: boolean }>;
+export type TimelinePaginate = Request<
+  "h.timeline.paginate",
+  { roomId: string; direction: PaginationDirection; count: number }
+>;
+export type TimelinePaginated = Response<
+  "h.timeline.paginated",
+  {
+    exhausted: boolean;
+    mode: TimelineMode;
+    events?: TimelineEvent[];
+    generation?: number;
+  }
+>;
 
 export type TimelineMarkAsRead = Request<"h.timeline.markAsRead", { roomId: string }>;
 export type TimelineMarkedAsRead = Response<"h.timeline.markedAsRead">;
 
 export type TimelineUpdate = Stream<
   "h.timeline.update",
-  { roomId: string; events: ListDiff<TimelineEvent>[] }
+  { roomId: string; message: TimelineStreamMessage }
 >;
 
 export type TimelineRequest =
   | TimelineSubscribe
+  | TimelineFocusOnEvent
+  | TimelineReturnToLive
   | TimelineSend
   | TimelineEdit
   | TimelineToggleReaction
@@ -93,6 +141,8 @@ export type TimelineRequest =
   | TimelineMarkAsRead;
 export type TimelineResponse =
   | TimelineSubscribed
+  | TimelineFocusedOnEvent
+  | TimelineReturnedToLive
   | TimelineSent
   | TimelineEdited
   | TimelineReactionToggled

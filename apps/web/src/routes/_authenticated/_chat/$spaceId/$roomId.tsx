@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useRef, useState, useContext } from
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
+  focusOnEvent,
   getMembers,
   markAsRead,
   paginateTimeline,
@@ -27,7 +28,7 @@ import { Transition, useMediaQuery } from "@harmony/primitives";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { ComposerHandle, EditTarget } from "@harmony/composer";
 import { Bug, Hash, Menu, PanelRight, Users } from "lucide-react";
-import type { ReactionGroup, TimelineContent, TimelineEvent } from "@harmony/protocol";
+import type { ReactionGroup, ReplyTarget, TimelineContent, TimelineEvent } from "@harmony/protocol";
 import { setLastRoom } from "@/lib/last-room";
 import { useOmnibarCommands } from "@/omnibar";
 import { recordUsage } from "@/omnibar/store";
@@ -92,100 +93,104 @@ function RoomHeader({ roomId }: { roomId: string }) {
   );
 }
 
-const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug: boolean }>(
-  function ConnectedTimeline({ roomId, debug }, ref) {
-    const events = useTimeline();
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const currentUserId = getSession()?.userId;
-    const handleLoadMore = useCallback(() => paginateTimeline(roomId), [roomId]);
+const ConnectedTimeline = forwardRef<
+  MessageListHandle,
+  {
+    roomId: string;
+    debug: boolean;
+    onReply: (event: TimelineEvent) => void;
+  }
+>(function ConnectedTimeline({ roomId, debug, onReply }, ref) {
+  const events = useTimeline();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const currentUserId = getSession()?.userId;
+  const handleLoadMore = useCallback(
+    () => paginateTimeline(roomId).then((r) => r.exhausted),
+    [roomId],
+  );
 
-    const handleToggleReaction = useCallback(
-      (eventId: string, key: string) => {
-        void toggleReaction(roomId, { eventId }, key);
-      },
-      [roomId],
-    );
+  const handleToggleReaction = useCallback(
+    (eventId: string, key: string) => {
+      void toggleReaction(roomId, { eventId }, key);
+    },
+    [roomId],
+  );
 
-    const handleDeleteMessage = useCallback(
-      (event: TimelineEvent) => {
-        const eventId = event.id ?? undefined;
-        const transactionId = event.transactionId ?? undefined;
-        void redactMessage(roomId, { eventId, transactionId });
-      },
-      [roomId],
-    );
+  const handleDeleteMessage = useCallback(
+    (event: TimelineEvent) => {
+      const eventId = event.id ?? undefined;
+      const transactionId = event.transactionId ?? undefined;
+      void redactMessage(roomId, { eventId, transactionId });
+    },
+    [roomId],
+  );
 
-    function handleEditMessage(event: TimelineEvent) {
-      setEditingId(event.id ?? event.transactionId ?? null);
-    }
+  function handleEditMessage(event: TimelineEvent) {
+    setEditingId(event.id ?? event.transactionId ?? null);
+  }
 
-    function handleReplyMessage(event: TimelineEvent) {
-      void event;
-      console.warn("reply: not implemented");
-    }
+  function handleEdit(target: EditTarget, body: string, html: string) {
+    void editMessage(roomId, target, body, html);
+    setEditingId(null);
+  }
 
-    function handleEdit(target: EditTarget, body: string, html: string) {
-      void editMessage(roomId, target, body, html);
-      setEditingId(null);
-    }
-
-    function renderEditor(event: TimelineEvent) {
-      if (event.content.type !== "message") return null;
-      return (
-        <EditComposer
-          target={{
-            eventId: event.id ?? undefined,
-            transactionId: event.transactionId ?? undefined,
-          }}
-          content={event.content.formattedBody ?? event.content.body}
-          onEdit={handleEdit}
-          onCancel={() => setEditingId(null)}
-        />
-      );
-    }
-
-    if (debug) {
-      return (
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <ul className="space-y-1 font-mono text-sm text-surface-950-50">
-            {events.map((event, i) => (
-              <li
-                key={event.id ?? i}
-                className={
-                  event.sendState?.state === "notSentYet"
-                    ? "opacity-50 transition-opacity duration-300"
-                    : "transition-opacity duration-300"
-                }
-              >
-                <span className="text-surface-500">{event.senderName ?? event.sender}</span>{" "}
-                {formatContent(event.content)}
-                {event.sendState && (
-                  <span className="text-surface-400"> [{event.sendState.state}]</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    }
-
+  function renderEditor(event: TimelineEvent) {
+    if (event.content.type !== "message") return null;
     return (
-      <MessageList
-        ref={ref}
-        events={events}
-        onLoadMore={handleLoadMore}
-        onReplyMessage={handleReplyMessage}
-        onEditMessage={handleEditMessage}
-        onDeleteMessage={handleDeleteMessage}
-        editingEventId={editingId}
-        renderEditor={renderEditor}
-        currentUserId={currentUserId}
-        onToggleReaction={handleToggleReaction}
-        ReactionSlot={ConnectedReactions}
+      <EditComposer
+        target={{
+          eventId: event.id ?? undefined,
+          transactionId: event.transactionId ?? undefined,
+        }}
+        content={event.content.formattedBody ?? event.content.body}
+        onEdit={handleEdit}
+        onCancel={() => setEditingId(null)}
       />
     );
-  },
-);
+  }
+
+  if (debug) {
+    return (
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+        <ul className="space-y-1 font-mono text-sm text-surface-950-50">
+          {events.map((event, i) => (
+            <li
+              key={event.id ?? i}
+              className={
+                event.sendState?.state === "notSentYet"
+                  ? "opacity-50 transition-opacity duration-300"
+                  : "transition-opacity duration-300"
+              }
+            >
+              <span className="text-surface-500">{event.senderName ?? event.sender}</span>{" "}
+              {formatContent(event.content)}
+              {event.sendState && (
+                <span className="text-surface-400"> [{event.sendState.state}]</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <MessageList
+      ref={ref}
+      events={events}
+      onLoadMore={handleLoadMore}
+      onReplyMessage={onReply}
+      onEditMessage={handleEditMessage}
+      onDeleteMessage={handleDeleteMessage}
+      editingEventId={editingId}
+      renderEditor={renderEditor}
+      currentUserId={currentUserId}
+      onToggleReaction={handleToggleReaction}
+      onJumpToEvent={(eventId) => void focusOnEvent(roomId, eventId)}
+      ReactionSlot={ConnectedReactions}
+    />
+  );
+});
 
 function ConnectedMemberList({
   roomId,
@@ -264,9 +269,28 @@ function TimelineView() {
   });
   const [debug, setDebug] = useState(false);
   const [membersOpen, setMembersOpen] = useMembersPanelOpen();
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const navContext = useContext(NavContext);
   const composerRef = useRef<ComposerHandle>(null);
   const messageListRef = useRef<MessageListHandle>(null);
+
+  const handleReply = useCallback((event: TimelineEvent) => {
+    const eventId = event.id;
+    if (!eventId) return;
+    const body = event.content.type === "message" ? event.content.body : null;
+    setReplyTarget({
+      eventId,
+      sender: event.sender,
+      senderName: event.senderName,
+      body,
+      redacted: false,
+    });
+    composerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    setReplyTarget(null);
+  }, [roomId]);
 
   useEffect(() => {
     void markAsRead(roomId);
@@ -320,8 +344,8 @@ function TimelineView() {
   }, []);
 
   return (
-    <div className="flex flex-1 min-w-0">
-      <div className="flex flex-1 flex-col min-w-0">
+    <div className="flex flex-1 min-h-0 min-w-0">
+      <div className="flex flex-1 flex-col min-h-0 min-w-0">
         <header
           data-scope="room"
           data-part="header"
@@ -350,15 +374,23 @@ function TimelineView() {
           </div>
         </header>
 
-        <ConnectedTimeline ref={messageListRef} roomId={roomId} debug={debug} />
+        <ConnectedTimeline
+          ref={messageListRef}
+          roomId={roomId}
+          debug={debug}
+          onReply={handleReply}
+        />
 
         <div className="border-t border-surface-200-800 p-4">
           <Composer
             ref={composerRef}
             roomId={roomId}
             getMembers={getMembers}
+            replyTarget={replyTarget}
+            onCancelReply={() => setReplyTarget(null)}
             onSend={(body, html) => {
-              void sendMessage(roomId, body, html);
+              void sendMessage(roomId, body, html, replyTarget?.eventId);
+              setReplyTarget(null);
               messageListRef.current?.scrollToBottom();
             }}
           />

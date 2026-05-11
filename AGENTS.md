@@ -1,76 +1,81 @@
-<!--VITE PLUS START-->
+# Instructions for AI Agents
 
-# Using Vite+, the Unified Toolchain for the Web
+## Mission & Goals: "Matrix for Humans"
 
-This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, but it invokes Vite through `vp dev` and `vp build`.
+Harmony is not just another Matrix client; it is a community-first chat platform designed to bridge the gap between decentralized protocols and mainstream usability.
 
-## Vite+ Workflow
+1.  **Protocol Invisibility**: Users should never need to know what a "homeserver" or "federation" is. The UX should feel familiar to users of Discord or Slack.
+2.  **Performance as a Feature**: Speed is paramount. We offload heavy lifting to Rust and a SharedWorker to ensure the UI remains fluid and instant.
+3.  **Utilitarian Minimalism**: The interface should be "invisible until needed." Every pixel must earn its place by solving a user problem or communicating essential state.
+4.  **Ownership & Sovereignty**: We empower users to own their data without the technical tax usually associated with decentralized tools.
 
-`vp` is a global binary that handles the full development lifecycle. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+This file provides guidance for AI coding agents (Gemini CLI, Claude Code, Cursor Agent, Copilot Workspace, etc.) operating on this codebase.
 
-### Start
+## Before You Begin
 
-- create - Create a new project from a template
-- migrate - Migrate an existing project to Vite+
-- config - Configure hooks and agent integration
-- staged - Run linters on staged files
-- install (`i`) - Install dependencies
-- env - Manage Node.js versions
+1. Read [ARCHITECTURE.md](./ARCHITECTURE.md) to understand the SharedWorker and WASM data flow.
+2. Read [CONTRIBUTING.md](./CONTRIBUTING.md) and understand the project's conventions.
+3. Read the [AI Policy](./AI_POLICY.md) — contributions must comply with it.
+4. Familiarize yourself with the project structure and the [Matrix protocol](https://matrix.org).
 
-### Develop
+## Project Context
 
-- dev - Run the development server
-- check - Run format, lint, and TypeScript type checks
-- lint - Lint code
-- fmt - Format code
-- test - Run tests
+Harmony is a community-centric chat application (think Discord) built on the Matrix protocol. It's a monorepo managed with pnpm and the **Vite+ (`vp`)** toolchain.
 
-### Execute
+Key architecture:
+- **SharedWorker Core**: All Matrix sync and protocol logic runs in a single SharedWorker to support multi-tab synchronization and offload the UI thread.
+- **Rust/WASM Engine**: High-performance crypto and protocol operations are handled by Rust (`matrix-rust-sdk`) compiled to WebAssembly.
 
-- run - Run monorepo tasks
-- exec - Execute a command from local `node_modules/.bin`
-- dlx - Execute a package binary without installing it as a dependency
-- cache - Manage the task cache
+Key directories:
+- `apps/web` — React 19 web application (Thin UI layer)
+- `packages/core` — SharedWorker logic and client-side communication handlers
+- `crates/wasm` — Rust engine compiled to WASM
+- `packages/protocol` — Shared TypeScript types for UI ↔ Worker communication
+- `packages/react` — React hooks and context providers (`useHarmony`)
+- `packages/ui` — Design system components (Skeleton Labs + Tailwind 4)
 
-### Build
+## Rules for AI Agents
 
-- build - Build for production
-- pack - Build libraries
-- preview - Preview production build
+### DO
 
-### Manage Dependencies
+- Help the human contributor understand the complex data flow between UI and Worker
+- Suggest improvements that follow the "Invisible until needed" design principle
+- Write tests for new and existing functionality using `vp test`
+- Use `vp` (Vite+) for all development tasks: `vp check` (lint/types), `vp fmt` (format)
+- Follow the existing commit convention: `type(scope): description`
+- Respect TypeScript strict mode — never use `any` or `unknown`, use proper types
+- Use **Valtio** for local reactive state and **TanStack Query** for server state
+- Use **Skeleton Labs** tokens and components for all UI elements
 
-Vite+ automatically detects and wraps the underlying package manager such as pnpm, npm, or Yarn through the `packageManager` field in `package.json` or package manager-specific lockfiles.
+### DON'T
 
-- add - Add packages to dependencies
-- remove (`rm`, `un`, `uninstall`) - Remove packages from dependencies
-- update (`up`) - Update packages to latest versions
-- dedupe - Deduplicate dependencies
-- outdated - Check for outdated packages
-- list (`ls`) - List installed packages
-- why (`explain`) - Show why a package is installed
-- info (`view`, `show`) - View package information from the registry
-- link (`ln`) / unlink - Manage local package links
-- pm - Forward a command to the package manager
+- Use `pnpm`, `npm`, or `yarn` directly for linting, testing, or formatting tasks
+- Bypass the `packages/protocol` boundary when communicating with the worker
+- Refactor core protocol logic without prior discussion with maintainers
+- Add new dependencies without justification
+- Introduce patterns that don't already exist (e.g., adding a different state library)
+- Submit code that the human operator cannot explain or modify
 
-### Maintain
+### Code Quality Checklist
 
-- upgrade - Update `vp` itself to the latest version
+Before the human submits your work, ensure:
 
-These commands map to their corresponding tools. For example, `vp dev --port 3000` runs Vite's dev server and works the same as Vite. `vp test` runs JavaScript tests through the bundled Vitest. The version of all tools can be checked using `vp --version`. This is useful when researching documentation, features, and bugs.
+- [ ] `vp check` passes (Oxlint and TypeScript checks)
+- [ ] `vp test` passes (Vitest suites)
+- [ ] WASM is rebuilt if `crates/wasm` was changed (`just build-wasm-dev`)
+- [ ] PR description explains _what_ and _why_, not just _how_
+- [ ] AI usage is disclosed per the [AI Policy](./AI_POLICY.md)
 
-## Common Pitfalls
+## Tech Stack Quick Reference
 
-- **Using the package manager directly:** Do not use pnpm, npm, or Yarn directly. Vite+ can handle all package manager operations.
-- **Always use Vite commands to run tools:** Don't attempt to run `vp vitest` or `vp oxlint`. They do not exist. Use `vp test` and `vp lint` instead.
-- **Running scripts:** Vite+ commands take precedence over `package.json` scripts. If there is a `test` script defined in `scripts` that conflicts with the built-in `vp test` command, run it using `vp run test`.
-- **Do not install Vitest, Oxlint, Oxfmt, or tsdown directly:** Vite+ wraps these tools. They must not be installed directly. You cannot upgrade these tools by installing their latest versions. Always use Vite+ commands.
-- **Use Vite+ wrappers for one-off binaries:** Use `vp dlx` instead of package-manager-specific `dlx`/`npx` commands.
-- **Import JavaScript modules from `vite-plus`:** Instead of importing from `vite` or `vitest`, all modules should be imported from the project's `vite-plus` dependency. For example, `import { defineConfig } from 'vite-plus';` or `import { expect, test, vi } from 'vite-plus/test';`. You must not install `vitest` to import test utilities.
-- **Type-Aware Linting:** There is no need to install `oxlint-tsgolint`, `vp lint --type-aware` works out of the box.
-
-## Review Checklist for Agents
-
-- [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to validate changes.
-<!--VITE PLUS END-->
+| Layer | Technology |
+| :--- | :--- |
+| Core Engine | Rust (WASM) + Matrix Rust SDK |
+| Logic Layer | SharedWorker (TS) |
+| Frontend | React 19 + TypeScript |
+| Routing | TanStack Router |
+| State | Valtio + TanStack Query |
+| Styling | Tailwind CSS 4 + Skeleton Labs |
+| Toolchain | Vite+ (`vp`) |
+| Package Manager | pnpm (monorepo) |
+| Task Runner | just |

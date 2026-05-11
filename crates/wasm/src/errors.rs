@@ -23,6 +23,9 @@ pub enum HarmonyError {
     #[error("Invalid room ID format")]
     InvalidRoomId,
 
+    #[error("Invalid event ID format")]
+    InvalidEventId,
+
     #[error("serialization failed")]
     SerializationFailed,
 
@@ -56,6 +59,7 @@ impl HarmonyError {
             Self::ClientNotReady => "client_not_ready",
             Self::RoomNotFound => "room_not_found",
             Self::InvalidRoomId => "invalid_room_id",
+            Self::InvalidEventId => "invalid_event_id",
             Self::SerializationFailed => "serialization_failed",
             Self::InvalidContentType => "invalid_content_type",
             Self::TimelineError(_) | Self::Sync(_) | Self::ClientAlreadyInitialized => "unknown",

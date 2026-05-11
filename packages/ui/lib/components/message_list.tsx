@@ -20,7 +20,6 @@ import { SystemEvent } from "./system_event";
 import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
 
 const GROUP_INTERVAL_MS = 8 * 60 * 1000;
-const INTRINSIC_ITEM_HEIGHT = "auto 40px";
 const SCROLL_IDLE_MS = 150;
 
 // #region Helpers
@@ -86,6 +85,7 @@ interface MessageRowProps {
   onPointerEnter: (event: TimelineEvent, index: number, el: HTMLElement) => void;
   onPointerLeave: (e: React.PointerEvent) => void;
   onShowContextMenu: (event: TimelineEvent, x: number, y: number) => void;
+  onReplyClick?: (eventId: string) => void;
 }
 
 const MessageRow = memo(function MessageRow({
@@ -98,6 +98,7 @@ const MessageRow = memo(function MessageRow({
   onPointerEnter,
   onPointerLeave,
   onShowContextMenu,
+  onReplyClick,
 }: MessageRowProps) {
   const { longPressProps } = useLongPress({
     threshold: 500,
@@ -137,6 +138,8 @@ const MessageRow = memo(function MessageRow({
           highlight={highlight}
           edited={event.content.edited}
           editing={editingNode}
+          replyTo={event.replyTo}
+          onReplyClick={onReplyClick}
           reactions={ReactionSlot && event.id ? <ReactionSlot eventId={event.id} /> : undefined}
         />
       );
@@ -152,14 +155,13 @@ const MessageRow = memo(function MessageRow({
       data-scope="message-row"
       data-part="root"
       data-index={index}
+      data-event-id={event.id ?? undefined}
       style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
         overflowAnchor: "none",
         WebkitTouchCallout: "none",
       }}
       className={cn(
-        "px-4",
+        "px-4 transition-colors duration-700 data-flash:bg-primary-500/20",
         !editingNode && "hover:bg-surface-100-900 data-active:bg-surface-100-900",
       )}
       {...longPressProps}
@@ -196,6 +198,7 @@ interface ActionBarHandle {
 interface ActionBarOverlayProps {
   currentUserId?: string;
   editingEventId?: string | null;
+  onReplyMessage?: (event: TimelineEvent) => void;
   onEditMessage?: (event: TimelineEvent) => void;
   onDeleteMessage?: (event: TimelineEvent) => void;
   onToggleReaction?: (eventId: string, key: string) => void;
@@ -203,7 +206,14 @@ interface ActionBarOverlayProps {
 
 const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
   function ActionBarOverlay(
-    { currentUserId, editingEventId, onEditMessage, onDeleteMessage, onToggleReaction },
+    {
+      currentUserId,
+      editingEventId,
+      onReplyMessage,
+      onEditMessage,
+      onDeleteMessage,
+      onToggleReaction,
+    },
     ref,
   ) {
     const [current, setCurrent] = useState<Target | null>(null);
@@ -261,6 +271,7 @@ const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
         onOpenChange={(next) => {
           if (!next) close();
         }}
+        onReply={onReplyMessage ? () => onReplyMessage(event) : undefined}
         onEdit={isOwn && onEditMessage ? () => onEditMessage(event) : undefined}
         onDelete={isOwn && onDeleteMessage ? () => onDeleteMessage(event) : undefined}
         onToggleReaction={
@@ -359,6 +370,8 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   renderEditor?: (event: TimelineEvent) => React.ReactNode;
   onToggleReaction?: (eventId: string, key: string) => void;
   ReactionSlot?: React.ComponentType<ReactionSlotProps>;
+  /** Called when a reply quote is clicked and target is not in the current timeline window. */
+  onJumpToEvent?: (eventId: string) => void;
   /** Per-event additional context menu items. */
   getContextMenuExtras?: (event: TimelineEvent) => readonly MessageMenuItem[];
 }
@@ -376,6 +389,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     className,
     currentUserId,
     onToggleReaction,
+    onJumpToEvent,
     getContextMenuExtras,
     ...props
   },
@@ -384,6 +398,23 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+
+  const handleReplyClick = useCallback(
+    (eventId: string) => {
+      const container = containerRef.current;
+      const target = container?.querySelector(
+        `[data-event-id="${CSS.escape(eventId)}"]`,
+      ) as HTMLElement | null;
+      if (target) {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+        target.setAttribute("data-flash", "");
+        window.setTimeout(() => target.removeAttribute("data-flash"), 1500);
+        return;
+      }
+      onJumpToEvent?.(eventId);
+    },
+    [onJumpToEvent],
+  );
   const actionBarRef = useRef<ActionBarHandle>(null);
   const contextMenuRef = useRef<ContextMenuOverlayHandle>(null);
 
@@ -445,7 +476,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
       data-scope="message-list"
       data-part="root"
       ref={containerRef}
-      className={cn("relative flex-1 overflow-y-auto", className)}
+      className={cn("relative flex-1 min-h-0 overflow-y-auto", className)}
       onScroll={handleScroll}
       {...props}
     >
@@ -480,6 +511,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
             onPointerEnter={handlePointerEnter}
             onPointerLeave={handlePointerLeave}
             onShowContextMenu={handleShowContextMenu}
+            onReplyClick={handleReplyClick}
           />
         );
       })}
@@ -495,6 +527,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
         ref={actionBarRef}
         currentUserId={currentUserId}
         editingEventId={editingEventId}
+        onReplyMessage={onReplyMessage}
         onEditMessage={onEditMessage}
         onDeleteMessage={onDeleteMessage}
         onToggleReaction={onToggleReaction}

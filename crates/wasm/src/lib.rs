@@ -16,9 +16,10 @@ use crate::{
     },
     sync::{start_sync_impl, stop_sync_impl},
     timeline::{
-        TimelineEventData, edit_message_impl, get_timeline_impl, mark_as_read_impl,
-        paginate_backwards_impl, redact_message_impl, send_message_impl, subscribe_timeline_impl,
-        toggle_reaction_impl,
+        ModeSwapResult, PaginateResult, PaginationDirection, RoomStateSnapshot, edit_message_impl,
+        focus_on_event_impl, get_room_state_impl, mark_as_read_impl, paginate_room_impl,
+        redact_message_impl, return_to_live_impl, send_message_impl, subscribe_room_impl,
+        toggle_reaction_impl, unsubscribe_room_impl,
     },
 };
 
@@ -141,9 +142,28 @@ pub async fn get_space_descendants(space_id: String) -> Result<Vec<String>, Harm
     get_space_descendants_impl(space_id).await
 }
 
-#[wasm_bindgen(js_name = subscribeTimeline)]
-pub async fn subscribe_timeline(room_id: &str) -> Result<JsValue, JsValue> {
-    subscribe_timeline_impl(room_id).await?.try_into()
+#[wasm_bindgen(js_name = subscribeRoom)]
+pub async fn subscribe_room(room_id: &str) -> Result<JsValue, JsValue> {
+    subscribe_room_impl(room_id).await?.try_into()
+}
+
+#[wasm_bindgen(js_name = unsubscribeRoom)]
+pub fn unsubscribe_room(room_id: &str) -> Result<(), HarmonyError> {
+    unsubscribe_room_impl(room_id)
+}
+
+#[wasm_bindgen(js_name = focusOnEvent)]
+pub async fn focus_on_event(
+    room_id: &str,
+    target_event_id: &str,
+    num_context_events: Option<u16>,
+) -> Result<ModeSwapResult, HarmonyError> {
+    focus_on_event_impl(room_id, target_event_id, num_context_events).await
+}
+
+#[wasm_bindgen(js_name = returnToLive)]
+pub async fn return_to_live(room_id: &str) -> Result<ModeSwapResult, HarmonyError> {
+    return_to_live_impl(room_id).await
 }
 
 #[wasm_bindgen(js_name = sendMessage)]
@@ -151,8 +171,15 @@ pub async fn send_message(
     room_id: &str,
     body: &str,
     formatted_body: Option<String>,
+    reply_to_event_id: Option<String>,
 ) -> Result<(), HarmonyError> {
-    send_message_impl(room_id, body, formatted_body.as_deref()).await
+    send_message_impl(
+        room_id,
+        body,
+        formatted_body.as_deref(),
+        reply_to_event_id.as_deref(),
+    )
+    .await
 }
 
 #[wasm_bindgen(js_name = editMessage)]
@@ -173,9 +200,13 @@ pub async fn edit_message(
     .await
 }
 
-#[wasm_bindgen(js_name = paginateBackwards)]
-pub async fn paginate_backwards(room_id: &str, count: u16) -> Result<bool, HarmonyError> {
-    paginate_backwards_impl(room_id, count).await
+#[wasm_bindgen(js_name = paginateRoom)]
+pub async fn paginate_room(
+    room_id: &str,
+    direction: PaginationDirection,
+    count: u16,
+) -> Result<PaginateResult, HarmonyError> {
+    paginate_room_impl(room_id, direction, count).await
 }
 
 #[wasm_bindgen(js_name = toggleReaction)]
@@ -202,7 +233,7 @@ pub async fn mark_as_read(room_id: &str) -> Result<(), HarmonyError> {
     mark_as_read_impl(room_id).await
 }
 
-#[wasm_bindgen(js_name = getTimeline)]
-pub async fn get_timeline(room_id: &str) -> Result<Vec<TimelineEventData>, HarmonyError> {
-    get_timeline_impl(room_id).await
+#[wasm_bindgen(js_name = getRoomState)]
+pub async fn get_room_state(room_id: &str) -> Result<RoomStateSnapshot, HarmonyError> {
+    get_room_state_impl(room_id).await
 }

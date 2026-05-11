@@ -14,12 +14,14 @@ export {
   useMembers,
   useRooms,
 } from "./rooms";
-export { createSpace, joinSpace, subscribeSpaces, useSpaces } from "./spaces";
+export { createSpace, getFirstSpace, joinSpace, subscribeSpaces, useSpaces } from "./spaces";
 export {
   editMessage,
+  focusOnEvent,
   markAsRead,
   paginateTimeline,
   redactMessage,
+  returnToLive,
   sendMessage,
   subscribeTimeline,
   toggleReaction,

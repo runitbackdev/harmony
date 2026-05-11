@@ -1,24 +1,18 @@
 wasm-crate := "crates/wasm"
 wasm-out := "../../packages/wasm"
 
-setup: check-deps
-  rustup target add wasm32-unknown-unknown
-  command -v wasm-pack >/dev/null || cargo install wasm-pack
-  command -v typos >/dev/null || cargo install typos-cli
-  command -v committed >/dev/null || cargo install committed
-  command -v overmind >/dev/null || go install github.com/DarthSim/overmind/v2@latest
-  command -v watchexec >/dev/null || cargo install watchexec-cli
-  just build-wasm-dev
-  pnpm install
-  pnpm lefthook install
-  cd apps/herald && bundle install
+compose := if `command -v docker >/dev/null 2>&1 && echo yes || echo no` == "yes" { "docker compose" } else { "podman compose" }
 
+# Frontend only — hosted homeserver by default (override via VITE_HOMESERVER_URL).
+web:
+  @test -d packages/wasm || just build-wasm-dev
+  pnpm --filter web dev
+
+# Full local stack — synapse (detached) + herald + web via hivemind.
 dev:
   @test -d packages/wasm || just build-wasm-dev
-  overmind start -f Procfile.dev
-
-web:
-  VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
+  @just synapse
+  hivemind Procfile.dev
 
 build: build-wasm build-web
 
@@ -41,35 +35,23 @@ clean:
   pnpm --filter web exec rm -rf dist
 
 synapse:
-  docker compose up -d synapse
+  {{compose}} up -d synapse
 
 synapse-stop:
-  docker compose down
+  {{compose}} down
 
 setup-users:
-  docker exec harmony-synapse register_new_matrix_user -u admin -p admin -c /config/homeserver.yaml --admin
-  docker exec harmony-synapse register_new_matrix_user -u alice -p alice -c /config/homeserver.yaml --no-admin
-  docker exec harmony-synapse register_new_matrix_user -u bob -p bob -c /config/homeserver.yaml --no-admin
+  {{compose}} exec synapse register_new_matrix_user -u admin -p admin -c /config/homeserver.yaml --admin
+  {{compose}} exec synapse register_new_matrix_user -u alice -p alice -c /config/homeserver.yaml --no-admin
+  {{compose}} exec synapse register_new_matrix_user -u bob -p bob -c /config/homeserver.yaml --no-admin
 
 synapse-reset:
-  docker compose down -v
-  docker compose up -d synapse
+  {{compose}} down -v
+  {{compose}} up -d synapse
   @echo "Waiting for Synapse to start..."
-  @until docker exec harmony-synapse curl -sf http://localhost:8008/_matrix/client/versions > /dev/null 2>&1; do sleep 1; done
+  @until {{compose}} exec synapse curl -sf http://localhost:8008/_matrix/client/versions > /dev/null 2>&1; do sleep 1; done
   just setup-users
   @echo "Synapse reset complete."
-
-synapse-seed: setup-users
-
-[private]
-check-deps:
-  @command -v rustup >/dev/null || (echo "error: rustup not found — install from https://rustup.rs" && exit 1)
-  @command -v cargo >/dev/null || (echo "error: cargo not found — install rust via rustup" && exit 1)
-  @command -v pnpm >/dev/null || (echo "error: pnpm not found — install from https://pnpm.io" && exit 1)
-  @command -v go >/dev/null || (echo "error: go not found — install from https://go.dev/dl" && exit 1)
-  @command -v tmux >/dev/null || (echo "error: tmux not found — install via your package manager" && exit 1)
-  @command -v ruby >/dev/null || (echo "error: ruby not found — install from https://www.ruby-lang.org" && exit 1)
-  @command -v bundle >/dev/null || (echo "error: bundler not found — run: gem install bundler" && exit 1)
 
 [private]
 build-wasm:

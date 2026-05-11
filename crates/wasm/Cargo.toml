@@ -42,6 +42,7 @@ mime = "0.3"
 tracing = { version = "0.1", features = ["release_max_level_off"] }
 tracing-wasm = "0.2"
 
+futures-channel = "0.3"
 futures-util = "0.3"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 wasm-streams = "0.4"

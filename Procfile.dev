@@ -1,3 +1,2 @@
-synapse: docker compose up synapse
 herald: cd apps/herald && bin/rails server -p 3000
 web: VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev

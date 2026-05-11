@@ -250,6 +250,9 @@ importers:
       linkify-it:
         specifier: ^5.0.0
         version: 5.0.0
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.7.0(react@19.2.4)
       marked:
         specifier: ^17.0.5
         version: 17.0.5

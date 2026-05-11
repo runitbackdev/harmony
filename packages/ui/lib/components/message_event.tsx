@@ -1,4 +1,6 @@
 import type { HTMLAttributes } from "react";
+import type { ReplyTarget } from "@harmony/protocol";
+import { Reply } from "lucide-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";
 import { MxAvatar } from "./mx_avatar";
@@ -22,6 +24,8 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   edited?: boolean;
   editing?: React.ReactNode;
   reactions?: React.ReactNode;
+  replyTo?: ReplyTarget | null;
+  onReplyClick?: (eventId: string) => void;
 }
 
 function MessageEvent({
@@ -37,6 +41,8 @@ function MessageEvent({
   edited,
   editing,
   reactions,
+  replyTo,
+  onReplyClick,
   ...props
 }: MessageEventProps) {
   const time = timeFormatter.format(timestamp);
@@ -92,6 +98,7 @@ function MessageEvent({
             </span>
           </div>
         )}
+        {replyTo && <ReplyQuote replyTo={replyTo} onClick={onReplyClick} />}
         {editing ??
           (formattedBody ? (
             <div
@@ -114,6 +121,35 @@ function MessageEvent({
         {reactions}
       </div>
     </div>
+  );
+}
+
+// #endregion
+
+// #region ReplyQuote
+
+function ReplyQuote({
+  replyTo,
+  onClick,
+}: {
+  replyTo: ReplyTarget;
+  onClick?: (eventId: string) => void;
+}) {
+  const name = replyTo.senderName ?? replyTo.sender ?? "unknown";
+  const snippet = replyTo.redacted ? "[deleted message]" : (replyTo.body ?? "[unavailable]");
+
+  return (
+    <button
+      type="button"
+      data-scope="message-event"
+      data-part="reply-quote"
+      onClick={() => onClick?.(replyTo.eventId)}
+      className="mb-1 flex max-w-full items-center gap-1.5 rounded border-l-2 border-surface-400-600 bg-surface-100-900 px-2 py-1 text-left text-xs text-surface-500 hover:border-primary-500 hover:text-surface-950-50 transition-colors"
+    >
+      <Reply size={12} className="shrink-0 -scale-x-100" />
+      <span className="font-medium text-surface-700-300 truncate">{name}</span>
+      <span className="truncate min-w-0">{snippet}</span>
+    </button>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useFloating, FloatingPortal, offset, flip, shift, autoUpdate } from "@floating-ui/react";
 import { EmojiPickerButton } from "@harmony/composer";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Reply, Trash2 } from "lucide-react";
 import { Transition } from "@harmony/primitives";
 import { useDeleteConfirm } from "../hooks/use-delete-confirm";
 
@@ -10,6 +10,7 @@ const QUICK_REACTIONS = ["\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F525
 interface MessageActionBarProps {
   isOwn?: boolean;
   onToggleReaction?: (key: string) => void;
+  onReply?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   anchor: HTMLElement;
@@ -20,6 +21,7 @@ interface MessageActionBarProps {
 function MessageActionBar({
   isOwn,
   onToggleReaction,
+  onReply,
   onEdit,
   onDelete,
   anchor,
@@ -109,6 +111,20 @@ function MessageActionBar({
               onClick={deleteConfirm.request}
             >
               <Trash2 size={14} />
+            </button>
+          )}
+
+          {onReply && (
+            <button
+              type="button"
+              aria-label="Reply to message"
+              tabIndex={-1}
+              data-scope="message-action-bar"
+              data-part="action"
+              className="rounded p-1 text-surface-500 hover:bg-surface-200-800 hover:text-surface-950-50 transition-colors"
+              onClick={onReply}
+            >
+              <Reply size={14} />
             </button>
           )}
         </div>
