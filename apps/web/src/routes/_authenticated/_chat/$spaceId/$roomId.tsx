@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState, useContext } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
@@ -16,16 +16,23 @@ import {
   useTimeline,
   getSession,
 } from "@harmony/react";
-import { MemberList, MessageList, type MessageListHandle, ReactionDisplay } from "@harmony/ui";
-import { Transition } from "@harmony/primitives";
+import {
+  Drawer,
+  MemberList,
+  MessageList,
+  type MessageListHandle,
+  ReactionDisplay,
+} from "@harmony/ui";
+import { Transition, useMediaQuery } from "@harmony/primitives";
 import { Composer, EditComposer } from "@harmony/composer";
 import type { ComposerHandle, EditTarget } from "@harmony/composer";
-import { Bug, Hash, PanelRight, Users } from "lucide-react";
+import { Bug, Hash, Menu, PanelRight, Users } from "lucide-react";
 import type { ReactionGroup, TimelineContent, TimelineEvent } from "@harmony/protocol";
 import { setLastRoom } from "@/lib/last-room";
 import { useOmnibarCommands } from "@/omnibar";
 import { recordUsage } from "@/omnibar/store";
 import { useRoomCommands } from "@/rooms/commands";
+import { NavContext } from "./route";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   loader: async ({ params }) => {
@@ -58,7 +65,9 @@ function formatContent(content: TimelineContent): string {
 const EMPTY_REACTIONS: ReactionGroup[] = [];
 
 function ConnectedReactions({ eventId }: { eventId: string }) {
-  const { roomId } = useParams({ from: "/_authenticated/_chat/$spaceId/$roomId" });
+  const { roomId } = useParams({
+    from: "/_authenticated/_chat/$spaceId/$roomId",
+  });
   const reactions = useReactions(eventId);
   return (
     <ReactionDisplay
@@ -108,6 +117,11 @@ const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug:
 
     function handleEditMessage(event: TimelineEvent) {
       setEditingId(event.id ?? event.transactionId ?? null);
+    }
+
+    function handleReplyMessage(event: TimelineEvent) {
+      void event;
+      console.warn("reply: not implemented");
     }
 
     function handleEdit(target: EditTarget, body: string, html: string) {
@@ -160,6 +174,7 @@ const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug:
         ref={ref}
         events={events}
         onLoadMore={handleLoadMore}
+        onReplyMessage={handleReplyMessage}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
         editingEventId={editingId}
@@ -172,30 +187,54 @@ const ConnectedTimeline = forwardRef<MessageListHandle, { roomId: string; debug:
   },
 );
 
-function ConnectedMemberList({ roomId, open }: { roomId: string; open: boolean }) {
+function ConnectedMemberList({
+  roomId,
+  open,
+  onOpenChange,
+}: {
+  roomId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const members = useMembers();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const sorted = [...members].sort((a, b) =>
     (a.displayName ?? a.userId).localeCompare(b.displayName ?? b.userId),
   );
   void roomId;
 
+  const content = (
+    <MemberList className="h-full">
+      <MemberList.Header>Members — {sorted.length}</MemberList.Header>
+      <div className="flex-1 overflow-y-auto">
+        <MemberList.List>
+          {sorted.map((member) => (
+            <MemberList.Row
+              key={member.userId}
+              name={member.displayName ?? member.userId}
+              avatarUrl={member.avatarUrl}
+            />
+          ))}
+        </MemberList.List>
+      </div>
+    </MemberList>
+  );
+
   return (
-    <Transition open={open}>
-      <MemberList>
-        <MemberList.Header>Members — {sorted.length}</MemberList.Header>
-        <div className="flex-1 overflow-y-auto">
-          <MemberList.List>
-            {sorted.map((member) => (
-              <MemberList.Row
-                key={member.userId}
-                name={member.displayName ?? member.userId}
-                avatarUrl={member.avatarUrl}
-              />
-            ))}
-          </MemberList.List>
-        </div>
-      </MemberList>
-    </Transition>
+    <>
+      <div className="hidden md:flex">
+        <Transition open={open}>{content}</Transition>
+      </div>
+
+      {!isDesktop && (
+        <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+          <Drawer.Portal>
+            <Drawer.Overlay />
+            <Drawer.Content className="right-0 rounded-l-xl w-70">{content}</Drawer.Content>
+          </Drawer.Portal>
+        </Drawer>
+      )}
+    </>
   );
 }
 
@@ -225,6 +264,7 @@ function TimelineView() {
   });
   const [debug, setDebug] = useState(false);
   const [membersOpen, setMembersOpen] = useMembersPanelOpen();
+  const navContext = useContext(NavContext);
   const composerRef = useRef<ComposerHandle>(null);
   const messageListRef = useRef<MessageListHandle>(null);
 
@@ -280,13 +320,22 @@ function TimelineView() {
   }, []);
 
   return (
-    <div className="flex flex-1">
-      <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 min-w-0">
+      <div className="flex flex-1 flex-col min-w-0">
         <header
           data-scope="room"
           data-part="header"
           className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2"
         >
+          <button
+            type="button"
+            className="md:hidden text-surface-500 transition-colors hover:text-surface-950-50 mr-2"
+            onClick={() => navContext?.setNavOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Menu size={20} />
+          </button>
+
           <RoomHeader roomId={roomId} />
           <div className="ml-auto flex items-center gap-3">
             <button
@@ -316,7 +365,7 @@ function TimelineView() {
         </div>
       </div>
 
-      <ConnectedMemberList roomId={roomId} open={membersOpen} />
+      <ConnectedMemberList roomId={roomId} open={membersOpen} onOpenChange={setMembersOpen} />
     </div>
   );
 }

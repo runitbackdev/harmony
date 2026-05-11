@@ -10,10 +10,12 @@
     "@harmony/composer": "workspace:*",
     "@harmony/primitives": "workspace:*",
     "@harmony/protocol": "workspace:*",
+    "@react-aria/interactions": "^3.28.0",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.4",
     "lucide-react": "catalog:",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "vaul": "^1.1.2"
   },
   "devDependencies": {
     "@types/react": "catalog:",

@@ -3,3 +3,4 @@ export { useAnimatedUnmount, type TransitionStatus } from "./use-animated-unmoun
 export { useDelayedUnmount } from "./use-delayed-unmount";
 export { Transition } from "./transition";
 export { useAnimationCue } from "./use-animation-cue";
+export { useMediaQuery } from "./use-media-query";

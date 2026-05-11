@@ -1,14 +1,32 @@
-import { useCallback, useState } from "react";
-import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { createContext, useState } from "react";
+import { createFileRoute, Outlet, redirect, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Sidebar, TextField } from "@harmony/ui";
-import { createRoom, subscribeRooms, useCreateInvite, useRooms, useSpaces } from "@harmony/react";
-import { Check, Copy, Hash, Link, Plus, UserPlus, X } from "lucide-react";
+import { Dialog, Drawer, Sidebar, TextField } from "@harmony/ui";
+import { createRoom, getRoomIdsInSpace, subscribeRooms, useCreateInvite } from "@harmony/react";
+import { Check, Copy, Menu, Plus, UserPlus, X } from "lucide-react";
 import * as v from "valibot";
 import { useOmnibarCommands } from "@/omnibar";
 import { useSpaceCommands } from "@/spaces/commands";
+import { getLastRoom } from "@/lib/last-room";
+import { RoomSidebar } from "@/nav/room-sidebar";
+import { NavPanel } from "@/nav/nav-panel";
+
+export const NavContext = createContext<{ setNavOpen: (open: boolean) => void } | null>(null);
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId")({
+  beforeLoad: async ({ params, location }) => {
+    if (location.pathname === `/${params.spaceId}` || location.pathname === `/${params.spaceId}/`) {
+      const roomIds = await getRoomIdsInSpace(params.spaceId);
+      if (roomIds.length > 0) {
+        const lastRoomId = getLastRoom(params.spaceId);
+        const target = lastRoomId && roomIds.includes(lastRoomId) ? lastRoomId : roomIds[0];
+        throw redirect({
+          to: "/$spaceId/$roomId",
+          params: { spaceId: params.spaceId, roomId: target },
+        });
+      }
+    }
+  },
   loader: async ({ params }) => {
     await subscribeRooms(params.spaceId);
   },
@@ -28,7 +46,7 @@ const SKELETON_WIDTHS = ["75%", "60%", "85%", "65%", "70%"];
 
 function PendingSkeleton() {
   return (
-    <Sidebar>
+    <Sidebar className="hidden md:flex">
       <Sidebar.Header data-sidebar="header">
         <div className="h-5 w-32 animate-pulse rounded bg-surface-300-700" />
       </Sidebar.Header>
@@ -41,62 +59,14 @@ function PendingSkeleton() {
   );
 }
 
-function RoomList() {
-  const rooms = useRooms();
-  const navigate = useNavigate();
-  const { spaceId, roomId } = useParams({ strict: false });
-
-  const handleClick = useCallback(
-    (targetRoomId: string) => {
-      void navigate({
-        to: "/$spaceId/$roomId",
-        params: { spaceId: spaceId!, roomId: targetRoomId },
-      });
-    },
-    [navigate, spaceId],
-  );
-
-  if (rooms.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <p className="text-sm text-surface-500">No channels yet.</p>
-      </div>
-    );
-  }
-
-  return (
-    <Sidebar.List>
-      {rooms.map((room) => {
-        const hasMention = room.mentionCount > 0;
-        const hasUnread = room.unreadCount > 0;
-
-        return (
-          <Sidebar.Item
-            key={room.roomId}
-            icon={<Hash size={16} />}
-            active={roomId === room.roomId}
-            unread={hasUnread}
-            badge={hasMention || hasUnread ? <Sidebar.Dot mention={hasMention} /> : undefined}
-            onClick={() => handleClick(room.roomId)}
-          >
-            {room.displayName}
-          </Sidebar.Item>
-        );
-      })}
-    </Sidebar.List>
-  );
-}
-
 function RouteComponent() {
-  const { spaceId } = useParams({ strict: false });
-  const spaces = useSpaces();
-  const currentSpace = spaces.find((s) => s.roomId === spaceId);
+  const { spaceId, roomId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const createInvite = useCreateInvite();
 
   useSpaceCommands(spaceId!);
-
   useOmnibarCommands(
     [
       {
@@ -120,99 +90,117 @@ function RouteComponent() {
     [spaceId, createInvite.data],
   );
 
+  return (
+    <NavContext.Provider value={{ setNavOpen }}>
+      <RoomSidebar spaceId={spaceId!} className="hidden md:flex" />
+
+      <CreateRoomDialog spaceId={spaceId!} open={createOpen} onOpenChange={setCreateOpen} />
+      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
+
+      <div className="flex flex-1 flex-col min-w-0">
+        {!roomId ? (
+          <div className="flex flex-1 flex-col">
+            <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2 md:hidden">
+              <button
+                type="button"
+                className="text-surface-500 transition-colors hover:text-surface-950-50 mr-2"
+                onClick={() => setNavOpen(true)}
+                aria-label="Open navigation"
+              >
+                <Menu size={20} />
+              </button>
+              <h2 className="text-sm font-semibold text-surface-950-50">Channels</h2>
+            </header>
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-sm text-surface-500">
+                No channels yet — create one to get started.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <Outlet />
+        )}
+      </div>
+
+      <Drawer open={navOpen} onOpenChange={setNavOpen} direction="left">
+        <Drawer.Portal>
+          <Drawer.Overlay />
+          <Drawer.Content className="left-0 rounded-r-xl flex-row">
+            <NavPanel onAfterNavigate={() => setNavOpen(false)} />
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer>
+    </NavContext.Provider>
+  );
+}
+
+function CreateRoomDialog({
+  spaceId,
+  open,
+  onOpenChange,
+}: {
+  spaceId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const form = useForm({
     defaultValues: { name: "" },
     validators: { onSubmit: createRoomSchema },
     onSubmit: async ({ value }) => {
-      await createRoom(spaceId!, value.name, "public");
-      setCreateOpen(false);
+      await createRoom(spaceId, value.name, "public");
+      onOpenChange(false);
       form.reset();
     },
   });
 
   return (
-    <>
-      <Sidebar>
-        <Sidebar.Header data-sidebar="header">
-          {currentSpace?.displayName ?? "Channels"}
-        </Sidebar.Header>
-        <div className="flex-1 overflow-y-auto">
-          <RoomList />
-        </div>
-        <div className="space-y-1 p-2">
-          <button
-            className="btn preset-tonal-surface w-full gap-2 text-sm"
-            onClick={() => {
-              setInviteOpen(true);
-              if (!createInvite.data) createInvite.mutate({ spaceMxid: spaceId! });
-            }}
-            aria-label="Create invite link"
-          >
-            <Link size={16} />
-            Invite People
-          </button>
-          <button
-            className="btn preset-tonal-surface w-full gap-2 text-sm"
-            onClick={() => setCreateOpen(true)}
-            aria-label="Create channel"
-          >
-            <Plus size={16} />
-            Create Channel
-          </button>
-        </div>
-      </Sidebar>
+    <Dialog open={open} onOpenChange={(e) => onOpenChange(e.open)}>
+      <Dialog.Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Title>Create a Channel</Dialog.Title>
+            <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
 
-      <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
-        <Dialog.Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Title>Create a Channel</Dialog.Title>
-              <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+              className="mt-4 space-y-4"
+            >
+              <form.Field name="name">
+                {(field) => (
+                  <TextField
+                    label="Name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    error={field.state.meta.errors[0]?.message}
+                    autoFocus
+                  />
+                )}
+              </form.Field>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  void form.handleSubmit();
-                }}
-                className="mt-4 space-y-4"
+              <button
+                className="btn preset-filled-primary-500 w-full"
+                type="submit"
+                disabled={form.state.isSubmitting}
               >
-                <form.Field name="name">
-                  {(field) => (
-                    <TextField
-                      label="Name"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      error={field.state.meta.errors[0]?.message}
-                      autoFocus
-                    />
-                  )}
-                </form.Field>
+                {form.state.isSubmitting ? "Creating…" : "Create"}
+              </button>
+            </form>
 
-                <button
-                  className="btn preset-filled-primary-500 w-full"
-                  type="submit"
-                  disabled={form.state.isSubmitting}
-                >
-                  {form.state.isSubmitting ? "Creating…" : "Create"}
-                </button>
-              </form>
-
-              <Dialog.CloseTrigger>
-                <X size={16} />
-              </Dialog.CloseTrigger>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Dialog.Portal>
-      </Dialog>
-
-      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
-
-      <Outlet />
-    </>
+            <Dialog.CloseTrigger>
+              <X size={16} aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Portal>
+    </Dialog>
   );
 }
 
@@ -279,7 +267,8 @@ function InviteDialog({
             </div>
 
             <Dialog.CloseTrigger>
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
+              <span className="sr-only">Close</span>
             </Dialog.CloseTrigger>
           </Dialog.Content>
         </Dialog.Positioner>

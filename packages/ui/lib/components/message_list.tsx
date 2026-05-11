@@ -9,10 +9,12 @@ import {
   memo,
 } from "react";
 import type { HTMLAttributes } from "react";
+import { useLongPress } from "@react-aria/interactions";
 import type { TimelineEvent } from "@harmony/protocol";
 import { cn } from "../utils";
 import { useLoadMoreOnScroll, useNewMessageIndicator, useStickToBottom } from "../hooks/scroll";
 import { MessageActionBar } from "./message_action_bar";
+import { MessageContextMenu, type MessageMenuItem } from "./message_context_menu";
 import { MessageEvent } from "./message_event";
 import { SystemEvent } from "./system_event";
 import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
@@ -83,6 +85,7 @@ interface MessageRowProps {
   ReactionSlot?: React.ComponentType<ReactionSlotProps>;
   onPointerEnter: (event: TimelineEvent, index: number, el: HTMLElement) => void;
   onPointerLeave: (e: React.PointerEvent) => void;
+  onShowContextMenu: (event: TimelineEvent, x: number, y: number) => void;
 }
 
 const MessageRow = memo(function MessageRow({
@@ -94,7 +97,16 @@ const MessageRow = memo(function MessageRow({
   ReactionSlot,
   onPointerEnter,
   onPointerLeave,
+  onShowContextMenu,
 }: MessageRowProps) {
+  const { longPressProps } = useLongPress({
+    threshold: 500,
+    onLongPress: (e) => {
+      if (e.pointerType !== "touch") return;
+      if (event.content.type !== "message") return;
+      onShowContextMenu(event, e.x, e.y);
+    },
+  });
   function renderContent() {
     if (event.content.type === "virtual") {
       const kind = event.content.kind;
@@ -139,17 +151,31 @@ const MessageRow = memo(function MessageRow({
     <div
       data-scope="message-row"
       data-part="root"
+      data-index={index}
       style={{
         contentVisibility: "auto",
         containIntrinsicSize: INTRINSIC_ITEM_HEIGHT,
         overflowAnchor: "none",
+        WebkitTouchCallout: "none",
       }}
       className={cn(
         "px-4",
         !editingNode && "hover:bg-surface-100-900 data-active:bg-surface-100-900",
       )}
-      onPointerEnter={(e) => onPointerEnter(event, index, e.currentTarget)}
-      onPointerLeave={onPointerLeave}
+      {...longPressProps}
+      onPointerEnter={(e) => {
+        longPressProps.onPointerEnter?.(e);
+        onPointerEnter(event, index, e.currentTarget);
+      }}
+      onPointerLeave={(e) => {
+        longPressProps.onPointerLeave?.(e);
+        onPointerLeave(e);
+      }}
+      onContextMenu={(e) => {
+        if (event.content.type !== "message") return;
+        e.preventDefault();
+        onShowContextMenu(event, e.clientX, e.clientY);
+      }}
     >
       {renderContent()}
     </div>
@@ -249,6 +275,73 @@ const ActionBarOverlay = forwardRef<ActionBarHandle, ActionBarOverlayProps>(
 
 // #endregion
 
+// #region ContextMenuOverlay
+
+type ContextMenuTarget = { event: TimelineEvent; x: number; y: number };
+
+interface ContextMenuOverlayHandle {
+  show: (event: TimelineEvent, x: number, y: number) => void;
+  hide: () => void;
+}
+
+interface ContextMenuOverlayProps {
+  currentUserId?: string;
+  onReplyMessage?: (event: TimelineEvent) => void;
+  onEditMessage?: (event: TimelineEvent) => void;
+  onDeleteMessage?: (event: TimelineEvent) => void;
+  getExtras?: (event: TimelineEvent) => readonly MessageMenuItem[];
+}
+
+const ContextMenuOverlay = forwardRef<ContextMenuOverlayHandle, ContextMenuOverlayProps>(
+  function ContextMenuOverlay(
+    { currentUserId, onReplyMessage, onEditMessage, onDeleteMessage, getExtras },
+    ref,
+  ) {
+    const [current, setCurrent] = useState<ContextMenuTarget | null>(null);
+    const [last, setLast] = useState<ContextMenuTarget | null>(null);
+
+    const close = useCallback(() => setCurrent(null), []);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        show: (event, x, y) => {
+          const next = { event, x, y };
+          setCurrent(next);
+          setLast(next);
+        },
+        hide: close,
+      }),
+      [close],
+    );
+
+    if (!last) return null;
+
+    const { event } = last;
+    if (event.content.type !== "message") return null;
+
+    const isOwn = !!currentUserId && event.sender === currentUserId;
+
+    return (
+      <MessageContextMenu
+        open={!!current}
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+        virtualAnchor={current ? { x: current.x, y: current.y } : null}
+        isOwn={isOwn}
+        body={event.content.body}
+        onReply={onReplyMessage ? () => onReplyMessage(event) : undefined}
+        onEdit={isOwn && onEditMessage ? () => onEditMessage(event) : undefined}
+        onDelete={isOwn && onDeleteMessage ? () => onDeleteMessage(event) : undefined}
+        extras={getExtras?.(event)}
+      />
+    );
+  },
+);
+
+// #endregion
+
 // #region MessageList
 
 export interface MessageListHandle {
@@ -259,18 +352,22 @@ interface MessageListProps extends HTMLAttributes<HTMLDivElement> {
   currentUserId?: string;
   events: TimelineEvent[];
   onLoadMore?: () => Promise<boolean>;
+  onReplyMessage?: (event: TimelineEvent) => void;
   onEditMessage?: (event: TimelineEvent) => void;
   onDeleteMessage?: (event: TimelineEvent) => void;
   editingEventId?: string | null;
   renderEditor?: (event: TimelineEvent) => React.ReactNode;
   onToggleReaction?: (eventId: string, key: string) => void;
   ReactionSlot?: React.ComponentType<ReactionSlotProps>;
+  /** Per-event additional context menu items. */
+  getContextMenuExtras?: (event: TimelineEvent) => readonly MessageMenuItem[];
 }
 
 const MessageList = forwardRef<MessageListHandle, MessageListProps>(function MessageList(
   {
     events,
     onLoadMore,
+    onReplyMessage,
     onEditMessage,
     onDeleteMessage,
     editingEventId,
@@ -279,6 +376,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     className,
     currentUserId,
     onToggleReaction,
+    getContextMenuExtras,
     ...props
   },
   ref,
@@ -287,6 +385,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
   const sentinelRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<ActionBarHandle>(null);
+  const contextMenuRef = useRef<ContextMenuOverlayHandle>(null);
 
   const handlePointerEnter = useCallback((event: TimelineEvent, _i: number, el: HTMLElement) => {
     if (event.content.type !== "message") return;
@@ -306,6 +405,12 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     actionBarRef.current?.hide();
   }, []);
 
+  const handleShowContextMenu = useCallback((event: TimelineEvent, x: number, y: number) => {
+    if (event.content.type !== "message") return;
+    actionBarRef.current?.hide();
+    contextMenuRef.current?.show(event, x, y);
+  }, []);
+
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleScroll = useCallback(() => {
@@ -313,6 +418,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     if (!container) return;
 
     actionBarRef.current?.hide();
+    contextMenuRef.current?.hide();
     container.style.pointerEvents = "none";
 
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
@@ -373,6 +479,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
             ReactionSlot={ReactionSlot}
             onPointerEnter={handlePointerEnter}
             onPointerLeave={handlePointerLeave}
+            onShowContextMenu={handleShowContextMenu}
           />
         );
       })}
@@ -391,6 +498,14 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
         onEditMessage={onEditMessage}
         onDeleteMessage={onDeleteMessage}
         onToggleReaction={onToggleReaction}
+      />
+      <ContextMenuOverlay
+        ref={contextMenuRef}
+        currentUserId={currentUserId}
+        onReplyMessage={onReplyMessage}
+        onEditMessage={onEditMessage}
+        onDeleteMessage={onDeleteMessage}
+        getExtras={getContextMenuExtras}
       />
     </div>
   );
