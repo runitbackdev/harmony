@@ -73,44 +73,44 @@ Matrix has a UX problem — most clients feel like they were built for protocol 
 ```sh
 git clone ssh://git@codeberg.org/harmonychat/harmony.git
 cd harmony
-mise install        # installs every pinned tool
-pnpm install        # node deps
-pnpm lefthook install  # git hooks
-just build-wasm-dev    # initial WASM build
+just setup
 ```
 
-That's it. `mise install` reads `.mise.toml` and provisions `rust`, `node`, `pnpm`, `ruby`, `just`, `wasm-pack`, `typos`, `committed`, `watchexec`, and `hivemind` — all into `~/.local/share/mise`, no system package manager involved.
+`setup_dev.sh` runs `mise install`, `pnpm install`, installs the `harmony` CLI (`cargo install --path tools/harmony-cli`), builds initial WASM, and installs git hooks. Idempotent — safe to rerun after pulling changes. If `harmony-cli` source changes, run `harmony self-update`.
+
+`mise install` reads `.mise.toml` and provisions `rust`, `node`, `pnpm`, `just`, `wasm-pack`, `typos`, `committed`, `watchexec`, and `hivemind` — all into `~/.local/share/mise`, no system package manager involved.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Usage
 
-Three modes, pick what you need:
+Most workflows go through `harmony` (typed CLI). Unknown subcommands forward to `just`, so `harmony web` ≡ `just web`.
 
 ```sh
-just web        # frontend only — points at hosted homeserver, no local backend
-just dev        # frontend + local synapse + herald (full local stack)
-just build      # production build
+harmony web        # frontend only — points at hosted homeserver, no local backend
+harmony dev        # frontend + local synapse + herald (full local stack)
+harmony build      # production build
+harmony codegen    # build WASM + regenerate TS protocol bindings
 ```
 
-| Command      | Description                            |
-| ------------ | -------------------------------------- |
-| `just web`   | Vite only, hosted homeserver           |
-| `just dev`   | Synapse (detached) + herald + web      |
-| `just build` | Production build (WASM + web)          |
-| `just check` | Run cargo check, clippy, eslint, typos |
-| `just fmt`   | Format Rust and TypeScript files       |
-| `just clean` | Remove build artifacts                 |
-
-### Why two dev commands?
-
-- `just web` is for UI work. It runs the Vite dev server only and points at our hosted dev homeserver (`chat.lycanthropy.dev` by default). No container runtime, no Ruby, no supervisor.
-- `just dev` is for protocol/backend work. It spins up Synapse via `compose` (detached, so Ctrl-C on the dev server doesn't tear it down) and then runs Herald + web under [hivemind](https://github.com/DarthSim/hivemind).
+| Command            | Description                                    |
+| ------------------ | ---------------------------------------------- |
+| `harmony web`      | Vite only, hosted homeserver                   |
+| `harmony dev`      | Synapse (detached) + herald + web              |
+| `harmony build`    | Production build (WASM + web)                  |
+| `harmony codegen`  | Build WASM + emit `maps.generated.ts` (`--release` for prod) |
+| `harmony check`    | Run cargo check, clippy, eslint, typos         |
+| `harmony fmt`      | Format Rust and TypeScript files               |
+| `harmony clean`    | Remove build artifacts                         |
+| `harmony db …`     | CREATE / DROP / RESET herald database          |
+| `harmony migration …` | Generate / apply / status / snapshot Herald migrations |
+| `harmony psql`     | Open psql shell against herald DB              |
+| `harmony self-update` | Reinstall `harmony` from this workspace     |
 
 Override the homeserver any time:
 
 ```sh
-VITE_HOMESERVER_URL=http://localhost:8008 just web
+VITE_HOMESERVER_URL=http://localhost:8008 harmony web
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -122,21 +122,21 @@ A local [Synapse](https://github.com/element-hq/synapse) homeserver is included 
 Start Synapse:
 
 ```sh
-just synapse
+harmony synapse
 ```
 
 Seed test users:
 
 ```sh
-just setup-users
+harmony setup-users
 ```
 
-| Command              | Description                            |
-| -------------------- | -------------------------------------- |
-| `just synapse`       | Start local Synapse (port 8008)        |
-| `just setup-users`   | Create test users                      |
-| `just synapse-stop`  | Stop Synapse                           |
-| `just synapse-reset` | Stop Synapse, delete all data, reseed  |
+| Command                 | Description                           |
+| ----------------------- | ------------------------------------- |
+| `harmony synapse`       | Start local Synapse (port 8008)       |
+| `harmony setup-users`   | Create test users                     |
+| `harmony synapse-stop`  | Stop Synapse                          |
+| `harmony synapse-reset` | Stop Synapse, delete all data, reseed |
 
 ### Test Accounts
 
@@ -162,7 +162,8 @@ harmony/
 │   ├── react/         # React bindings and hooks
 │   ├── ui/            # Design system components
 │   └── wasm/          # WASM build output (generated)
-├── justfile           # Task runner commands
+├── tools/harmony-cli/ # `harmony` CLI (typed workspace commands)
+├── justfile           # Orchestration recipes (setup, compose, hivemind, multi-step shell)
 └── lefthook.yml       # Git hooks config
 ```
 
@@ -181,7 +182,7 @@ We use AI tools during development and welcome contributions that do too. What w
 
 ### Git Hooks
 
-Running `just` sets up [Lefthook](https://github.com/evilmartians/lefthook) git hooks that run automatically:
+`just setup` sets up [Lefthook](https://github.com/evilmartians/lefthook) git hooks that run automatically:
 
 - **Pre-commit:** formatting (cargo fmt, prettier), linting (clippy, eslint), and spell checking via [typos](https://github.com/crate-ci/typos)
 - **Commit message:** validated by [committed](https://github.com/crate-ci/committed) — must follow conventional commit format

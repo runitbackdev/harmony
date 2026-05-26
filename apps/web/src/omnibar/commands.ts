@@ -1,4 +1,5 @@
-import { getAllRooms, markAsRead } from "@harmony/react";
+import { getAllRooms } from "@/rooms/api";
+import { markRoomAsRead } from "@/timeline/api";
 import { notImplemented, toast } from "@/lib/toast";
 import {
   Accessibility,
@@ -40,20 +41,19 @@ import type { Command } from "./types";
 
 async function markAllAsRead() {
   try {
-    const rooms = await getAllRooms();
+    const result = await getAllRooms();
+    if (!result.ok) {
+      toast.error("Couldn't load rooms");
+      return;
+    }
+    const rooms = result.value;
     if (rooms.length === 0) {
       toast.info("No rooms to mark as read");
       return;
     }
-    const results = await Promise.allSettled(rooms.map((r) => markAsRead(r.roomId)));
-    const failed = results.filter((r) => r.status === "rejected").length;
-    const succeeded = rooms.length - failed;
-    const noun = succeeded === 1 ? "room" : "rooms";
-    if (failed === 0) {
-      toast.success(`Marked ${succeeded} ${noun} as read`);
-    } else {
-      toast.error(`Marked ${succeeded} of ${rooms.length} rooms as read`);
-    }
+    for (const r of rooms) markRoomAsRead(r.roomId);
+    const noun = rooms.length === 1 ? "room" : "rooms";
+    toast.success(`Marked ${rooms.length} ${noun} as read`);
   } catch {
     toast.error("Couldn't mark rooms as read");
   }

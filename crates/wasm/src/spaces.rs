@@ -1,10 +1,10 @@
-use futures_util::StreamExt;
+use std::{cell::RefCell, rc::Rc};
+
+use futures_util::{StreamExt, stream};
+use harmony_protocol::{Rpc, Subscription, harmony_export};
 use matrix_sdk::ruma::{
-    OwnedRoomId, RoomId,
-    api::client::{
-        room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
-        space::get_hierarchy::v1::Request as SpaceHierarchyRequest,
-    },
+    RoomId,
+    api::client::room::create_room::v3::{CreationContent, Request as CreateRoomRequest},
     events::{
         EmptyStateKey, InitialStateEvent,
         room::{
@@ -18,12 +18,14 @@ use matrix_sdk::ruma::{
 };
 use matrix_sdk_ui::spaces::SpaceService;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, rc::Rc};
-use tsify_next::Tsify;
+use tsify::Tsify;
+use wasm_bindgen::JsValue;
 
 use crate::{
-    client, diff::serialize_diffs, errors::HarmonyError, rooms::RoomData,
-    subscription::Subscription,
+    client,
+    diff::{ListDiff, convert_diffs},
+    errors::HarmonyError,
+    rooms::RoomData,
 };
 
 thread_local! {
@@ -52,7 +54,6 @@ pub enum ChannelVisibility {
 }
 
 #[derive(Clone, Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi)]
 #[serde(rename_all = "camelCase")]
 pub struct SpaceData {
     pub room_id: String,
@@ -68,18 +69,33 @@ fn convert_space(space: &matrix_sdk_ui::spaces::SpaceRoom) -> SpaceData {
     }
 }
 
-pub async fn subscribe_spaces_impl() -> Result<Subscription<SpaceData>, HarmonyError> {
+#[harmony_export(domain = "spaces")]
+pub async fn subscribe() -> Subscription<Vec<SpaceData>, ListDiff<SpaceData>> {
+    subscribe_impl().await.into()
+}
+
+async fn subscribe_impl() -> Result<(Vec<SpaceData>, web_sys::ReadableStream), HarmonyError> {
     let service = get_service().await?;
 
     let (initial_values, incoming) = service.subscribe_to_top_level_joined_spaces().await;
-    let initial = initial_values.iter().map(convert_space).collect();
-    let updates = incoming.map(|diffs| serialize_diffs(diffs, convert_space));
+    let initial: Vec<SpaceData> = initial_values.iter().map(convert_space).collect();
+
+    let updates = incoming
+        .flat_map(|diffs| stream::iter(convert_diffs(diffs, convert_space)))
+        .map(|diff| {
+            serde_wasm_bindgen::to_value(&diff).map_err(|e| JsValue::from_str(&e.to_string()))
+        });
     let stream = wasm_streams::ReadableStream::from_stream(updates).into_raw();
 
-    Ok(Subscription { initial, stream })
+    Ok((initial, stream))
 }
 
-pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
+#[harmony_export(domain = "spaces", action = "get", snapshot_for = "spaces.subscribe")]
+pub async fn get() -> Rpc<Vec<SpaceData>> {
+    get_impl().await.into()
+}
+
+async fn get_impl() -> Result<Vec<SpaceData>, HarmonyError> {
     let service = get_service().await?;
 
     let spaces = service
@@ -92,7 +108,12 @@ pub async fn get_spaces_impl() -> Result<Vec<SpaceData>, HarmonyError> {
     Ok(spaces)
 }
 
-pub async fn get_space_descendants_impl(space_id: String) -> Result<Vec<String>, HarmonyError> {
+#[harmony_export(domain = "spaces", action = "descendants")]
+pub async fn get_descendants(space_id: String) -> Rpc<Vec<String>> {
+    get_descendants_impl(space_id).await.into()
+}
+
+async fn get_descendants_impl(space_id: String) -> Result<Vec<String>, HarmonyError> {
     let parsed: matrix_sdk::ruma::OwnedRoomId = space_id
         .try_into()
         .map_err(|_| HarmonyError::InvalidRoomId)?;
@@ -155,7 +176,23 @@ async fn create_channel(
     Ok(channel)
 }
 
-pub async fn create_room_impl(
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateRoomInput {
+    pub space_id: String,
+    pub name: String,
+    pub visibility: ChannelVisibility,
+}
+
+#[harmony_export(domain = "spaces", action = "create_room")]
+pub async fn create_room(input: CreateRoomInput) -> Rpc<RoomData> {
+    create_room_impl(&input.space_id, &input.name, input.visibility)
+        .await
+        .into()
+}
+
+async fn create_room_impl(
     space_id: &str,
     name: &str,
     visibility: ChannelVisibility,
@@ -178,45 +215,23 @@ pub async fn create_room_impl(
     })
 }
 
-pub async fn join_space_impl(space_id: &str) -> Result<SpaceData, HarmonyError> {
-    let room_id = <&RoomId>::try_from(space_id).map_err(|_| HarmonyError::InvalidUserId)?;
-    let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
-
-    let space = client.join_room_by_id(room_id).await?;
-    let display_name = space
-        .display_name()
-        .await
-        .map_or(String::new(), |n| n.to_string());
-
-    let hierarchy = client
-        .send(SpaceHierarchyRequest::new(room_id.to_owned()))
-        .await?;
-
-    let suggested_rooms: Vec<OwnedRoomId> = hierarchy
-        .rooms
-        .iter()
-        .find(|r| r.summary.room_id == room_id)
-        .into_iter()
-        .flat_map(|space_entry| &space_entry.children_state)
-        .filter_map(|raw| raw.deserialize().ok())
-        .filter(|child| child.content.suggested)
-        .map(|child| child.state_key)
-        .collect();
-
-    for child_room_id in &suggested_rooms {
-        let _ = client.join_room_by_id(child_room_id).await;
-    }
-
-    let avatar_url = space.avatar_url().map(|url| url.to_string());
-
-    Ok(SpaceData {
-        room_id: space.room_id().to_string(),
-        display_name,
-        avatar_url,
-    })
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSpaceInput {
+    pub name: String,
+    pub avatar_bytes: Option<Vec<u8>>,
+    pub avatar_content_type: Option<String>,
 }
 
-pub async fn create_space_impl(
+#[harmony_export(domain = "spaces", action = "create")]
+pub async fn create_space(input: CreateSpaceInput) -> Rpc<SpaceData> {
+    create_space_impl(&input.name, input.avatar_bytes, input.avatar_content_type)
+        .await
+        .into()
+}
+
+async fn create_space_impl(
     name: &str,
     avatar_bytes: Option<Vec<u8>>,
     avatar_content_type: Option<String>,

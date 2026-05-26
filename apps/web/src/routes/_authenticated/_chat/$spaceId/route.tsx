@@ -1,8 +1,9 @@
 import { createContext, useState } from "react";
 import { createFileRoute, Outlet, redirect, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Drawer, Sidebar, TextField } from "@harmony/ui";
-import { createRoom, getRoomIdsInSpace, subscribeRooms, useCreateInvite } from "@harmony/react";
+import { Dialog, Drawer, Sidebar, TextField } from "@/ui";
+import { createRoom, getDescendants } from "@/spaces/api";
+import { createInviteErrorMessage, useCreateInvite } from "@/invites/api";
 import { Check, Copy, Menu, Plus, UserPlus, X } from "lucide-react";
 import * as v from "valibot";
 import { useOmnibarCommands } from "@/omnibar";
@@ -16,7 +17,9 @@ export const NavContext = createContext<{ setNavOpen: (open: boolean) => void } 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId")({
   beforeLoad: async ({ params, location }) => {
     if (location.pathname === `/${params.spaceId}` || location.pathname === `/${params.spaceId}/`) {
-      const roomIds = await getRoomIdsInSpace(params.spaceId);
+      const result = await getDescendants(params.spaceId);
+      if (!result.ok) return;
+      const roomIds = result.value;
       if (roomIds.length > 0) {
         const lastRoomId = getLastRoom(params.spaceId);
         const target = lastRoomId && roomIds.includes(lastRoomId) ? lastRoomId : roomIds[0];
@@ -26,9 +29,6 @@ export const Route = createFileRoute("/_authenticated/_chat/$spaceId")({
         });
       }
     }
-  },
-  loader: async ({ params }) => {
-    await subscribeRooms(params.spaceId);
   },
   pendingComponent: PendingSkeleton,
   component: RouteComponent,
@@ -147,7 +147,8 @@ function CreateRoomDialog({
     defaultValues: { name: "" },
     validators: { onSubmit: createRoomSchema },
     onSubmit: async ({ value }) => {
-      await createRoom(spaceId, value.name, "public");
+      const result = await createRoom({ spaceId, name: value.name, visibility: "public" });
+      if (!result.ok) throw new Error(result.error.message ?? result.error.code);
       onOpenChange(false);
       form.reset();
     },
@@ -244,7 +245,9 @@ function InviteDialog({
               {createInvite.isPending ? (
                 <div className="h-10 animate-pulse rounded bg-surface-200-800" />
               ) : createInvite.isError ? (
-                <p className="text-error-500 text-sm">Failed to create invite link.</p>
+                <p className="text-error-500 text-sm">
+                  {createInviteErrorMessage(createInvite.error)}
+                </p>
               ) : inviteUrl ? (
                 <div className="flex items-center gap-2">
                   <input

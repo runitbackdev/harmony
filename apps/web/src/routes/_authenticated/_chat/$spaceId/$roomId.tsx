@@ -3,32 +3,22 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import {
   editMessage,
   focusOnEvent,
-  getMembers,
-  markAsRead,
+  markRoomAsRead,
   paginateTimeline,
   redactMessage,
   sendMessage,
-  subscribeMembers,
-  subscribeTimeline,
   toggleReaction,
-  useMembers,
-  useReactions,
-  useRooms,
   useTimeline,
-  getSession,
-} from "@harmony/react";
-import {
-  Drawer,
-  MemberList,
-  MessageList,
-  type MessageListHandle,
-  ReactionDisplay,
-} from "@harmony/ui";
-import { Transition, useMediaQuery } from "@harmony/primitives";
-import { Composer, EditComposer } from "@harmony/composer";
-import type { ComposerHandle, EditTarget } from "@harmony/composer";
+} from "@/timeline/api";
+import { getMembers, useMembers } from "@/members/api";
+import { useRoomsInSpace } from "@/rooms/api";
+import { useSession } from "@/auth/api";
+import { Drawer, MemberList, MessageList, type MessageListHandle } from "@/ui";
+import { Transition, useMediaQuery } from "@/primitives";
+import { Composer, EditComposer } from "@/composer";
+import type { ComposerHandle, EditTarget } from "@/composer";
 import { Bug, Hash, Menu, PanelRight, Users } from "lucide-react";
-import type { ReactionGroup, ReplyTarget, TimelineContent, TimelineEvent } from "@harmony/protocol";
+import type { ReplyTarget, TimelineContent, TimelineEventData } from "@harmony/core";
 import { setLastRoom } from "@/lib/last-room";
 import { useOmnibarCommands } from "@/omnibar";
 import { recordUsage } from "@/omnibar/store";
@@ -36,9 +26,6 @@ import { useRoomCommands } from "@/rooms/commands";
 import { NavContext } from "./route";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
-  loader: async ({ params }) => {
-    await Promise.all([subscribeTimeline(params.roomId), subscribeMembers(params.roomId)]);
-  },
   component: TimelineView,
 });
 
@@ -63,25 +50,9 @@ function formatContent(content: TimelineContent): string {
 
 // #endregion
 
-const EMPTY_REACTIONS: ReactionGroup[] = [];
-
-function ConnectedReactions({ eventId }: { eventId: string }) {
-  const { roomId } = useParams({
-    from: "/_authenticated/_chat/$spaceId/$roomId",
-  });
-  const reactions = useReactions(eventId);
-  return (
-    <ReactionDisplay
-      reactions={reactions ?? EMPTY_REACTIONS}
-      currentUserId={getSession()?.userId}
-      onToggleReaction={(key) => void toggleReaction(roomId, { eventId }, key)}
-    />
-  );
-}
-
-function RoomHeader({ roomId }: { roomId: string }) {
-  const rooms = useRooms();
-  const room = rooms.find((r) => r.roomId === roomId);
+function RoomHeader({ spaceId, roomId }: { spaceId: string; roomId: string }) {
+  const roomsSub = useRoomsInSpace(spaceId);
+  const room = (roomsSub.value ?? []).find((r) => r.roomId === roomId);
 
   return (
     <div className="flex items-center gap-2">
@@ -98,43 +69,53 @@ const ConnectedTimeline = forwardRef<
   {
     roomId: string;
     debug: boolean;
-    onReply: (event: TimelineEvent) => void;
+    onReply: (event: TimelineEventData) => void;
   }
 >(function ConnectedTimeline({ roomId, debug, onReply }, ref) {
-  const events = useTimeline();
+  const events = useTimeline(roomId);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const currentUserId = getSession()?.userId;
-  const handleLoadMore = useCallback(
-    () => paginateTimeline(roomId).then((r) => r.exhausted),
-    [roomId],
-  );
+  const session = useSession();
+  const currentUserId = session.data?.userId;
+
+  const handleLoadMore = useCallback(async () => {
+    const result = await paginateTimeline({ roomId, direction: "backward", count: 50 });
+    return result.ok ? result.value.exhausted : true;
+  }, [roomId]);
 
   const handleToggleReaction = useCallback(
     (eventId: string, key: string) => {
-      void toggleReaction(roomId, { eventId }, key);
+      void toggleReaction({ roomId, eventId, transactionId: null, key });
     },
     [roomId],
   );
 
   const handleDeleteMessage = useCallback(
-    (event: TimelineEvent) => {
-      const eventId = event.id ?? undefined;
-      const transactionId = event.transactionId ?? undefined;
-      void redactMessage(roomId, { eventId, transactionId });
+    (event: TimelineEventData) => {
+      void redactMessage({
+        room: roomId,
+        event: event.id ?? null,
+        transaction: event.transactionId ?? null,
+      });
     },
     [roomId],
   );
 
-  function handleEditMessage(event: TimelineEvent) {
+  function handleEditMessage(event: TimelineEventData) {
     setEditingId(event.id ?? event.transactionId ?? null);
   }
 
   function handleEdit(target: EditTarget, body: string, html: string) {
-    void editMessage(roomId, target, body, html);
+    void editMessage({
+      roomId,
+      eventId: target.eventId ?? null,
+      transactionId: target.transactionId ?? null,
+      body,
+      formattedBody: html,
+    });
     setEditingId(null);
   }
 
-  function renderEditor(event: TimelineEvent) {
+  function renderEditor(event: TimelineEventData) {
     if (event.content.type !== "message") return null;
     return (
       <EditComposer
@@ -153,7 +134,7 @@ const ConnectedTimeline = forwardRef<
     return (
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         <ul className="space-y-1 font-mono text-sm text-surface-950-50">
-          {events.map((event, i) => (
+          {events.map((event: TimelineEventData, i: number) => (
             <li
               key={event.id ?? i}
               className={
@@ -186,8 +167,9 @@ const ConnectedTimeline = forwardRef<
       renderEditor={renderEditor}
       currentUserId={currentUserId}
       onToggleReaction={handleToggleReaction}
-      onJumpToEvent={(eventId) => void focusOnEvent(roomId, eventId)}
-      ReactionSlot={ConnectedReactions}
+      onJumpToEvent={(eventId) =>
+        void focusOnEvent({ roomId, targetEventId: eventId, numContextEvents: null })
+      }
     />
   );
 });
@@ -201,12 +183,12 @@ function ConnectedMemberList({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const members = useMembers();
+  const membersSub = useMembers(roomId);
+  const members = membersSub.value ?? [];
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const sorted = [...members].sort((a, b) =>
     (a.displayName ?? a.userId).localeCompare(b.displayName ?? b.userId),
   );
-  void roomId;
 
   const content = (
     <MemberList className="h-full">
@@ -263,6 +245,11 @@ function useMembersPanelOpen(): [boolean, (open: boolean) => void] {
   return [open, set];
 }
 
+async function getMembersForComposer(roomId: string) {
+  const result = await getMembers(roomId);
+  return result.ok ? result.value : [];
+}
+
 function TimelineView() {
   const { spaceId, roomId } = useParams({
     from: "/_authenticated/_chat/$spaceId/$roomId",
@@ -274,7 +261,7 @@ function TimelineView() {
   const composerRef = useRef<ComposerHandle>(null);
   const messageListRef = useRef<MessageListHandle>(null);
 
-  const handleReply = useCallback((event: TimelineEvent) => {
+  const handleReply = useCallback((event: TimelineEventData) => {
     const eventId = event.id;
     if (!eventId) return;
     const body = event.content.type === "message" ? event.content.body : null;
@@ -293,7 +280,7 @@ function TimelineView() {
   }, [roomId]);
 
   useEffect(() => {
-    void markAsRead(roomId);
+    markRoomAsRead(roomId);
   }, [roomId]);
 
   useEffect(() => {
@@ -360,7 +347,7 @@ function TimelineView() {
             <Menu size={20} />
           </button>
 
-          <RoomHeader roomId={roomId} />
+          <RoomHeader spaceId={spaceId} roomId={roomId} />
           <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
@@ -385,11 +372,16 @@ function TimelineView() {
           <Composer
             ref={composerRef}
             roomId={roomId}
-            getMembers={getMembers}
+            getMembers={getMembersForComposer}
             replyTarget={replyTarget}
             onCancelReply={() => setReplyTarget(null)}
             onSend={(body, html) => {
-              void sendMessage(roomId, body, html, replyTarget?.eventId);
+              void sendMessage({
+                roomId,
+                body,
+                formattedBody: html,
+                replyToEventId: replyTarget?.eventId ?? null,
+              });
               setReplyTarget(null);
               messageListRef.current?.scrollToBottom();
             }}

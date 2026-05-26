@@ -1,16 +1,18 @@
-import { getAllRooms } from "@harmony/react";
+import type { RoomDataWithSpace } from "@harmony/core";
+import { getAllRooms } from "@/rooms/api";
 import { queryClient } from "@/lib/query-client";
 
 export const ROOMS_QUERY_KEY = ["omnibar", "rooms"] as const;
 export const ROOMS_STALE_TIME_MS = 30_000;
 
-/** Fetches the room list, sharing a 30s cache with the omnibar's `useQuery`.
- *  Lets non-hook callers (command handlers, navigation utilities) avoid
- *  spamming the worker with redundant `getAllRooms` round-trips. */
-export function fetchAllRooms() {
+export function fetchAllRooms(): Promise<RoomDataWithSpace[]> {
   return queryClient.ensureQueryData({
     queryKey: ROOMS_QUERY_KEY,
-    queryFn: getAllRooms,
+    queryFn: async () => {
+      const result = await getAllRooms();
+      if (!result.ok) throw new Error(result.error.message ?? result.error.code);
+      return result.value;
+    },
     staleTime: ROOMS_STALE_TIME_MS,
   });
 }

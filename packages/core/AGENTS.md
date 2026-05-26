@@ -1,19 +1,29 @@
-# Core & Worker Patterns (packages/core)
+# Core / Bridge Runtime (packages/core)
 
-This package contains the SharedWorker logic and the primary `Harmony` client class.
+This package hosts the WASM bridge runtime: `rpc`, `command`, `subscribe` on the client side and the generic dispatcher inside the SharedWorker.
 
 ## Architecture
-- **SharedWorker**: A single worker shared across all browser tabs. It maintains the persistent connection to Matrix.
-- **Dispatcher**: Routes incoming `postMessage` calls to specific handlers in `lib/worker/handlers/`.
-- **PortRegistry**: Tracks connected tabs and handles broadcasting stream updates.
 
-## Message Protocol
-Every message crossing the worker boundary must have a definition in `packages/protocol`.
+- **SharedWorker** (`lib/worker/index.ts`) — one worker per origin, shared across tabs. Initializes WASM, accepts MessagePort connections.
+- **Transport** (`lib/transport/`) — generic MessagePort dispatcher. Routes by wire name to the wasm-bindgen exports registered in `lib/protocol/maps.generated.ts`. No per-feature handlers.
+- **Protocol** (`lib/protocol/`) — `maps.generated.ts` (auto from `harmony codegen`), `types.ts` (input/output/initial/chunk type extractors), `diff.ts` (`applyListDiff` reducer).
+- **Session** (`lib/session/`) — async `SessionStore` interface + `LocalStorageSessionStore` adapter.
 
-- **Requests**: Handlers must return a response with a matching `id`.
-- **Streams**: Used for real-time updates (sync, room list changes).
-- **Commands**: Fire-and-forget actions.
+## Bridge Surface
+
+```ts
+import { rpc, command, subscribe } from "@harmony/core";
+
+const result = await rpc("spaces.create", input);    // RpcResult<SpaceData>
+await command("auth.logout", undefined);             // RpcResult<void>
+const handle = subscribe("spaces.subscribe", undefined, (chunk) => …);
+// handle.initial: Promise<RpcResult<…>>; handle.unsubscribe()
+```
+
+All three return / accept `RpcResult<T> = { ok: true; value: T } | { ok: false; error: HarmonyError }`.
 
 ## Guidelines
-- Handlers should be lightweight, delegating heavy protocol or crypto tasks to the WASM engine.
-- Ensure all worker-side errors are caught and communicated back to the UI thread via the protocol to avoid silent failures.
+
+- Components MUST NOT import the singleton (`harmony.ts`) or use wire names directly. They go through domain wrappers in `apps/web/src/<domain>/api.ts`.
+- Adding a new bridge fn = one `#[harmony_export]` in Rust + `harmony codegen`. No handler registration here.
+- `maps.generated.ts` is generated — do not hand-edit. Regenerate via `harmony codegen` after Rust changes.

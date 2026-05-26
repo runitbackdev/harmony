@@ -1,5 +1,22 @@
-import { getSession, joinSpace, useInvite, useRedeemInvite } from "@harmony/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useSession } from "@/auth/api";
+import { HeraldApiError, useInvite, useRedeemInvite } from "@/invites/api";
+
+function redeemErrorMessage(error: unknown): string {
+  if (error instanceof HeraldApiError) {
+    switch (error.status) {
+      case 410:
+        return "This invite has expired.";
+      case 403:
+        return "This invite has reached its max uses.";
+      case 404:
+        return "This invite is no longer valid.";
+      case 502:
+        return "Couldn't reach the homeserver. Try again.";
+    }
+  }
+  return error instanceof Error ? error.message : "Failed to join.";
+}
 
 export const Route = createFileRoute("/invite/$code")({
   component: InviteLanding,
@@ -8,7 +25,7 @@ export const Route = createFileRoute("/invite/$code")({
 function InviteLanding() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
-  const session = getSession();
+  const session = useSession();
 
   const invite = useInvite(code);
   const redeem = useRedeemInvite();
@@ -17,7 +34,6 @@ function InviteLanding() {
     if (!invite.data) return;
 
     const { spaceMxid } = await redeem.mutateAsync(code);
-    await joinSpace(spaceMxid);
     void navigate({ to: "/$spaceId", params: { spaceId: spaceMxid } });
   }
 
@@ -45,13 +61,9 @@ function InviteLanding() {
         </>
       )}
 
-      {redeem.error && (
-        <p className="text-error-500 text-sm">
-          {redeem.error instanceof Error ? redeem.error.message : "Failed to join"}
-        </p>
-      )}
+      {redeem.error && <p className="text-error-500 text-sm">{redeemErrorMessage(redeem.error)}</p>}
 
-      {session ? (
+      {session.data ? (
         <button
           className="btn preset-filled-primary-500 w-full"
           onClick={() => void handleJoin()}

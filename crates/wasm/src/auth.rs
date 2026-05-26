@@ -1,3 +1,4 @@
+use harmony_protocol::{Command, Rpc, harmony_export};
 use matrix_sdk::{
     Client, SessionMeta, SessionTokens,
     authentication::matrix::MatrixSession,
@@ -5,8 +6,7 @@ use matrix_sdk::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
-use tsify_next::Tsify;
-use wasm_bindgen::prelude::wasm_bindgen;
+use tsify::Tsify;
 
 use crate::{client, errors::HarmonyError};
 
@@ -29,8 +29,13 @@ pub struct SessionData {
     pub refresh_token: Option<String>,
 }
 
+#[harmony_export(domain = "auth")]
+pub async fn login(request: LoginRequest) -> Rpc<SessionData> {
+    login_impl(&request).await.into()
+}
+
 #[instrument(skip_all, fields(homeserver = %request.homeserver, username = %request.username))]
-pub async fn login_impl(request: &LoginRequest) -> Result<SessionData, HarmonyError> {
+async fn login_impl(request: &LoginRequest) -> Result<SessionData, HarmonyError> {
     let auth_client = Client::builder()
         .homeserver_url(&request.homeserver)
         .indexeddb_store("harmony", None)
@@ -56,6 +61,7 @@ pub async fn login_impl(request: &LoginRequest) -> Result<SessionData, HarmonyEr
         refresh_token: None,
     };
 
+    auth_client.send_queue().set_enabled(true).await;
     client::set(auth_client)?;
 
     info!(user_id = %auth_session.user_id, "login successful");
@@ -73,8 +79,13 @@ pub struct RestoreRequest {
     pub refresh_token: Option<String>,
 }
 
+#[harmony_export(domain = "auth", action = "restore")]
+pub async fn restore_session(request: RestoreRequest) -> Rpc<SessionData> {
+    restore_impl(&request).await.into()
+}
+
 #[instrument(skip_all, fields(homeserver = %request.homeserver, user_id = %request.user_id))]
-pub async fn restore_impl(request: &RestoreRequest) -> Result<SessionData, HarmonyError> {
+async fn restore_impl(request: &RestoreRequest) -> Result<SessionData, HarmonyError> {
     if client::get().is_some() {
         return Ok(SessionData {
             homeserver: request.homeserver.clone(),
@@ -106,6 +117,7 @@ pub async fn restore_impl(request: &RestoreRequest) -> Result<SessionData, Harmo
     };
 
     auth_client.restore_session(session).await?;
+    auth_client.send_queue().set_enabled(true).await;
 
     let data = SessionData {
         homeserver: request.homeserver.clone(),
@@ -120,8 +132,13 @@ pub async fn restore_impl(request: &RestoreRequest) -> Result<SessionData, Harmo
     Ok(data)
 }
 
+#[harmony_export(domain = "auth")]
+pub async fn logout() -> Command {
+    logout_impl().await.into()
+}
+
 #[instrument(skip_all)]
-pub async fn logout_impl() -> Result<(), HarmonyError> {
+async fn logout_impl() -> Result<(), HarmonyError> {
     let client = client::get().ok_or(HarmonyError::AuthFailed)?;
 
     client.matrix_auth().logout().await?;

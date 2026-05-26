@@ -1,4 +1,4 @@
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
+import type { RoomDataWithSpace } from "@harmony/core";
 import { proxy, subscribe, useSnapshot } from "valtio";
 import type { Command, OmnibarItemKind } from "../types";
 
@@ -48,9 +48,7 @@ subscribe(state, () => {
 });
 
 export function recordRecent(entry: { id: string; kind: OmnibarItemKind }) {
-  const existing = state.entries.findIndex(
-    (e) => e.id === entry.id && e.kind === entry.kind,
-  );
+  const existing = state.entries.findIndex((e) => e.id === entry.id && e.kind === entry.kind);
   if (existing >= 0) state.entries.splice(existing, 1);
   state.entries.unshift({ id: entry.id, kind: entry.kind, ts: Date.now() });
   if (state.entries.length > CAP) state.entries.length = CAP;
@@ -67,7 +65,7 @@ export function useRecents() {
 export function hydrateRecent(
   entry: RecentEntry,
   commands: readonly Command[],
-  rooms: readonly RoomWithSpaceSummary[],
+  rooms: readonly RoomDataWithSpace[],
 ) {
   switch (entry.kind) {
     case "command": {

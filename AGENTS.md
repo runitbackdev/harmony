@@ -1,5 +1,12 @@
 # Instructions for AI Agents
 
+This project uses bd (beads) for issue tracking.
+
+- Run `bd prime` for workflow context and command guidance.
+- Use `bd ready`, `bd show <id>`, `bd update <id> --claim`, and `bd close <id>`.
+- Use `bd remember "insight"` for persistent project memory; do not create MEMORY.md files.
+- Do not use markdown TODO lists for task tracking.
+
 ## Mission & Goals: "Matrix for Humans"
 
 Harmony is not just another Matrix client; it is a community-first chat platform designed to bridge the gap between decentralized protocols and mainstream usability.
@@ -23,16 +30,20 @@ This file provides guidance for AI coding agents (Gemini CLI, Claude Code, Curso
 Harmony is a community-centric chat application (think Discord) built on the Matrix protocol. It's a monorepo managed with pnpm and the **Vite+ (`vp`)** toolchain.
 
 Key architecture:
+
 - **SharedWorker Core**: All Matrix sync and protocol logic runs in a single SharedWorker to support multi-tab synchronization and offload the UI thread.
 - **Rust/WASM Engine**: High-performance crypto and protocol operations are handled by Rust (`matrix-rust-sdk`) compiled to WebAssembly.
 
 Key directories:
-- `apps/web` — React 19 web application (Thin UI layer)
-- `packages/core` — SharedWorker logic and client-side communication handlers
-- `crates/wasm` — Rust engine compiled to WASM
-- `packages/protocol` — Shared TypeScript types for UI ↔ Worker communication
-- `packages/react` — React hooks and context providers (`useHarmony`)
-- `packages/ui` — Design system components (Skeleton Labs + Tailwind 4)
+
+- `apps/web` — React 19 web app. Owns routes, design system (`src/ui/`), composer (`src/composer/`), primitives (`src/primitives/`), and per-domain API wrappers (`src/<domain>/api.ts`).
+- `apps/herald` — Rust appservice (Axum + toasty + Postgres) for custom statuses, invites, presence.
+- `packages/core` — Bridge runtime: `rpc` / `command` / `subscribe` + Transport + generic worker dispatcher. Owns generated wire map.
+- `packages/react` — Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.
+- `packages/wasm` — Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).
+- `crates/wasm` — Rust crate wrapping `matrix-rust-sdk`. Bridge fns marked `#[harmony_export]`.
+- `crates/harmony-protocol` + `crates/harmony-protocol-macros` — `Rpc/Command/Subscription` wrappers + the `#[harmony_export]` proc macro.
+- `tools/harmony-cli` — `harmony` CLI binary. Typed workspace commands: `codegen` (build WASM + emit `packages/core/lib/protocol/maps.generated.ts`), `db`, `migration`, `psql`, `self-update`. Unknown subcommands forward to `just`.
 
 ## Rules for AI Agents
 
@@ -50,7 +61,7 @@ Key directories:
 ### DON'T
 
 - Use `pnpm`, `npm`, or `yarn` directly for linting, testing, or formatting tasks
-- Bypass the `packages/protocol` boundary when communicating with the worker
+- Bypass the domain wrapper layer (`apps/web/src/<domain>/api.ts`) — components never import `@harmony/core`'s singleton or use wire names directly
 - Refactor core protocol logic without prior discussion with maintainers
 - Add new dependencies without justification
 - Introduce patterns that don't already exist (e.g., adding a different state library)
@@ -62,20 +73,20 @@ Before the human submits your work, ensure:
 
 - [ ] `vp check` passes (Oxlint and TypeScript checks)
 - [ ] `vp test` passes (Vitest suites)
-- [ ] WASM is rebuilt if `crates/wasm` was changed (`just build-wasm-dev`)
+- [ ] WASM is rebuilt if `crates/wasm` was changed (`harmony codegen`)
 - [ ] PR description explains _what_ and _why_, not just _how_
 - [ ] AI usage is disclosed per the [AI Policy](./AI_POLICY.md)
 
 ## Tech Stack Quick Reference
 
-| Layer | Technology |
-| :--- | :--- |
-| Core Engine | Rust (WASM) + Matrix Rust SDK |
-| Logic Layer | SharedWorker (TS) |
-| Frontend | React 19 + TypeScript |
-| Routing | TanStack Router |
-| State | Valtio + TanStack Query |
-| Styling | Tailwind CSS 4 + Skeleton Labs |
-| Toolchain | Vite+ (`vp`) |
-| Package Manager | pnpm (monorepo) |
-| Task Runner | just |
+| Layer           | Technology                     |
+| :-------------- | :----------------------------- |
+| Core Engine     | Rust (WASM) + Matrix Rust SDK  |
+| Logic Layer     | SharedWorker (TS)              |
+| Frontend        | React 19 + TypeScript          |
+| Routing         | TanStack Router                |
+| State           | Valtio + TanStack Query        |
+| Styling         | Tailwind CSS 4 + Skeleton Labs |
+| Toolchain       | Vite+ (`vp`)                   |
+| Package Manager | pnpm (monorepo)                |
+| Task Runner     | `harmony` CLI (forwards to `just`) |

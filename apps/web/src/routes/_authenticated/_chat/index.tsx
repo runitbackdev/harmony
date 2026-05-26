@@ -1,10 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getFirstSpace, subscribeSpaces } from "@harmony/react";
+import { getSpaces } from "@/spaces/api";
 
 export const Route = createFileRoute("/_authenticated/_chat/")({
   loader: async () => {
-    await subscribeSpaces();
-    const first = getFirstSpace();
+    const result = await getSpaces();
+    if (!result.ok) return;
+    const first = result.value[0];
     if (!first) return;
     throw redirect({ to: "/$spaceId", params: { spaceId: first.roomId } });
   },

@@ -29,6 +29,10 @@ pre-commit:
         - "*.css"
       run: typos {staged_files}
 
+    - name: rpc-drift
+      glob: "crates/wasm/**/*.rs"
+      run: "just gen-rpc && git diff --exit-code -- packages/core/lib/protocol/maps.generated.ts"
+
 commit-msg:
   jobs:
     - name: committed

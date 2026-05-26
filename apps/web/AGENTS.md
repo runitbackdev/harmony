@@ -1,25 +1,54 @@
-# Web App Patterns (apps/web)
+# Web App (apps/web)
 
-This directory contains the React 19 frontend for Harmony.
+React 19 frontend. Owns routes, design system (`src/ui/`), rich-text editor (`src/composer/`), reusable primitives (`src/primitives/`), and per-domain API wrappers (`src/<domain>/api.ts`).
 
 ## Technical Stack
-- **Routing**: TanStack Router (File-based).
-- **State Management**: 
-  - Server State: TanStack Query.
-  - Reactive Local State: Valtio.
+
+- **Routing**: TanStack Router (file-based).
+- **State**: Valtio (local reactive) + TanStack Query (HTTP / external server state).
 - **Forms**: TanStack Form + Valibot.
-- **Components**: Skeleton Labs (React) + Tailwind 4.
+- **Components**: `src/ui/` (Skeleton Labs + Tailwind 4 design tokens).
 
 ## Core Patterns
 
-### 1. Thin UI
-The UI should be a thin rendering layer. Complex logic, especially Matrix-related data processing, belongs in the SharedWorker (`packages/core`) or Rust.
+### 1. Domain API wrappers
 
-### 2. Authentication
-Authenticated routes must be nested under the `_authenticated` layout in `src/routes/`. This layout ensures session restoration before rendering.
+Every Matrix-facing call goes through `src/<domain>/api.ts`. These wrap `@harmony/core`'s `rpc` / `command` / `subscribe` with domain-named fns:
 
-### 3. Data Access
-Use hooks from `packages/react` (e.g., `useHarmony`, `useSyncStatus`) to interact with the core client. Avoid direct `postMessage` calls from components.
+```ts
+// src/spaces/api.ts
+import { rpc } from "@harmony/core";
+import { useListSubscription } from "@harmony/react";
+export const joinSpace = (id: string) => rpc("spaces.join", id);
+export function useSpaces() {
+  return useListSubscription("spaces.subscribe", undefined, (state, diff) => …);
+}
+```
 
-### 4. Styling
-Always prefer Skeleton design tokens (e.g., `bg-surface-100`, `text-primary-500`) over hardcoded Tailwind colors to ensure theme compatibility.
+Components import `joinSpace`/`useSpaces`, never raw wire names or the singleton.
+
+### 2. RpcResult handling
+
+`rpc(…)` returns `{ ok: true; value: T } | { ok: false; error: HarmonyError }`. Every consumer must branch:
+
+```ts
+const result = await joinSpace(id);
+if (!result.ok) throw new Error(result.error.message ?? result.error.code);
+// result.value: SpaceData
+```
+
+### 3. Subscriptions
+
+`useListSubscription` / `useStream` / `useRpc` from `@harmony/react` are the only primitives. They return `{ status: "idle" | "ready" | "error"; value; error }` — destructure `.value` and handle the idle/error states.
+
+### 4. Auth guard
+
+Routes needing a session nest under `_authenticated`. Layout calls `await sessionStore.get()` before rendering children. `useSession()` from `@/auth/api` exposes the session as a TanStack Query result for sync access in components.
+
+### 5. Styling
+
+Use Skeleton tokens (`bg-surface-100-900`, `text-primary-500`). No hardcoded colors.
+
+## HTTP (Herald) APIs
+
+Non-WASM endpoints (invites, future presence HTTP fallbacks) live alongside domain APIs as plain `fetch` wrappers — e.g. `src/invites/api.ts`. They read `sessionStore.get()` for bearer tokens. Herald serves these under `/api/*`.

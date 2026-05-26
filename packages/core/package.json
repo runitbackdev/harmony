@@ -3,13 +3,17 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./lib/index.ts"
+    ".": "./lib/index.ts",
+    "./harmony": "./lib/harmony.ts",
+    "./transport": "./lib/transport/index.ts",
+    "./protocol": "./lib/protocol/index.ts",
+    "./protocol/types": "./lib/protocol/types.ts",
+    "./protocol/maps.generated": "./lib/protocol/maps.generated.ts",
+    "./session/store": "./lib/session/store.ts",
+    "./session/local-storage": "./lib/session/local-storage.ts"
   },
   "dependencies": {
-    "@harmony/protocol": "workspace:*",
-    "@harmony/wasm": "workspace:*",
-    "camelcase-keys": "^10.0.2",
-    "snakecase-keys": "^9.0.2"
+    "@harmony/wasm": "workspace:*"
   },
   "devDependencies": {
     "vite": "catalog:",

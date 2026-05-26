@@ -2,10 +2,9 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useCombobox, useListCollection } from "@skeletonlabs/skeleton-react";
-import { Dialog } from "@harmony/ui";
-import { getAllRooms } from "@harmony/react";
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
-import { ROOMS_QUERY_KEY, ROOMS_STALE_TIME_MS } from "@/rooms/queries";
+import { Dialog } from "@/ui";
+import type { RoomDataWithSpace } from "@harmony/core";
+import { fetchAllRooms, ROOMS_QUERY_KEY, ROOMS_STALE_TIME_MS } from "@/rooms/queries";
 import { useOmnibar } from "./use-omnibar";
 import { useAllCommands } from "./registry";
 import { useScorers } from "./scorer";
@@ -20,7 +19,7 @@ import {
 } from "./store";
 import type { OmnibarItem } from "./types";
 
-const EMPTY_ROOMS: RoomWithSpaceSummary[] = [];
+const EMPTY_ROOMS: RoomDataWithSpace[] = [];
 
 function itemId(item: OmnibarItem) {
   switch (item.kind) {
@@ -57,7 +56,7 @@ export function Omnibar() {
 
   const { data: rooms = EMPTY_ROOMS, error: roomsError } = useQuery({
     queryKey: ROOMS_QUERY_KEY,
-    queryFn: getAllRooms,
+    queryFn: fetchAllRooms,
     enabled: open,
     staleTime: ROOMS_STALE_TIME_MS,
     refetchOnWindowFocus: false,

@@ -1,27 +1,26 @@
-wasm-crate := "crates/wasm"
-wasm-out := "../../packages/wasm"
-
 compose := if `command -v docker >/dev/null 2>&1 && echo yes || echo no` == "yes" { "docker compose" } else { "podman compose" }
 
 # Frontend only — hosted homeserver by default (override via VITE_HOMESERVER_URL).
 web:
-  @test -d packages/wasm || just build-wasm-dev
+  @test -d packages/wasm || harmony codegen
   pnpm --filter web dev
 
-# Full local stack — synapse (detached) + herald + web via hivemind.
+# Full local stack — synapse + postgres (detached) + herald + web via hivemind.
 dev:
-  @test -d packages/wasm || just build-wasm-dev
+  @test -d packages/wasm || harmony codegen
   @just synapse
+  @just postgres
   hivemind Procfile.dev
 
-build: build-wasm build-web
-
-build-wasm-dev:
-  wasm-pack build {{wasm-crate}} --target web --dev --scope harmony --out-dir {{wasm-out}}
+build:
+  harmony codegen --release
+  pnpm --filter web build
 
 check:
   cargo check --workspace
   cargo clippy --workspace
+  harmony codegen
+  git diff --exit-code -- packages/core/lib/protocol/maps.generated.ts
   pnpm lint
   typos
 
@@ -34,8 +33,24 @@ clean:
   rm -rf packages/wasm
   pnpm --filter web exec rm -rf dist
 
+setup:
+    mise install
+    pnpm install
+    cargo install --path tools/harmony-cli --force
+    harmony codegen
+    pnpm exec lefthook install
+
+psql:
+  psql "${HERALD_DATABASE_URL:-${DATABASE_URL:?'set HERALD_DATABASE_URL or DATABASE_URL'}}"
+
+self-update:
+  cargo install --path tools/harmony-cli --force
+
 synapse:
   {{compose}} up -d synapse
+
+postgres:
+  {{compose}} up -d postgres
 
 synapse-stop:
   {{compose}} down
@@ -52,11 +67,3 @@ synapse-reset:
   @until {{compose}} exec synapse curl -sf http://localhost:8008/_matrix/client/versions > /dev/null 2>&1; do sleep 1; done
   just setup-users
   @echo "Synapse reset complete."
-
-[private]
-build-wasm:
-  wasm-pack build {{wasm-crate}} --target web --scope harmony --out-dir {{wasm-out}}
-
-[private]
-build-web:
-  pnpm --filter web build

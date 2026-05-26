@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Fzf, byLengthAsc, type FzfResultItem } from "fzf";
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
+import type { RoomDataWithSpace } from "@harmony/core";
 import type { Command, OmnibarItem } from "./types";
 
 const FZF_SCORE_MATCH = 16;
@@ -55,7 +55,7 @@ function buildScorer(items: readonly OmnibarItem[]): Scorer {
  *  while the omnibar is closed. */
 export function useScorers(
   commands: readonly Command[],
-  rooms: readonly RoomWithSpaceSummary[],
+  rooms: readonly RoomDataWithSpace[],
   enabled: boolean,
 ): Scorers {
   const commandItems = useMemo<OmnibarItem[]>(

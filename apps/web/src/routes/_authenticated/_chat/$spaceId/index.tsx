@@ -1,10 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getRoomIdsInSpace } from "@harmony/react";
+import { getDescendants } from "@/spaces/api";
 import { getLastRoom } from "@/lib/last-room";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/")({
   loader: async ({ params }) => {
-    const roomIds = await getRoomIdsInSpace(params.spaceId);
+    const result = await getDescendants(params.spaceId);
+    if (!result.ok) return;
+    const roomIds = result.value;
     if (roomIds.length === 0) return;
 
     const lastRoomId = getLastRoom(params.spaceId);

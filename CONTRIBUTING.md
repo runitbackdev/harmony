@@ -4,26 +4,31 @@ Thanks for helping out! Here's everything you need to get going.
 
 ## Prerequisites
 
-- [Rust](https://rustup.rs) (stable)
-- [pnpm](https://pnpm.io)
-- [just](https://github.com/casey/just)
+- [mise](https://mise.jdx.dev) — pins Rust, Node, pnpm, `just`, `wasm-pack`, `hivemind`
 
 ## Getting Started
 
 ```sh
-just setup   # installs toolchains, builds WASM, installs deps, sets up git hooks
-just dev     # starts the vite dev server
+just setup        # mise install, pnpm install, install `harmony` CLI, build WASM, install git hooks
+harmony dev       # full local stack (synapse + herald + web)
 ```
+
+Run `harmony self-update` after pulling changes to `tools/harmony-cli`.
 
 ## Common Commands
 
-| Command      | What it does                             |
-| ------------ | ---------------------------------------- |
-| `just dev`   | Start dev server (builds WASM if needed) |
-| `just build` | Production build (WASM + web)            |
-| `just check` | Run clippy, eslint, and typos            |
-| `just fmt`   | Format everything (cargo fmt + prettier) |
-| `just clean` | Remove all build artifacts               |
+| Command             | What it does                                  |
+| ------------------- | --------------------------------------------- |
+| `harmony web`       | Frontend only, hosted homeserver              |
+| `harmony dev`       | Full local stack (synapse + herald + web)     |
+| `harmony build`     | Production build (WASM + web)                 |
+| `harmony codegen`   | Build WASM + emit `maps.generated.ts`         |
+| `harmony check`     | Run cargo check, clippy, eslint, typos        |
+| `harmony fmt`       | Format Rust + TypeScript                      |
+| `harmony clean`     | Remove all build artifacts                    |
+| `harmony db reset --yes` | Drop + recreate Herald DB, apply migrations |
+
+`harmony` forwards unknown subcommands to `just`, so any orchestration recipe (`synapse`, `synapse-reset`, etc.) works via `harmony <name>`.
 
 ## Commit Messages
 
@@ -51,4 +56,4 @@ Formatting fixes are auto-staged. If clippy or eslint fail, fix the issues and c
 
 ## Project Structure
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the codebase fits together. The short version: types go in `packages/protocol`, logic goes in `crates/wasm` + `packages/core`, UI goes in `packages/react` + `apps/web`.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the codebase fits together. The short version: bridge fns + types go in `crates/wasm` (`#[harmony_export]` annotated), the worker runtime + generated wire maps live in `packages/core`, generic React primitives live in `packages/react`, and UI + per-domain wrappers live in `apps/web`.

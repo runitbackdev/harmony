@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, MxAvatar, Rail, TextField } from "@harmony/ui";
+import { Dialog, MxAvatar, Rail, TextField } from "@/ui";
 import { Home, ImagePlus, Plus, X } from "lucide-react";
-import { createSpace, useSpaces } from "@harmony/react";
+import { createSpace, useSpaces } from "@/spaces/api";
 import * as v from "valibot";
 
 // #region Schemas
@@ -72,6 +72,11 @@ function AvatarPicker({
 
 // #endregion
 
+async function fileToBytes(file: File): Promise<number[]> {
+  const buf = await file.arrayBuffer();
+  return Array.from(new Uint8Array(buf));
+}
+
 interface SpaceRailProps {
   className?: string;
   onAfterNavigate?: () => void;
@@ -82,7 +87,8 @@ interface SpaceRailProps {
  * Does NOT register omnibar commands (those should be hoisted to the route).
  */
 export function SpaceRail({ className, onAfterNavigate }: SpaceRailProps) {
-  const spaces = useSpaces();
+  const spacesSub = useSpaces();
+  const spaces = spacesSub.value ?? [];
   const navigate = useNavigate();
   const { spaceId } = useParams({ strict: false });
   const [createOpen, setCreateOpen] = useState(false);
@@ -91,7 +97,14 @@ export function SpaceRail({ className, onAfterNavigate }: SpaceRailProps) {
     defaultValues: { name: "", avatar: null as File | null },
     validators: { onSubmit: createSpaceSchema },
     onSubmit: async ({ value }) => {
-      await createSpace(value.name, value.avatar);
+      const avatarBytes = value.avatar ? await fileToBytes(value.avatar) : null;
+      const avatarContentType = value.avatar?.type ?? null;
+      const result = await createSpace({
+        name: value.name,
+        avatarBytes,
+        avatarContentType,
+      });
+      if (!result.ok) throw new Error(result.error.message ?? result.error.code);
       setCreateOpen(false);
       form.reset();
     },

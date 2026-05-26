@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use futures_channel::{mpsc, oneshot};
 use futures_util::{FutureExt, StreamExt};
+use harmony_protocol::{Command, Rpc, Subscription, harmony_export};
 use matrix_sdk::room::edit::EditedContent;
 use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
 use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
@@ -16,7 +17,7 @@ use matrix_sdk_ui::timeline::{
     TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
 };
 use serde::{Deserialize, Serialize};
-use tsify_next::Tsify;
+use tsify::Tsify;
 use wasm_bindgen::JsValue;
 
 use crate::{
@@ -43,7 +44,8 @@ pub enum PaginationDirection {
     Backward,
 }
 
-#[derive(Serialize)]
+#[derive(Tsify, Serialize)]
+#[tsify(into_wasm_abi)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum TimelineStreamMessage {
     #[serde(rename_all = "camelCase")]
@@ -84,31 +86,6 @@ pub struct RoomStateSnapshot {
     pub events: Vec<TimelineEventData>,
     pub mode: TimelineMode,
     pub generation: u32,
-}
-
-pub struct SubscribeResult {
-    pub events: Vec<TimelineEventData>,
-    pub mode: TimelineMode,
-    pub generation: u32,
-    pub stream: web_sys::ReadableStream,
-}
-
-impl TryFrom<SubscribeResult> for JsValue {
-    type Error = Self;
-
-    fn try_from(result: SubscribeResult) -> Result<Self, Self::Error> {
-        let snapshot = RoomStateSnapshot {
-            events: result.events,
-            mode: result.mode,
-            generation: result.generation,
-        };
-        let snapshot_value =
-            serde_wasm_bindgen::to_value(&snapshot).map_err(|e| Self::from_str(&e.to_string()))?;
-        let array = js_sys::Array::new();
-        array.push(&snapshot_value);
-        array.push(&result.stream);
-        Ok(array.into())
-    }
 }
 
 struct RoomState {
@@ -527,7 +504,16 @@ where
     cancel_tx
 }
 
-pub async fn subscribe_room_impl(room_id: &str) -> Result<SubscribeResult, HarmonyError> {
+#[harmony_export(domain = "timeline", action = "subscribe")]
+pub async fn subscribe_room(
+    room_id: String,
+) -> Subscription<RoomStateSnapshot, TimelineStreamMessage> {
+    subscribe_room_impl(&room_id).await.into()
+}
+
+async fn subscribe_room_impl(
+    room_id: &str,
+) -> Result<(RoomStateSnapshot, web_sys::ReadableStream), HarmonyError> {
     let client = client::get().ok_or(HarmonyError::ClientNotReady)?;
     let parsed: OwnedRoomId = room_id
         .try_into()
@@ -558,25 +544,37 @@ pub async fn subscribe_room_impl(room_id: &str) -> Result<SubscribeResult, Harmo
     let stream =
         wasm_streams::ReadableStream::from_stream(output_rx.map(Ok::<_, JsValue>)).into_raw();
 
-    Ok(SubscribeResult {
-        events,
-        mode: TimelineMode::Live,
-        generation,
+    Ok((
+        RoomStateSnapshot {
+            events,
+            mode: TimelineMode::Live,
+            generation,
+        },
         stream,
-    })
+    ))
 }
 
-pub fn unsubscribe_room_impl(room_id: &str) -> Result<(), HarmonyError> {
-    let parsed: OwnedRoomId = room_id
-        .try_into()
-        .map_err(|_| HarmonyError::InvalidRoomId)?;
-    ROOMS.with(|rooms| {
-        rooms.borrow_mut().remove(&parsed);
-    });
-    Ok(())
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusOnEventInput {
+    pub room_id: String,
+    pub target_event_id: String,
+    pub num_context_events: Option<u16>,
 }
 
-pub async fn focus_on_event_impl(
+#[harmony_export(domain = "timeline", action = "focus_on_event")]
+pub async fn focus_on_event(input: FocusOnEventInput) -> Rpc<ModeSwapResult> {
+    focus_on_event_impl(
+        &input.room_id,
+        &input.target_event_id,
+        input.num_context_events,
+    )
+    .await
+    .into()
+}
+
+async fn focus_on_event_impl(
     room_id: &str,
     target_event_id: &str,
     num_context_events: Option<u16>,
@@ -633,7 +631,12 @@ pub async fn focus_on_event_impl(
     })
 }
 
-pub async fn return_to_live_impl(room_id: &str) -> Result<ModeSwapResult, HarmonyError> {
+#[harmony_export(domain = "timeline", action = "return_to_live")]
+pub async fn return_to_live(room_id: String) -> Rpc<ModeSwapResult> {
+    return_to_live_impl(&room_id).await.into()
+}
+
+async fn return_to_live_impl(room_id: &str) -> Result<ModeSwapResult, HarmonyError> {
     let (live, output_tx, generation, was_already_live) = with_room(room_id, |state| {
         if matches!(state.mode, TimelineMode::Live) {
             return Ok((
@@ -683,7 +686,23 @@ pub async fn return_to_live_impl(room_id: &str) -> Result<ModeSwapResult, Harmon
     })
 }
 
-pub async fn paginate_room_impl(
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginateInput {
+    pub room_id: String,
+    pub direction: PaginationDirection,
+    pub count: u16,
+}
+
+#[harmony_export(domain = "timeline", action = "paginate")]
+pub async fn paginate_room(input: PaginateInput) -> Rpc<PaginateResult> {
+    paginate_room_impl(&input.room_id, input.direction, input.count)
+        .await
+        .into()
+}
+
+async fn paginate_room_impl(
     room_id: &str,
     direction: PaginationDirection,
     count: u16,
@@ -716,7 +735,29 @@ pub async fn paginate_room_impl(
     })
 }
 
-pub async fn send_message_impl(
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct SendMessageInput {
+    pub room_id: String,
+    pub body: String,
+    pub formatted_body: Option<String>,
+    pub reply_to_event_id: Option<String>,
+}
+
+#[harmony_export(domain = "timeline", action = "send")]
+pub async fn send_message(input: SendMessageInput) -> Rpc<()> {
+    send_message_impl(
+        &input.room_id,
+        &input.body,
+        input.formatted_body.as_deref(),
+        input.reply_to_event_id.as_deref(),
+    )
+    .await
+    .into()
+}
+
+async fn send_message_impl(
     room_id: &str,
     body: &str,
     formatted_body: Option<&str>,
@@ -743,7 +784,31 @@ pub async fn send_message_impl(
     Ok(())
 }
 
-pub async fn edit_message_impl(
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct EditMessageInput {
+    pub room_id: String,
+    pub event_id: Option<String>,
+    pub transaction_id: Option<String>,
+    pub body: String,
+    pub formatted_body: Option<String>,
+}
+
+#[harmony_export(domain = "timeline", action = "edit")]
+pub async fn edit_message(input: EditMessageInput) -> Rpc<()> {
+    edit_message_impl(
+        &input.room_id,
+        input.event_id.as_deref(),
+        input.transaction_id.as_deref(),
+        &input.body,
+        input.formatted_body.as_deref(),
+    )
+    .await
+    .into()
+}
+
+async fn edit_message_impl(
     room_id: &str,
     event_id: Option<&str>,
     transaction_id: Option<&str>,
@@ -772,7 +837,29 @@ pub async fn edit_message_impl(
     Ok(())
 }
 
-pub async fn toggle_reaction_impl(
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct ToggleReactionInput {
+    pub room_id: String,
+    pub event_id: Option<String>,
+    pub transaction_id: Option<String>,
+    pub key: String,
+}
+
+#[harmony_export(domain = "timeline", action = "toggle_reaction")]
+pub async fn toggle_reaction(input: ToggleReactionInput) -> Rpc<bool> {
+    toggle_reaction_impl(
+        &input.room_id,
+        input.event_id.as_deref(),
+        input.transaction_id.as_deref(),
+        &input.key,
+    )
+    .await
+    .into()
+}
+
+async fn toggle_reaction_impl(
     room_id: &str,
     event_id: Option<&str>,
     transaction_id: Option<&str>,
@@ -792,7 +879,27 @@ pub async fn toggle_reaction_impl(
     Ok(added)
 }
 
-pub async fn redact_message_impl(
+#[derive(Tsify, Deserialize)]
+#[tsify(from_wasm_abi)]
+#[serde(rename_all = "camelCase")]
+pub struct RedactMessageInput {
+    pub room: String,
+    pub event: Option<String>,
+    pub transaction: Option<String>,
+}
+
+#[harmony_export(domain = "timeline", action = "redact")]
+pub async fn redact_message(input: RedactMessageInput) -> Rpc<()> {
+    redact_message_impl(
+        &input.room,
+        input.event.as_deref(),
+        input.transaction.as_deref(),
+    )
+    .await
+    .into()
+}
+
+async fn redact_message_impl(
     room_id: &str,
     event_id: Option<&str>,
     transaction_id: Option<&str>,
@@ -812,13 +919,27 @@ pub async fn redact_message_impl(
     Ok(())
 }
 
-pub async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
+#[harmony_export(domain = "timeline", action = "mark_as_read")]
+pub async fn mark_as_read(room_id: String) -> Command {
+    mark_as_read_impl(&room_id).await.into()
+}
+
+async fn mark_as_read_impl(room_id: &str) -> Result<(), HarmonyError> {
     let timeline = live_for_room(room_id)?;
     timeline.mark_as_read(ReceiptType::Read).await?;
     Ok(())
 }
 
-pub async fn get_room_state_impl(room_id: &str) -> Result<RoomStateSnapshot, HarmonyError> {
+#[harmony_export(
+    domain = "timeline",
+    action = "get_room_state",
+    snapshot_for = "timeline.subscribe"
+)]
+pub async fn get_room_state(room_id: String) -> Rpc<RoomStateSnapshot> {
+    get_room_state_impl(&room_id).await.into()
+}
+
+async fn get_room_state_impl(room_id: &str) -> Result<RoomStateSnapshot, HarmonyError> {
     let (timeline, mode, generation) = with_room(room_id, |state| {
         Ok((current_timeline(state), state.mode, state.generation))
     })?;

@@ -1,12 +1,11 @@
-import { Harmony } from "./client";
-
-export const harmony = new Harmony();
-
-export type { AuthLoginResult, AuthLogoutResult } from "./auth";
-export type { EditTarget } from "./timeline";
-export type { InviteLink, CreateInviteOptions, RedeemResult } from "./invites";
-export { getSession } from "./session";
 export { HOMESERVER_ORIGIN, HOMESERVER_URL } from "./config";
-export { listenForTokenRequests } from "./media-worker";
+export { listenForTokenRequests, setMediaAuth } from "./media-worker";
 
-export type { SubscribableStore } from "./store";
+// Bridge primitives. The HarmonyClient class is exported for tests and
+// alternate hosts; everyday consumers use the free functions.
+export { HarmonyClient, rpc, command, subscribe } from "./harmony";
+
+// Re-export the tsify-generated DTO types so apps don't need to depend
+// on @harmony/wasm directly.
+export type * from "@harmony/wasm";
+export type { SessionData as Session } from "@harmony/wasm";

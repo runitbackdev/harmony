@@ -1,8 +1,11 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Sidebar, TextField } from "@harmony/ui";
-import { createRoom, useCreateInvite, useRooms, useSpaces } from "@harmony/react";
+import { Dialog, Sidebar, TextField } from "@/ui";
+import { createRoom } from "@/spaces/api";
+import { useRoomsInSpace } from "@/rooms/api";
+import { useSpaces } from "@/spaces/api";
+import { createInviteErrorMessage, useCreateInvite } from "@/invites/api";
 import { Check, Copy, Hash, Link, Plus, X } from "lucide-react";
 import * as v from "valibot";
 
@@ -20,16 +23,17 @@ const createRoomSchema = v.object({
 
 // #region RoomList
 
-function RoomList({ onPick }: { onPick?: () => void }) {
-  const rooms = useRooms();
+function RoomList({ spaceId, onPick }: { spaceId: string; onPick?: () => void }) {
+  const roomsSub = useRoomsInSpace(spaceId);
+  const rooms = roomsSub.value ?? [];
   const navigate = useNavigate();
-  const { spaceId, roomId } = useParams({ strict: false });
+  const { roomId } = useParams({ strict: false });
 
   const handleClick = useCallback(
     (targetRoomId: string) => {
       void navigate({
         to: "/$spaceId/$roomId",
-        params: { spaceId: spaceId!, roomId: targetRoomId },
+        params: { spaceId, roomId: targetRoomId },
       });
       onPick?.();
     },
@@ -111,7 +115,9 @@ function InviteDialog({
               {createInvite.isPending ? (
                 <div className="h-10 animate-pulse rounded bg-surface-200-800" />
               ) : createInvite.isError ? (
-                <p className="text-error-500 text-sm">Failed to create invite link.</p>
+                <p className="text-error-500 text-sm">
+                  {createInviteErrorMessage(createInvite.error)}
+                </p>
               ) : inviteUrl ? (
                 <div className="flex items-center gap-2">
                   <input
@@ -157,8 +163,8 @@ interface RoomSidebarProps {
  * Does NOT register omnibar commands (those should be hoisted to the route).
  */
 export function RoomSidebar({ spaceId, className, onAfterNavigate }: RoomSidebarProps) {
-  const spaces = useSpaces();
-  const currentSpace = spaces.find((s) => s.roomId === spaceId);
+  const spacesSub = useSpaces();
+  const currentSpace = (spacesSub.value ?? []).find((s) => s.roomId === spaceId);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const createInvite = useCreateInvite();
@@ -167,7 +173,8 @@ export function RoomSidebar({ spaceId, className, onAfterNavigate }: RoomSidebar
     defaultValues: { name: "" },
     validators: { onSubmit: createRoomSchema },
     onSubmit: async ({ value }) => {
-      await createRoom(spaceId, value.name, "public");
+      const result = await createRoom({ spaceId, name: value.name, visibility: "public" });
+      if (!result.ok) throw new Error(result.error.message ?? result.error.code);
       setCreateOpen(false);
       form.reset();
     },
@@ -180,7 +187,7 @@ export function RoomSidebar({ spaceId, className, onAfterNavigate }: RoomSidebar
           {currentSpace?.displayName ?? "Channels"}
         </Sidebar.Header>
         <div className="flex-1 overflow-y-auto">
-          <RoomList onPick={onAfterNavigate} />
+          <RoomList spaceId={spaceId} onPick={onAfterNavigate} />
         </div>
         <div className="space-y-1 p-2">
           <button

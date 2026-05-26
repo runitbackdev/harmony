@@ -5,101 +5,116 @@ Harmony is a Matrix chat client. The heavy lifting (protocol, sync, crypto) runs
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Browser Tab(s)                                         │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐             │
-│  │ apps/web │  │ react    │  │ ui        │             │
-│  │ (routes) │→ │ (hooks)  │→ │ (design)  │             │
-│  └────┬─────┘  └────┬─────┘  └───────────┘             │
-│       │              │                                  │
-│       └──────┬───────┘                                  │
-│              ▼                                          │
-│  ┌───────────────────┐         MessagePort              │
-│  │   core/client     │ ──────────────────────┐          │
-│  │   (Harmony class) │                       │          │
-│  └───────────────────┘                       │          │
-├──────────────────────────────────────────────┼──────────┤
-│  SharedWorker                                ▼          │
-│  ┌───────────────────────────────────────────────┐      │
-│  │   core/worker                                 │      │
-│  │   dispatcher → handlers → WASM calls          │      │
-│  └──────────────────────┬────────────────────────┘      │
-│                         ▼                               │
-│  ┌───────────────────────────────────────────────┐      │
-│  │   crates/wasm (Rust → WASM)                   │      │
-│  │   matrix-sdk · IndexedDB · crypto             │      │
-│  └───────────────────────────────────────────────┘      │
+│  ┌─────────────────────────────────────┐                │
+│  │ apps/web                            │                │
+│  │  routes/  ui/  composer/  primitives│                │
+│  │  domain APIs: spaces/api, rooms/api │                │
+│  │                timeline/api, …      │                │
+│  └────────────────┬────────────────────┘                │
+│                   │                                     │
+│                   ▼                                     │
+│  ┌───────────────────────────────────────────┐          │
+│  │  packages/react                           │          │
+│  │  useRpc · useStream · useListSubscription │          │
+│  └────────────────┬──────────────────────────┘          │
+│                   │                                     │
+│                   ▼                                     │
+│  ┌───────────────────────────────────────────┐          │
+│  │  packages/core                            │          │
+│  │  rpc() · command() · subscribe()          │          │
+│  │  Transport (MessagePort)                  │          │
+│  └────────────────┬──────────────────────────┘          │
+│                   │  MessagePort                        │
+├───────────────────┼─────────────────────────────────────┤
+│  SharedWorker     ▼                                     │
+│  ┌───────────────────────────────────────────┐          │
+│  │  packages/core/worker                     │          │
+│  │  generic dispatcher → wasm.<jsName>(…)    │          │
+│  └────────────────┬──────────────────────────┘          │
+│                   ▼                                     │
+│  ┌───────────────────────────────────────────┐          │
+│  │  crates/wasm  (Rust → WASM)               │          │
+│  │  matrix-sdk · IndexedDB · crypto          │          │
+│  │  #[harmony_export] fns emit metadata into │          │
+│  │  __harmony_protocol custom section        │          │
+│  └───────────────────────────────────────────┘          │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Packages
 
-| Package             | What it does                                                                     |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `apps/web`          | React 19 app with TanStack Router. File-based routing, session-guarded layouts.  |
-| `packages/core`     | The `Harmony` client class + SharedWorker internals. Owns the message protocol.  |
-| `packages/react`    | React hooks (`useLogin`, `useSync`, `useSyncStatus`, `useSpaces`) wrapping core. |
-| `packages/protocol` | Shared TypeScript types for every message crossing the worker boundary.          |
-| `packages/ui`       | Design system components (Skeleton React + Tailwind 4).                          |
-| `packages/composer` | Rich text editor built on Lexical.                                               |
-| `packages/profiler` | FPS/memory dev overlay.                                                          |
-| `crates/wasm`       | Rust crate compiled to WASM. Wraps `matrix-sdk` for auth, sync, and spaces.      |
+| Package                          | What it does                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/web`                       | React 19 app w/ TanStack Router. Owns `ui/`, `composer/`, `primitives/` and per-domain APIs.  |
+| `apps/herald`                    | Rust appservice (Axum + toasty + Postgres). Custom statuses, invites, presence.               |
+| `packages/core`                  | Bridge runtime: `rpc`/`command`/`subscribe`, Transport, MessagePort dispatcher, `protocol/`.  |
+| `packages/react`                 | Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.                       |
+| `packages/wasm`                  | Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).                                          |
+| `crates/wasm`                    | Rust crate wrapping `matrix-sdk`. Every bridge fn marked `#[harmony_export]`.                 |
+| `crates/harmony-protocol`        | `Rpc<T>` / `Command` / `Subscription<I,C>` wrappers + `HarmonyError`.                         |
+| `crates/harmony-protocol-macros` | `#[harmony_export]` proc macro: emits wasm-bindgen export + `__harmony_protocol` entry.       |
+| `tools/harmony-cli`              | `harmony` CLI. `harmony codegen` builds WASM, reads `__harmony_protocol` section, generates `packages/core/lib/protocol/maps.generated.ts`. |
 
-## Message Protocol
+## Bridge: Rpc / Command / Subscription
 
-Everything between the UI thread and SharedWorker uses one of three message shapes defined in `packages/protocol`:
+Every WASM fn declares its bridge shape via its return type:
 
-- **Request → Response** — has an `id`. Client sends a request, worker replies with the same `id`. Used for login, restore, subscribe.
-- **Stream** — no `id`. Worker broadcasts to all connected ports. Used for sync status updates, space list diffs.
-- **Command** — no `id`, no response expected. Fire-and-forget from client to worker. Used for logout, stop sync, unsubscribe.
+- `Rpc<T>` — request/response. Returns `{ ok: true, value: T } | { ok: false, error: HarmonyError }`.
+- `Command` — fire-and-forget. Returns the same union with `T = void`.
+- `Subscription<I, C>` — initial snapshot `I` + `ReadableStream<C>` of chunks. Startup errors return on `.ok = false`.
 
-The worker's `dispatcher` routes each incoming message to a handler by `type` string (e.g. `h.auth.login`, `h.sync.start`). Handlers call into WASM functions and send responses/streams back through `MessagePort`.
+The `#[harmony_export]` macro reads the return type, derives a wire name (`domain.action`) and a JS name (`domainAction`), emits the wasm-bindgen export, and writes one NDJSON entry per fn into the `__harmony_protocol` custom WASM section. `harmony codegen` reads the section after build and writes `packages/core/lib/protocol/maps.generated.ts` — the single source of truth for client-side wire name → fn binding + TS shape.
+
+`RpcResult<T>` (the discriminated union above) is the only error surface client code sees. Errors ride in-band on the same response — no separate error event types.
 
 ## How Data Flows
 
-Take "user logs in" as an example:
+Take "user joins a space" as an example:
 
 ```
-LoginForm (apps/web)
-  → useLogin hook (packages/react)
-    → harmony.auth.login() (packages/core)
-      → WorkerConnection.request("h.auth.login", { ... })
-        → postMessage to SharedWorker
-          → dispatcher finds authHandlers["h.auth.login"]
-            → calls login() from WASM
-              → matrix-sdk authenticates against homeserver
-            ← SessionData returned
-          ← send.respond({ type: "h.auth.login", ...session })
-        ← Promise resolves with session
-      ← session saved to localStorage
-    ← hook updates status/error state
+JoinForm (apps/web)
+  → joinSpace(spaceId)         [apps/web/src/spaces/api.ts]
+    → rpc("spaces.join", id)   [packages/core]
+      → Transport.send → MessagePort → SharedWorker
+        → generic dispatcher → wasm.spacesJoinSpace(id)
+          → matrix-sdk joins room, builds SpaceData
+        ← Rpc::ok(space) serialized into RpcResult
+      ← MessagePort response with matching id
+    ← Promise<RpcResult<SpaceData>>
+  ← caller checks result.ok, navigates
 ```
 
-Streaming works similarly, but after the initial response the worker keeps piping `ReadableStream` chunks from WASM as broadcast messages to all ports.
+Subscriptions skip the response id and stream `ReadableStream<C>` chunks instead. Use `useListSubscription("rooms.subscribe_in_space", spaceId, applyListDiff)` from `packages/react` to fold chunks into reactive state.
 
 ## Key Design Decisions
 
-**SharedWorker** — One worker shared across all tabs. Matrix sync runs once, not per-tab. The `PortRegistry` tracks connected tabs and broadcasts stream updates to all of them. When the last tab closes, sync stops.
+**SharedWorker** — One worker shared across all tabs. Matrix sync runs once, not per-tab. PortRegistry tracks connected tabs and fanouts subscription chunks.
 
-**Rust/WASM for the core** — The `matrix-rust-sdk` handles protocol details, E2EE, and persistent storage (IndexedDB). TypeScript types are auto-generated from Rust structs via `tsify`.
+**Rust/WASM core** — `matrix-rust-sdk` handles protocol, E2EE, persistent storage (IndexedDB via `matrix-sdk-indexeddb`).
 
-**Diff-based updates** — Space lists (and eventually room lists, timelines) use a `ListDiff` protocol with operations like `append`, `insert`, `remove`, `set`, `reset`. This avoids re-sending full lists on every change.
+**Generated wire map** — `harmony codegen` walks the `__harmony_protocol` custom section after build, generates `maps.generated.ts`. Adding a bridge fn = one `#[harmony_export]` annotation in Rust; the TS side picks it up automatically next `harmony codegen`.
 
-**Layered packages** — Each layer has a single responsibility: `protocol` defines the contract, `core` implements the worker + client, `react` provides hooks, `apps/web` composes them into a UI. You can swap the UI layer without touching the rest.
+**Diff-based list updates** — Lists (spaces, rooms, members, timeline events) use `ListDiff<T>` ops (`append`, `insert`, `set`, `remove`, `reset`, …) folded client-side. Avoids re-sending full lists.
+
+**Per-domain APIs in `apps/web`** — Each domain (auth, spaces, rooms, members, timeline, sync, invites) gets its own `src/<domain>/api.ts` thin wrapper around `rpc`/`command`/`subscribe`. Components import wrappers, never the wire-level singleton.
 
 ## Orienting Yourself
 
-Starting points depending on what you're working on:
-
-- **Adding a new API** — Define types in `packages/protocol`, add a WASM function in `crates/wasm`, write a handler in `packages/core/lib/worker/handlers/`, expose it through a client API in `packages/core/lib/`, then add a React hook in `packages/react`.
-- **Changing UI** — Routes live in `apps/web/src/routes/`. Components in `packages/ui/`. The `_authenticated` layout guard runs `restoreSession()` before rendering child routes.
-- **Debugging worker issues** — Chrome DevTools → `chrome://inspect/#workers` to see SharedWorker console. The dispatcher logs handler errors.
-- **Building WASM** — `just build-wasm-dev`. Output lands in `packages/wasm/`.
+- **Adding a bridge API** —
+  1. Write the Rust fn with `#[harmony_export(domain = "…", action = "…")]` returning `Rpc<T>` / `Command` / `Subscription<I,C>`.
+  2. `harmony codegen` regenerates `maps.generated.ts`. Done — types + dispatch wiring are automatic.
+  3. (Optional) Add a thin wrapper in `apps/web/src/<domain>/api.ts` so call sites get domain-named fns instead of wire names.
+- **UI** — Routes: `apps/web/src/routes/`. Components: `apps/web/src/ui/`. Layout guard `_authenticated` waits on `sessionStore.get()`.
+- **Debugging worker** — Chrome DevTools → `chrome://inspect/#workers`. Bridge dispatch errors are surfaced as `RpcResult.ok=false`; client wrappers throw on the boundary or let callers branch.
+- **Building WASM** — `harmony codegen` (dev) or `harmony codegen --release`. Output: `packages/wasm/`.
 
 ## Build Tools
 
-| Tool        | Purpose                                                          |
-| ----------- | ---------------------------------------------------------------- |
-| `pnpm`      | Package manager, workspace linking                               |
-| `vite`      | Dev server + bundler for the web app                             |
-| `wasm-pack` | Compiles Rust crate to WASM + JS bindings                        |
-| `just`      | Task runner (`just dev`, `just build`, `just check`, `just fmt`) |
-| `lefthook`  | Git hooks for formatting, linting, commit messages               |
+| Tool        | Purpose                                                         |
+| ----------- | --------------------------------------------------------------- |
+| `pnpm`      | Package manager, workspace linking                              |
+| `vite`      | Dev server + bundler for the web app                            |
+| `wasm-pack` | Compiles Rust crate to WASM + JS bindings                       |
+| `harmony`   | Typed workspace CLI (`harmony dev`, `harmony codegen`, `harmony db`, …) — forwards unknown subcommands to `just` |
+| `just`      | Orchestration recipes (compose, hivemind, multi-step shell)     |
+| `lefthook`  | Git hooks for formatting, linting, commit messages              |

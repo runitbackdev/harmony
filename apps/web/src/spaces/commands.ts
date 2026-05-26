@@ -1,5 +1,6 @@
 import { Eye, Link, LogOut } from "lucide-react";
-import { getRoomIdsInSpace, markAsRead } from "@harmony/react";
+import { getDescendants } from "@/spaces/api";
+import { markRoomAsRead } from "@/timeline/api";
 import { notImplemented, toast } from "@/lib/toast";
 import { useOmnibarCommands, type Command } from "@/omnibar";
 
@@ -13,24 +14,19 @@ async function copySpaceLink(spaceId: string) {
 }
 
 async function markSpaceAsRead(spaceId: string) {
-  try {
-    const roomIds = await getRoomIdsInSpace(spaceId);
-    if (roomIds.length === 0) {
-      toast.info("No rooms to mark as read");
-      return;
-    }
-    const results = await Promise.allSettled(roomIds.map((id) => markAsRead(id)));
-    const failed = results.filter((r) => r.status === "rejected").length;
-    const succeeded = roomIds.length - failed;
-    const noun = succeeded === 1 ? "room" : "rooms";
-    if (failed === 0) {
-      toast.success(`Marked ${succeeded} ${noun} as read`);
-    } else {
-      toast.error(`Marked ${succeeded} of ${roomIds.length} rooms as read`);
-    }
-  } catch {
-    toast.error("Couldn't mark rooms as read");
+  const result = await getDescendants(spaceId);
+  if (!result.ok) {
+    toast.error("Couldn't load rooms");
+    return;
   }
+  const roomIds = result.value;
+  if (roomIds.length === 0) {
+    toast.info("No rooms to mark as read");
+    return;
+  }
+  for (const id of roomIds) markRoomAsRead(id);
+  const noun = roomIds.length === 1 ? "room" : "rooms";
+  toast.success(`Marked ${roomIds.length} ${noun} as read`);
 }
 
 function buildSpaceCommands(spaceId: string): Command[] {

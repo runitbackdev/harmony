@@ -1,4 +1,5 @@
-type GetAuth = () => { token: string; homeserverOrigin: string } | null;
+type AuthInfo = { token: string; homeserverOrigin: string } | null;
+type GetAuth = () => AuthInfo | Promise<AuthInfo>;
 
 type IncomingRequest = { type: "harmony/auth/request" };
 
@@ -17,14 +18,14 @@ export function clearMediaAuth() {
 export function listenForTokenRequests(getAuth: GetAuth) {
   if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
 
-  navigator.serviceWorker.addEventListener("message", (event) => {
+  navigator.serviceWorker.addEventListener("message", async (event) => {
     const data = event.data as IncomingRequest | undefined;
     if (data?.type !== "harmony/auth/request") return;
 
     const port = event.ports[0];
     if (!port) return;
 
-    const current = getAuth();
+    const current = await getAuth();
     port.postMessage({
       type: "harmony/auth/reply",
       token: current?.token ?? null,
@@ -32,8 +33,8 @@ export function listenForTokenRequests(getAuth: GetAuth) {
     });
   });
 
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    const current = getAuth();
+  navigator.serviceWorker.addEventListener("controllerchange", async () => {
+    const current = await getAuth();
     if (current) setMediaAuth(current.token, current.homeserverOrigin);
   });
 }

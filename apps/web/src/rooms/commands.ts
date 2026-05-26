@@ -1,5 +1,5 @@
 import { BellOff, Eye, Link, LogOut } from "lucide-react";
-import { markAsRead } from "@harmony/react";
+import { markRoomAsRead } from "@/timeline/api";
 import { notImplemented, toast } from "@/lib/toast";
 import { useOmnibarCommands, type Command } from "@/omnibar";
 
@@ -20,9 +20,7 @@ function buildRoomCommands(spaceId: string, roomId: string): Command[] {
       icon: Eye,
       keywords: ["unread", "clear"],
       perform: () => {
-        markAsRead(roomId).catch(() => {
-          toast.error("Couldn't mark room as read");
-        });
+        markRoomAsRead(roomId);
       },
     },
     {

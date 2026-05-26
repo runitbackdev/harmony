@@ -1,5 +1,5 @@
 import type { FzfResultItem } from "fzf";
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
+import type { RoomDataWithSpace } from "@harmony/core";
 import { normalizeFzfScore, type Scorer, type Scorers } from "./scorer";
 import {
   frequencyBoost,
@@ -46,13 +46,13 @@ function byMode(mode: OmnibarItemKind | null) {
   };
 }
 
-function hydratorFor(commands: readonly Command[], rooms: readonly RoomWithSpaceSummary[]) {
+function hydratorFor(commands: readonly Command[], rooms: readonly RoomDataWithSpace[]) {
   return function hydrate(entry: RecentEntry) {
     return hydrateRecent(entry, commands, rooms);
   };
 }
 
-function wrapRoom(room: RoomWithSpaceSummary) {
+function wrapRoom(room: RoomDataWithSpace) {
   return { kind: "room" as const, room };
 }
 
@@ -106,7 +106,7 @@ type PipelineInput = {
   mode: OmnibarItemKind | null;
   query: string;
   allCommands: readonly Command[];
-  rooms: readonly RoomWithSpaceSummary[];
+  rooms: readonly RoomDataWithSpace[];
   recents: readonly RecentEntry[];
   frequencies: Readonly<Record<string, FrequencyEntry>>;
   queries: QueriesSnapshot;

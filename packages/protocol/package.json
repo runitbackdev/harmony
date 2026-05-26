@@ -1,8 +1,0 @@
-{
-  "name": "@harmony/protocol",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./lib/index.ts"
-  }
-}

@@ -134,10 +134,7 @@ function evictItemsIfNeeded(entry: QueryEntry) {
     const s = entry.items[k];
     const sLastVisit = s.visits[0] ?? 0;
     const worstLastVisit = worst.visits[0] ?? 0;
-    if (
-      s.count < worst.count ||
-      (s.count === worst.count && sLastVisit < worstLastVisit)
-    ) {
+    if (s.count < worst.count || (s.count === worst.count && sLastVisit < worstLastVisit)) {
       worstKey = k;
       worst = s;
     }

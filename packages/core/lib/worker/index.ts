@@ -1,60 +1,43 @@
-import type { WorkerInbound } from "@harmony/protocol";
-import { createDispatcher } from "./dispatcher";
-import { PortRegistry } from "./ports";
-import { authHandlers } from "./handlers/auth";
-import { roomsHandlers, removeRoomsSubscriber } from "./handlers/rooms";
-import { spacesHandlers, removeSpacesSubscriber } from "./handlers/spaces";
-import { timelineHandlers, removeTimelineSubscriber } from "./handlers/timeline";
-import { syncHandlers, removeSyncSubscriber } from "./handlers/sync";
-import init, { configureTracing, stopSync } from "@harmony/wasm";
+import init, { configureTracing } from "@harmony/wasm";
+import { createWorkerDispatcher } from "../transport/worker-dispatcher";
+import { isBridgeInbound } from "../transport";
 
 declare let self: SharedWorkerGlobalScope;
 
-const ports = new PortRegistry();
-
-const dispatch = createDispatcher(
-  {
-    ...authHandlers,
-    ...syncHandlers,
-    ...spacesHandlers,
-    ...roomsHandlers,
-    ...timelineHandlers,
-  },
-  ports,
-);
-
-ports.onPortRemoved((port) => {
-  removeSyncSubscriber(port);
-  removeSpacesSubscriber(port);
-  removeRoomsSubscriber(port);
-  removeTimelineSubscriber(port);
-});
-
-ports.onAllDisconnected(() => {
-  stopSync().catch(() => {});
-});
-
 const LOG_LEVEL = "warn";
 
+const bridge = createWorkerDispatcher();
+const ports = new Set<MessagePort>();
+
 let initialized = false;
+
+async function ensureInitialized() {
+  if (initialized) return;
+  await init();
+  configureTracing(LOG_LEVEL);
+  initialized = true;
+}
 
 self.onconnect = (event: MessageEvent) => {
   const port = event.ports[0];
   ports.add(port);
 
   port.onmessage = async (event: MessageEvent) => {
-    if (event.data.type === "h.connection.close") {
-      ports.remove(port);
+    const data = event.data as unknown;
+
+    if (!isBridgeInbound(data)) {
+      console.warn("[worker] dropping non-bridge message:", data);
       return;
     }
 
-    if (!initialized) {
-      await init();
-      configureTracing(LOG_LEVEL);
-      initialized = true;
+    if (data.kind === "connection.close") {
+      bridge.onPortClose(port);
+      ports.delete(port);
+      return;
     }
 
-    await dispatch(port, event.data as WorkerInbound);
+    await ensureInitialized();
+    await bridge.onMessage(port, data);
   };
 
   port.start();

@@ -1,5 +1,5 @@
 import type { useNavigate } from "@tanstack/react-router";
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
+import type { RoomDataWithSpace } from "@harmony/core";
 import { toast } from "@/lib/toast";
 import { fetchAllRooms } from "./queries";
 
@@ -10,7 +10,7 @@ type Navigate = ReturnType<typeof useNavigate>;
 export async function jumpToRoom(
   navigate: Navigate,
   currentRoomId: string | undefined,
-  predicate: (room: RoomWithSpaceSummary) => boolean,
+  predicate: (room: RoomDataWithSpace) => boolean,
   direction: "next" | "prev",
   emptyMessage: string,
 ): Promise<void> {

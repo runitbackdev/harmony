@@ -1,3 +1,4 @@
+use harmony_protocol::HarmonyError as WireError;
 use matrix_sdk::ClientBuildError;
 use matrix_sdk::ruma::api::client::error::ErrorKind;
 use thiserror::Error;
@@ -90,5 +91,34 @@ impl From<HarmonyError> for JsValue {
         js_sys::Reflect::set(&obj, &"code".into(), &code).ok();
         js_sys::Reflect::set(&obj, &"message".into(), &message).ok();
         obj.into()
+    }
+}
+
+impl From<HarmonyError> for WireError {
+    fn from(err: HarmonyError) -> Self {
+        let message = err.to_string();
+        match err {
+            HarmonyError::AuthFailed => Self::AuthFailed,
+            HarmonyError::InvalidUserId => Self::InvalidUserId,
+            HarmonyError::InvalidRoomId => Self::InvalidRoomId,
+            HarmonyError::InvalidEventId => Self::InvalidEventId,
+            HarmonyError::InvalidContentType => Self::InvalidContentType,
+            HarmonyError::ClientNotReady => Self::ClientNotReady,
+            HarmonyError::ClientAlreadyInitialized => Self::ClientAlreadyInitialized,
+            HarmonyError::RoomNotFound => Self::RoomNotFound,
+            HarmonyError::SerializationFailed => Self::SerializationFailed { message },
+            HarmonyError::ClientBuildError(_) => Self::ServerNotFound,
+            HarmonyError::HttpError(e) => match classify_api_error(e.client_api_error_kind()) {
+                "invalid_credentials" => Self::InvalidCredentials,
+                "rate_limited" => Self::RateLimited,
+                _ => Self::NetworkError { message },
+            },
+            HarmonyError::MatrixError(e) => match classify_api_error(e.client_api_error_kind()) {
+                "invalid_credentials" => Self::InvalidCredentials,
+                "rate_limited" => Self::RateLimited,
+                _ => Self::Unknown { message },
+            },
+            HarmonyError::TimelineError(_) | HarmonyError::Sync(_) => Self::Unknown { message },
+        }
     }
 }

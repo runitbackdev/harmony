@@ -1,2 +1,5 @@
 [files]
 extend-exclude = ["*.woff2", "*.css"]
+
+[default.extend-words]
+lits = "lits"

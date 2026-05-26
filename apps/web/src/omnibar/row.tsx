@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { Hash, History } from "lucide-react";
-import { cn } from "@harmony/ui";
+import { cn } from "@/ui";
 import type { Command, OmnibarItem } from "./types";
 
 type OmnibarRowProps = ComponentProps<"li"> & {

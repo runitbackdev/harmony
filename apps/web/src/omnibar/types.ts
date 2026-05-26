@@ -1,4 +1,4 @@
-import type { RoomWithSpaceSummary } from "@harmony/protocol";
+import type { RoomDataWithSpace } from "@harmony/core";
 import type { LucideIcon } from "lucide-react";
 
 export interface Command {
@@ -22,7 +22,7 @@ export interface Command {
 
 /** Discriminated union of everything the omnibar can show as a result. */
 export type OmnibarItem =
-  | { kind: "room"; room: RoomWithSpaceSummary }
+  | { kind: "room"; room: RoomDataWithSpace }
   | { kind: "command"; command: Command };
 
 export type OmnibarItemKind = OmnibarItem["kind"];

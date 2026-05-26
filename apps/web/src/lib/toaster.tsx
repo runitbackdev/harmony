@@ -1,4 +1,4 @@
-import { Toast } from "@harmony/ui";
+import { Toast } from "@/ui";
 import { toaster } from "./toast";
 
 export function Toaster() {

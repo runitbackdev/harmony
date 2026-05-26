@@ -822,8 +822,7 @@
     [data-part="item-indicator"] {
     animation: none;
   }
-  [data-theme="astra"]
-    [data-scope="sidebar"][data-part="item"][data-state="active"]::after {
+  [data-theme="astra"] [data-scope="sidebar"][data-part="item"][data-state="active"]::after {
     animation: none;
   }
   [data-theme="astra"] [data-scope="sidebar"][data-part="dot"][data-mention] > span:first-child {

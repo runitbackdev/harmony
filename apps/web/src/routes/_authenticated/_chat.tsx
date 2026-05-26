@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
-import { Dialog, TextField } from "@harmony/ui";
+import { Dialog, TextField } from "@/ui";
 import { AtSign, Boxes, ChevronDown, ChevronUp, X } from "lucide-react";
-import { createSpace, subscribeSpaces } from "@harmony/react";
+import { createSpace } from "@/spaces/api";
 import { useForm } from "@tanstack/react-form";
 import * as v from "valibot";
 import { useOmnibarCommands } from "@/omnibar";
@@ -10,9 +10,6 @@ import { jumpToRoom } from "@/rooms/navigation";
 import { SpaceRail } from "@/nav/space-rail";
 
 export const Route = createFileRoute("/_authenticated/_chat")({
-  loader: async () => {
-    await subscribeSpaces();
-  },
   component: RouteComponent,
 });
 
@@ -25,6 +22,11 @@ const createSpaceSchema = v.object({
   avatar: v.nullable(v.instance(File)),
 });
 
+async function fileToBytes(file: File): Promise<number[]> {
+  const buf = await file.arrayBuffer();
+  return Array.from(new Uint8Array(buf));
+}
+
 function CreateSpaceDialog({
   open,
   onOpenChange,
@@ -36,7 +38,14 @@ function CreateSpaceDialog({
     defaultValues: { name: "", avatar: null as File | null },
     validators: { onSubmit: createSpaceSchema },
     onSubmit: async ({ value }) => {
-      await createSpace(value.name, value.avatar);
+      const avatarBytes = value.avatar ? await fileToBytes(value.avatar) : null;
+      const avatarContentType = value.avatar?.type ?? null;
+      const result = await createSpace({
+        name: value.name,
+        avatarBytes,
+        avatarContentType,
+      });
+      if (!result.ok) throw new Error(result.error.message ?? result.error.code);
       onOpenChange(false);
       form.reset();
     },

@@ -1,8 +1,11 @@
-import { getSession, useLogin } from "@harmony/react";
-import { TextField } from "@harmony/ui";
+import { useRpc } from "@harmony/react";
+import { TextField } from "@/ui";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import * as v from "valibot";
+import { setMediaAuth } from "@harmony/core";
+import { HOMESERVER_ORIGIN } from "@harmony/react";
+import { sessionStore } from "@/lib/session";
 
 const searchSchema = v.object({
   invite: v.optional(v.string()),
@@ -12,7 +15,7 @@ export const Route = createFileRoute("/login")({
   component: Login,
   validateSearch: searchSchema,
   beforeLoad: async () => {
-    if (getSession()) throw redirect({ to: "/" });
+    if (await sessionStore.get()) throw redirect({ to: "/" });
   },
 });
 
@@ -22,7 +25,7 @@ const loginSchema = v.object({
 });
 
 function Login() {
-  const login = useLogin();
+  const login = useRpc("auth.login");
   const navigate = useNavigate();
   const { invite } = Route.useSearch();
 
@@ -35,16 +38,21 @@ function Login() {
       onSubmit: loginSchema,
     },
     onSubmit: async ({ value: { username, password } }) => {
-      const result = await login.submit({
+      const result = await login.mutateAsync({
+        homeserver: HOMESERVER_ORIGIN,
         username,
         password,
       });
 
-      if (result.status === "ok") {
+      if (result.ok) {
+        await sessionStore.set(result.value);
+        setMediaAuth(result.value.accessToken, HOMESERVER_ORIGIN);
         void navigate(invite ? { to: "/invite/$code", params: { code: invite } } : { to: "/" });
       }
     },
   });
+
+  const failure = login.data && !login.data.ok ? login.data.error : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-50-950 p-4">
@@ -89,16 +97,14 @@ function Login() {
             )}
           </form.Field>
 
-          {login.status === "error" && (
-            <p className="text-error-500 text-sm">{login.error?.message}</p>
-          )}
+          {failure && <p className="text-error-500 text-sm">{failure.message ?? failure.code}</p>}
 
           <button
             className="btn preset-filled-primary-500 w-full"
             type="submit"
-            disabled={login.status === "pending"}
+            disabled={login.isPending}
           >
-            {login.status === "pending" ? "Signing in…" : "Sign in"}
+            {login.isPending ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

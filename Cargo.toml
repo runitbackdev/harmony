@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["apps/herald", "crates/*", "tools/harmony-cli"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

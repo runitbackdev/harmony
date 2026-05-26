@@ -1,9 +1,10 @@
 #![allow(unused)]
 use matrix_sdk_ui::eyeball_im::VectorDiff;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 use wasm_bindgen::JsValue;
 
-#[derive(Serialize)]
+#[derive(Tsify, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum ListDiff<T> {
     Append { values: Vec<T> },

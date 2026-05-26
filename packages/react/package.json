@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "@harmony/core": "workspace:*",
-    "@harmony/protocol": "workspace:*",
     "@tanstack/react-query": "^5.95.0",
     "valtio": "^2.3.1"
   },

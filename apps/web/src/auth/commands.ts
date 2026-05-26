@@ -1,7 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Shield, Smartphone } from "lucide-react";
-import { useLogout } from "@harmony/react";
+import { logout } from "@/auth/api";
 import { notImplemented } from "@/lib/toast";
+import { sessionStore } from "@/lib/session";
 import { useOmnibarCommands, type Command } from "@/omnibar";
 
 function buildAccountCommands(handleSignout: () => void): Command[] {
@@ -44,14 +45,14 @@ function buildAccountCommands(handleSignout: () => void): Command[] {
  *  Mount once from a layout that only renders for authenticated users. */
 export function useAccountCommands(): void {
   const navigate = useNavigate();
-  const logout = useLogout();
 
   const handleSignout = () => {
     void (async () => {
-      await logout();
+      logout();
+      await sessionStore.clear();
       void navigate({ to: "/login" });
     })();
   };
 
-  useOmnibarCommands(buildAccountCommands(handleSignout), [navigate, logout]);
+  useOmnibarCommands(buildAccountCommands(handleSignout), [navigate]);
 }
