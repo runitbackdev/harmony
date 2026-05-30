@@ -1,0 +1,39 @@
+name: Setup toolchain
+description: Provision the mise-managed toolchain, JS dependencies, and the harmony CLI.
+
+runs:
+  using: composite
+  steps:
+    - name: Install system packages
+      shell: bash
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends clang pkg-config libssl-dev
+
+    - name: Install mise tools
+      uses: https://github.com/jdx/mise-action@v2
+      with:
+        version: latest
+        cache: true
+        # Only the tools CI needs — skip committed/watchexec/hivemind.
+        install_args: rust node pnpm just cargo:wasm-pack cargo:typos-cli
+
+    - name: Cache cargo
+      uses: https://code.forgejo.org/actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: cargo-
+
+    - name: Install JS dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Install harmony CLI
+      shell: bash
+      run: |
+        cargo install --path tools/harmony-cli --force
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"

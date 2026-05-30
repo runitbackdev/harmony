@@ -1,0 +1,28 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same PR.
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: docker
+    container:
+      image: docker.io/library/node:22-bookworm
+    steps:
+      - name: Checkout
+        uses: https://code.forgejo.org/actions/checkout@v4
+
+      - name: Setup toolchain
+        uses: ./.forgejo/actions/setup
+
+      - name: Check (lint, types, clippy, codegen drift, typos)
+        run: just check
+
+      - name: Build
+        run: just build

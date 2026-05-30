@@ -1,0 +1,34 @@
+name: main
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: docker
+    container:
+      image: docker.io/library/node:22-bookworm
+    steps:
+      - name: Checkout
+        uses: https://code.forgejo.org/actions/checkout@v4
+
+      - name: Setup toolchain
+        uses: ./.forgejo/actions/setup
+
+      - name: Check (lint, types, clippy, codegen drift, typos)
+        run: just check
+
+      - name: Build
+        run: just build
+
+      - name: Upload web build
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          if-no-files-found: error
