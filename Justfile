@@ -1,9 +1,9 @@
 compose := if `command -v docker >/dev/null 2>&1 && echo yes || echo no` == "yes" { "docker compose" } else { "podman compose" }
 
 # Frontend only — hosted homeserver by default (override via VITE_HOMESERVER_URL).
-web:
+web host="http://localhost:8008":
     @test -d packages/wasm || harmony codegen
-    pnpm --filter web dev
+    VITE_HOMESERVER_URL="{{host}}" pnpm --filter web dev
 
 # Full local stack — synapse + postgres (detached) + herald + web via hivemind.
 dev:
