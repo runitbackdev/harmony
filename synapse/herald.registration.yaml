@@ -1,7 +1,7 @@
 id: "herald"
 as_token: "herald-dev-as-token"
 hs_token: "herald-dev-hs-token"
-url: "http://host.docker.internal:3000"
+url: "http://herald:3000"
 sender_localpart: "herald"
 namespaces:
   users:

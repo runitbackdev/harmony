@@ -1,0 +1,9 @@
+node_modules
+target
+.git
+apps/web
+packages
+synapse
+*.md
+.env*
+dist

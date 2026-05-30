@@ -31,6 +31,28 @@ services:
       timeout: 5s
       retries: 10
 
+  herald:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: harmony-herald
+    environment:
+      HERALD_DATABASE_URL: postgres://herald:herald@postgres:5432/herald
+      HERALD_HOMESERVER_URL: http://synapse:8008
+      HERALD_HS_TOKEN: herald-dev-hs-token
+      HERALD_AS_TOKEN: herald-dev-as-token
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
 volumes:
   synapse-data:
   postgres-data:
