@@ -75,7 +75,7 @@ export function sendKeymap({ onSend }: SendConfig): Extension {
       {
         key: "Enter",
         run: (view) => {
-          if (completionStatus(view.state)) return false;
+          if (completionStatus(view.state) === "active") return false;
           if (handleCodeBlockEnter(view)) return true;
 
           const body = view.state.doc.toString().trim();
@@ -102,7 +102,7 @@ export function editKeymap({ onEdit, onCancel }: EditConfig): Extension {
       {
         key: "Enter",
         run: (view) => {
-          if (completionStatus(view.state)) return false;
+          if (completionStatus(view.state) === "active") return false;
           if (handleCodeBlockEnter(view)) return true;
 
           const body = view.state.doc.toString().trim();
