@@ -40,6 +40,9 @@ setup:
     harmony codegen
     pnpm exec lefthook install
 
+gen-rpc:
+    harmony codegen
+
 psql:
     psql "${HERALD_DATABASE_URL:-${DATABASE_URL:?'set HERALD_DATABASE_URL or DATABASE_URL'}}"
 
