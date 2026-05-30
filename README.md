@@ -66,7 +66,7 @@ Matrix has a UX problem — most clients feel like they were built for protocol 
 - [mise](https://mise.jdx.dev) — pins Rust, Node, pnpm, Ruby, `just`, `wasm-pack`, `hivemind`, and other dev tools
 - A container runtime — [Docker](https://docs.docker.com/get-docker/) or [Podman](https://podman.io). Only required if running a local Synapse (the default frontend dev path uses a hosted homeserver).
 
-> **Atomic desktops (Bazzite, Silverblue, Bluefin, NixOS):** install `mise` via Homebrew (`brew install mise`) — no `rpm-ostree` layering required. Podman ships out of the box; the justfile auto-detects it.
+> **Atomic desktops (Bazzite, Silverblue, Bluefin, NixOS):** install `mise` via Homebrew (`brew install mise`) — no `rpm-ostree` layering required. Podman ships out of the box; the Justfile auto-detects it.
 
 ### Setup
 
@@ -117,7 +117,7 @@ VITE_HOMESERVER_URL=http://localhost:8008 harmony web
 
 ## Local Synapse
 
-A local [Synapse](https://github.com/element-hq/synapse) homeserver is included for development and testing. Requires Docker or Podman — the justfile picks whichever is installed.
+A local [Synapse](https://github.com/element-hq/synapse) homeserver is included for development and testing. Requires Docker or Podman — the Justfile picks whichever is installed.
 
 Start Synapse:
 
@@ -163,7 +163,7 @@ harmony/
 │   ├── ui/            # Design system components
 │   └── wasm/          # WASM build output (generated)
 ├── tools/harmony-cli/ # `harmony` CLI (typed workspace commands)
-├── justfile           # Orchestration recipes (setup, compose, hivemind, multi-step shell)
+├── Justfile           # Orchestration recipes (setup, compose, hivemind, multi-step shell)
 └── lefthook.yml       # Git hooks config
 ```
 
