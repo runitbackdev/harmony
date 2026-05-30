@@ -35,9 +35,9 @@ clean:
 
 setup:
     mise install
-    pnpm install
     cargo install --path tools/harmony-cli --force
-    harmony codegen
+    @just gen-rpc
+    pnpm install
     pnpm exec lefthook install
 
 gen-rpc:
