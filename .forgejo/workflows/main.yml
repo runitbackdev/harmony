@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: docker
+    runs-on: codeberg-medium-lazy
     container:
       image: docker.io/library/node:22-bookworm
     steps:
