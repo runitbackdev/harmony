@@ -1,9 +1,10 @@
 import type { HTMLAttributes } from "react";
-import type { ReplyTarget } from "@harmony/wasm";
+import type { Attachment, ReplyTarget } from "@harmony/wasm";
 import { Reply } from "lucide-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";
 import { MxAvatar } from "./mx_avatar";
+import AttachmentList from "./attachments/list";
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
   hour: "2-digit",
@@ -24,6 +25,7 @@ interface MessageEventProps extends HTMLAttributes<HTMLDivElement> {
   edited?: boolean;
   editing?: React.ReactNode;
   reactions?: React.ReactNode;
+  attachments?: Attachment[];
   replyTo?: ReplyTarget | null;
   onReplyClick?: (eventId: string) => void;
 }
@@ -41,6 +43,7 @@ function MessageEvent({
   edited,
   editing,
   reactions,
+  attachments,
   replyTo,
   onReplyClick,
   ...props
@@ -118,6 +121,7 @@ function MessageEvent({
               {body}
             </div>
           ))}
+        {attachments && <AttachmentList attachments={attachments} />}
         {reactions}
       </div>
     </div>

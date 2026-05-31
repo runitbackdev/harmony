@@ -1,4 +1,12 @@
-import { useRef, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from "react";
+import {
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  useImperativeHandle,
+  forwardRef,
+  useState,
+} from "react";
 import type { Ref } from "react";
 import { useAnimationCue } from "@/primitives";
 import { placeholder } from "@codemirror/view";
@@ -10,6 +18,7 @@ import {
   EditorView,
   baseExtensions,
   sendKeymap,
+  pasteAttachmentHandler,
   createMentionSource,
 } from "./editor";
 import { emojiCompletionSource } from "./emoji-source";
@@ -17,18 +26,23 @@ import { markdownToHtml } from "./md-to-html";
 import EmojiPickerButton from "./emoji-picker";
 import type { MemberData, ReplyTarget } from "@harmony/wasm";
 import "./composer.css";
+import "./attachments.css";
+import { AttachmentChip, AttachmentPickerButton } from "./attachments";
 
 export type ComposerHandle = {
   focus: () => void;
+  addFiles: (files: File[]) => void;
 };
 
 type ComposerProps = {
   roomId: string;
   getMembers: (roomId: string) => Promise<MemberData[]>;
-  onSend: (body: string, formattedBody: string) => void;
+  onSend: (body: string, formattedBody: string, files: File[]) => void;
   replyTarget?: ReplyTarget | null;
   onCancelReply?: () => void;
 };
+
+const MAX_ATTACHMENTS = 10;
 
 export const Composer = forwardRef(function Composer(
   { roomId, getMembers, onSend, replyTarget, onCancelReply }: ComposerProps,
@@ -40,13 +54,25 @@ export const Composer = forwardRef(function Composer(
   const keymapCompartment = useMemo(() => new Compartment(), []);
   const completionCompartment = useMemo(() => new Compartment(), []);
   const [sending, fireSend] = useAnimationCue(rootRef);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  const addFiles = useCallback((files: File[]) => {
+    setPendingFiles((prev) => [...prev, ...files].slice(0, MAX_ATTACHMENTS));
+  }, []);
+
+  const addFile = useCallback((file: File) => addFiles([file]), [addFiles]);
+
+  const removeFile = useCallback((index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleSend = useCallback(
     async (body: string) => {
       fireSend();
-      onSend(body, (await markdownToHtml(body)) ?? body);
+      onSend(body, (await markdownToHtml(body)) ?? body, pendingFiles);
+      setPendingFiles([]);
     },
-    [onSend, fireSend],
+    [onSend, fireSend, pendingFiles],
   );
 
   const mentionSource = useMemo(
@@ -62,6 +88,7 @@ export const Composer = forwardRef(function Composer(
         extensions: [
           ...baseExtensions,
           placeholder("Send a message..."),
+          pasteAttachmentHandler({ onFiles: addFiles }),
           keymapCompartment.of(sendKeymap({ onSend: handleSend })),
           completionCompartment.of(
             autocompletion({
@@ -116,6 +143,7 @@ export const Composer = forwardRef(function Composer(
 
   useImperativeHandle(ref, () => ({
     focus: () => viewRef.current?.focus(),
+    addFiles,
   }));
 
   return (
@@ -123,12 +151,20 @@ export const Composer = forwardRef(function Composer(
       {replyTarget && (
         <ReplyBanner replyTarget={replyTarget} onCancel={onCancelReply ?? (() => {})} />
       )}
+      {pendingFiles.length > 0 && (
+        <div data-scope="composer" data-part="attachments">
+          {pendingFiles.map((file, i) => (
+            <AttachmentChip key={i} file={file} onRemove={() => removeFile(i)} />
+          ))}
+        </div>
+      )}
       <div
         ref={rootRef}
         data-scope="composer"
         data-part="root"
         data-state={sending ? "sending" : undefined}
       >
+        <AttachmentPickerButton onAttachment={addFile} />
         <div ref={containerRef} className="cm-composer flex-1 min-w-0" />
         <div data-scope="composer" data-part="toolbar">
           <EmojiPickerButton onSelect={handleEmojiSelect} />

@@ -8,6 +8,7 @@ mod diagnostics;
 mod diff;
 mod errors;
 mod lifecycle;
+mod media;
 mod rooms;
 mod spaces;
 mod sync;

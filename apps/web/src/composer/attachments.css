@@ -1,0 +1,79 @@
+[data-scope="composer"][data-part="attachments"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-surface-100-900);
+  border-radius: 0.375rem;
+}
+
+[data-scope="attachment-chip"][data-part="root"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 12rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.375rem;
+  background-color: var(--color-surface-200-800);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-surface-800-200);
+}
+
+[data-scope="attachment-chip"][data-part="thumbnail"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: cover;
+  border-radius: 0.125rem;
+  flex-shrink: 0;
+}
+
+[data-scope="attachment-chip"][data-part="file-icon"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  color: var(--color-surface-500);
+}
+
+[data-scope="attachment-chip"][data-part="name"] {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-scope="attachment-chip"][data-part="remove"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-surface-500);
+  cursor: pointer;
+  border-radius: 0.125rem;
+  transition: color 0.1s;
+}
+
+[data-scope="attachment-chip"][data-part="remove"]:hover {
+  color: var(--color-surface-950-50);
+}
+
+[data-scope="attachment-picker"][data-part="trigger"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  border: none;
+  background: none;
+  color: var(--color-surface-500);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+[data-scope="attachment-picker"][data-part="trigger"]:hover {
+  color: var(--color-surface-950-50);
+}

@@ -49,17 +49,29 @@ self.addEventListener("fetch", (event) => {
 });
 
 async function handleMediaFetch(request: Request, url: URL): Promise<Response> {
-  const current = auth ?? (await recoverAuthFromClients());
+  let current = auth ?? (await recoverAuthFromClients());
 
   if (!current || url.origin !== current.homeserverOrigin) {
     return fetch(request);
   }
 
-  const headers = withAuth(request.headers, current.token);
+  const response = await fetchWithAuth(request, current.token);
+  if (response.status !== 401) return response;
 
+  // Token was missing or stale — drop it, re-request from the page, retry once.
+  // Covers the first-paint race where the auth message hadn't reached the SW
+  // before the page started requesting media.
+  auth = null;
+  current = await recoverAuthFromClients();
+  if (!current) return response;
+
+  return fetchWithAuth(request, current.token);
+}
+
+function fetchWithAuth(request: Request, token: string): Promise<Response> {
   return fetch(request.url, {
     method: request.method,
-    headers,
+    headers: withAuth(request.headers, token),
     mode: "cors",
     credentials: "omit",
   });
@@ -71,8 +83,19 @@ function withAuth(original: Headers, token: string): Headers {
   return headers;
 }
 
-async function recoverAuthFromClients(): Promise<AuthState | null> {
-  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: false });
+let recovering: Promise<AuthState | null> | null = null;
+
+function recoverAuthFromClients(): Promise<AuthState | null> {
+  // Dedupe concurrent recoveries so a burst of media requests on first paint
+  // doesn't fan out into one token round-trip per request.
+  recovering ??= doRecoverAuthFromClients().finally(() => {
+    recovering = null;
+  });
+  return recovering;
+}
+
+async function doRecoverAuthFromClients(): Promise<AuthState | null> {
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   if (clients.length === 0) return null;
 
   const reply = await requestTokenFromClient(clients[0]);

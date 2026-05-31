@@ -1,20 +1,30 @@
-const HOMESERVER_URL = import.meta.env.VITE_HOMESERVER_URL ?? "https://chat.lycanthropy.dev";
+import { HOMESERVER_ORIGIN } from "@harmony/core";
 
-export type ThumbnailSize = 32 | 96 | 320;
+function parseMxcUrl(mxc: string): string[] {
+  return mxc.slice("mxc://".length).split("/", 2);
+}
 
-export function mxcToHttpThumbnail(mxc: string | null, size: ThumbnailSize): string | null {
+export function mxcToHttp(mxc: string | null): string | null {
   if (!mxc || !mxc.startsWith("mxc://")) return null;
 
-  const [serverName, mediaId] = mxc.slice("mxc://".length).split("/", 2);
+  const [serverName, mediaId] = parseMxcUrl(mxc);
   if (!serverName || !mediaId) return null;
 
-  const url = new URL(
-    `/_matrix/client/v1/media/thumbnail/${serverName}/${mediaId}`,
-    HOMESERVER_URL,
-  );
-  url.searchParams.set("width", String(size));
-  url.searchParams.set("height", String(size));
-  url.searchParams.set("method", "crop");
-  url.searchParams.set("allow_redirect", "true");
-  return url.toString();
+  return `${HOMESERVER_ORIGIN}/_matrix/client/v1/media/download/${serverName}/${mediaId}?allow_redirect=true`;
+}
+
+export function mxcToHttpThumbnail(mxc: string | null, size: number): string | null {
+  if (!mxc || !mxc.startsWith("mxc://")) return null;
+
+  const [serverName, mediaId] = parseMxcUrl(mxc);
+  if (!serverName || !mediaId) return null;
+
+  const params = new URLSearchParams({
+    width: String(size),
+    height: String(size),
+    method: "crop",
+    allow_redirect: "true",
+  });
+
+  return `${HOMESERVER_ORIGIN}/_matrix/client/v1/media/thumbnail/${serverName}/${mediaId}?${params}`;
 }

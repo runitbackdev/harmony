@@ -29,7 +29,7 @@ type BackdropProps = ComponentProps<typeof SkeletonDialog.Backdrop>;
 function Backdrop({ className, ...props }: BackdropProps) {
   return (
     <SkeletonDialog.Backdrop
-      className={cn("fixed inset-0 z-50 bg-black/60 backdrop-blur-xs", className)}
+      className={cn("fixed inset-0 z-60 bg-black/60 backdrop-blur-xs", className)}
       {...props}
     />
   );
@@ -54,7 +54,7 @@ type PositionerProps = ComponentProps<typeof SkeletonDialog.Positioner>;
 function Positioner({ className, ...props }: PositionerProps) {
   return (
     <SkeletonDialog.Positioner
-      className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", className)}
+      className={cn("fixed inset-0 z-60 flex items-center justify-center p-4", className)}
       {...props}
     />
   );

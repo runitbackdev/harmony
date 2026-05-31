@@ -152,6 +152,7 @@ const MessageRow = memo(function MessageRow({
               />
             ) : undefined
           }
+          attachments={event.content.attachments ?? undefined}
         />
       );
     }

@@ -7,24 +7,29 @@ use futures_channel::{mpsc, oneshot};
 use futures_util::{FutureExt, StreamExt};
 use harmony_protocol::{Command, Rpc, Subscription, harmony_export};
 use matrix_sdk::room::edit::EditedContent;
+use matrix_sdk::room::reply::{EnforceThread, Reply};
 use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
-use matrix_sdk::ruma::events::AnyMessageLikeEventContent;
-use matrix_sdk::ruma::events::room::message::{MessageType, RoomMessageEventContent};
+use matrix_sdk::ruma::events::room::message::{
+    MessageType, RoomMessageEventContent, RoomMessageEventContentWithoutRelation,
+};
 use matrix_sdk::ruma::{OwnedEventId, OwnedRoomId, OwnedTransactionId, OwnedUserId};
 use matrix_sdk_ui::timeline::{
-    EmbeddedEvent, EventSendState, MembershipChange, ReactionStatus, TimelineDetails,
-    TimelineEventFocusThreadMode, TimelineEventItemId, TimelineFocus, TimelineItem,
-    TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
+    EmbeddedEvent, EventSendState, EventTimelineItem, MembershipChange, ReactionStatus,
+    TimelineDetails, TimelineEventFocusThreadMode, TimelineEventItemId, TimelineFocus,
+    TimelineItem, TimelineItemContent, TimelineItemKind, VirtualTimelineItem,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::JsValue;
 
+use crate::timeline::attachments::{ATTACHMENT_LIMIT_COUNT, Attachment};
 use crate::{
     client,
     diff::{ListDiff, convert_diffs},
     errors::HarmonyError,
 };
+
+pub mod attachments;
 
 const DEFAULT_FOCUS_CONTEXT_EVENTS: u16 = 50;
 
@@ -200,6 +205,7 @@ pub enum TimelineContent {
         msgtype: String,
         mentions: Option<Mentions>,
         edited: bool,
+        attachments: Option<Vec<Attachment>>,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -314,7 +320,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
                 sender_name,
                 sender_avatar,
                 timestamp: event.timestamp().0.into(),
-                content: convert_content(event.content()),
+                content: convert_content(event, event.content()),
                 send_state,
                 reactions,
                 reply_to,
@@ -344,7 +350,7 @@ fn convert_item(item: &Arc<TimelineItem>) -> TimelineEventData {
     }
 }
 
-fn convert_content(content: &TimelineItemContent) -> TimelineContent {
+fn convert_content(event: &EventTimelineItem, content: &TimelineItemContent) -> TimelineContent {
     match content {
         TimelineItemContent::MsgLike(msg_like) => {
             msg_like
@@ -361,6 +367,7 @@ fn convert_content(content: &TimelineItemContent) -> TimelineContent {
                         body: message.body().to_owned(),
                         formatted_body,
                         msgtype: message.msgtype().msgtype().to_owned(),
+                        attachments: Attachment::from_message(event, &message),
                         mentions: message.mentions().map(|m| Mentions {
                             everyone: m.room,
                             user_ids: m.user_ids.clone(),
@@ -743,6 +750,7 @@ pub struct SendMessageInput {
     pub body: String,
     pub formatted_body: Option<String>,
     pub reply_to_event_id: Option<String>,
+    pub attachments: Option<Vec<Attachment>>,
 }
 
 #[harmony_export(domain = "timeline", action = "send")]
@@ -752,6 +760,7 @@ pub async fn send_message(input: SendMessageInput) -> Rpc<()> {
         &input.body,
         input.formatted_body.as_deref(),
         input.reply_to_event_id.as_deref(),
+        input.attachments,
     )
     .await
     .into()
@@ -762,24 +771,54 @@ async fn send_message_impl(
     body: &str,
     formatted_body: Option<&str>,
     reply_to_event_id: Option<&str>,
+    attachments_opt: Option<Vec<Attachment>>,
 ) -> Result<(), HarmonyError> {
     let timeline = live_for_room(room_id)?;
+    let room = timeline.room();
 
-    let content = formatted_body.map_or_else(
-        || RoomMessageEventContent::text_plain(body),
-        |html| RoomMessageEventContent::text_html(body, html),
-    );
+    let mut json = serde_json::json!({
+        "msgtype": "m.text",
+        "body": body,
+    });
+
+    if let Some(html) = formatted_body {
+        json["format"] = "org.matrix.custom.html".into();
+        json["formatted_body"] = html.into();
+    }
 
     if let Some(reply_id) = reply_to_event_id {
         let parsed: OwnedEventId = reply_id
             .try_into()
             .map_err(|_| HarmonyError::InvalidEventId)?;
-        timeline.send_reply(content.into(), parsed).await?;
-    } else {
-        timeline
-            .send(AnyMessageLikeEventContent::RoomMessage(content))
-            .await?;
+
+        let content: RoomMessageEventContentWithoutRelation =
+            serde_json::from_value(json).map_err(|_| HarmonyError::SerializationFailed)?;
+
+        let reply = Reply {
+            event_id: parsed,
+            enforce_thread: EnforceThread::MaybeThreaded,
+        };
+
+        let content_with_reply = room
+            .make_reply_event(content, reply)
+            .await
+            .map_err(|_| HarmonyError::ReplyFailed)?;
+
+        json = serde_json::to_value(content_with_reply)
+            .map_err(|_| HarmonyError::SerializationFailed)?;
     }
+
+    if let Some(attachments) = attachments_opt {
+        json["m.attachments"] = serde_json::to_value(
+            attachments
+                .into_iter()
+                .take(ATTACHMENT_LIMIT_COUNT)
+                .collect::<Vec<_>>(),
+        )
+        .map_err(|_| HarmonyError::SerializationFailed)?;
+    }
+
+    room.send_raw("m.room.message", json).await?;
 
     Ok(())
 }

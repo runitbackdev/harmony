@@ -18,8 +18,14 @@ pub enum HarmonyError {
     #[error("Client not ready")]
     ClientNotReady,
 
+    #[error("Invalid content type")]
+    MimeTypeError,
+
     #[error("Room not found")]
     RoomNotFound,
+
+    #[error("Invalid reply event ID")]
+    ReplyFailed,
 
     #[error("Invalid room ID format")]
     InvalidRoomId,
@@ -55,8 +61,10 @@ impl HarmonyError {
             Self::AuthFailed => "invalid_credentials",
             Self::InvalidUserId => "invalid_user_id",
             Self::ClientBuildError(_) => "server_not_found",
+            Self::ReplyFailed => "invalid_reply_id",
             Self::HttpError(e) => classify_api_error(e.client_api_error_kind()),
             Self::MatrixError(e) => classify_api_error(e.client_api_error_kind()),
+            Self::MimeTypeError => "invalid_mime_type",
             Self::ClientNotReady => "client_not_ready",
             Self::RoomNotFound => "room_not_found",
             Self::InvalidRoomId => "invalid_room_id",
@@ -102,7 +110,9 @@ impl From<HarmonyError> for WireError {
             HarmonyError::InvalidUserId => Self::InvalidUserId,
             HarmonyError::InvalidRoomId => Self::InvalidRoomId,
             HarmonyError::InvalidEventId => Self::InvalidEventId,
-            HarmonyError::InvalidContentType => Self::InvalidContentType,
+            HarmonyError::InvalidContentType | HarmonyError::MimeTypeError => {
+                Self::InvalidContentType
+            }
             HarmonyError::ClientNotReady => Self::ClientNotReady,
             HarmonyError::ClientAlreadyInitialized => Self::ClientAlreadyInitialized,
             HarmonyError::RoomNotFound => Self::RoomNotFound,
@@ -118,7 +128,9 @@ impl From<HarmonyError> for WireError {
                 "rate_limited" => Self::RateLimited,
                 _ => Self::Unknown { message },
             },
-            HarmonyError::TimelineError(_) | HarmonyError::Sync(_) => Self::Unknown { message },
+            HarmonyError::ReplyFailed | HarmonyError::TimelineError(_) | HarmonyError::Sync(_) => {
+                Self::Unknown { message }
+            }
         }
     }
 }

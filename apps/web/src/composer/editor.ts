@@ -210,6 +210,33 @@ const formattingKeymap = Prec.highest(
   ]),
 );
 
+export function pasteAttachmentHandler({
+  onFiles,
+}: {
+  onFiles: (files: File[]) => void;
+}): Extension {
+  return EditorView.domEventHandlers({
+    paste(event) {
+      const dt = event.clipboardData;
+      if (!dt) return false;
+
+      const files: File[] = [];
+      for (const item of Array.from(dt.items)) {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+
+      if (files.length === 0) return false;
+
+      event.preventDefault();
+      onFiles(files);
+      return true;
+    },
+  });
+}
+
 export const baseExtensions: Extension[] = [
   markdownLang,
   tokyoNightHighlight,

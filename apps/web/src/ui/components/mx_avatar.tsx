@@ -1,11 +1,11 @@
 import { Avatar } from "@skeletonlabs/skeleton-react";
-import { mxcToHttpThumbnail, type ThumbnailSize } from "../media";
 import { cn, getInitials } from "../utils";
+import { mxcToHttpThumbnail } from "../media";
 
 interface MxAvatarProps {
   mxc: string | null;
   name: string;
-  size?: ThumbnailSize;
+  size?: number;
   alt?: string;
   className?: string;
 }

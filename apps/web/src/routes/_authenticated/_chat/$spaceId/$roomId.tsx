@@ -13,6 +13,7 @@ import {
 import { getMembers, useMembers } from "@/members/api";
 import { useRoomsInSpace } from "@/rooms/api";
 import { useSession } from "@/auth/api";
+import { mediaUpload } from "@harmony/react";
 import { Drawer, MemberList, MessageList, type MessageListHandle } from "@/ui";
 import { Transition, useMediaQuery } from "@/primitives";
 import { Composer, EditComposer } from "@/composer";
@@ -24,6 +25,8 @@ import { useOmnibarCommands } from "@/omnibar";
 import { recordUsage } from "@/omnibar/store";
 import { useRoomCommands } from "@/rooms/commands";
 import { NavContext } from "./route";
+import { buildAttachment } from "./-attachments";
+import { useDropZone } from "@/ui/hooks/use-drop-zone";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
   component: TimelineView,
@@ -330,9 +333,21 @@ function TimelineView() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const { isDragging, dropZoneProps } = useDropZone(
+    useCallback((files) => composerRef.current?.addFiles(files), []),
+  );
+
   return (
     <div className="flex flex-1 min-h-0 min-w-0">
-      <div className="flex flex-1 flex-col min-h-0 min-w-0">
+      <div className="relative flex flex-1 flex-col min-h-0 min-w-0" {...dropZoneProps}>
+        {isDragging && (
+          <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-primary-500 bg-primary-500/10 backdrop-blur-[1px]">
+            <div className="rounded-xl bg-surface-100-900 px-6 py-4 text-center shadow-xl">
+              <p className="text-base font-semibold text-surface-950-50">Drop files to upload</p>
+              <p className="mt-0.5 text-xs text-surface-500">Release to add to message</p>
+            </div>
+          </div>
+        )}
         <header
           data-scope="room"
           data-part="header"
@@ -375,12 +390,21 @@ function TimelineView() {
             getMembers={getMembersForComposer}
             replyTarget={replyTarget}
             onCancelReply={() => setReplyTarget(null)}
-            onSend={(body, html) => {
+            onSend={async (body, html, files) => {
+              const attachments =
+                files.length > 0
+                  ? await Promise.all(
+                      files.map(async (file) =>
+                        buildAttachment(file, (await mediaUpload(file)).mxUrl),
+                      ),
+                    )
+                  : null;
               void sendMessage({
                 roomId,
                 body,
                 formattedBody: html,
                 replyToEventId: replyTarget?.eventId ?? null,
+                attachments,
               });
               setReplyTarget(null);
               messageListRef.current?.scrollToBottom();
