@@ -31,6 +31,7 @@ pub async fn ensure_started() -> Result<(), HarmonyError> {
 
     let client = client::get().ok_or(HarmonyError::AuthFailed)?;
     let sync_service = SyncService::builder(client)
+        .with_offline_mode()
         .build()
         .await
         .map_err(|err| HarmonyError::Sync(err.to_string()))?;
@@ -71,9 +72,11 @@ pub async fn start_sync() -> Subscription<(), SyncStatus> {
 async fn start_sync_impl() -> Result<((), web_sys::ReadableStream), HarmonyError> {
     ensure_started().await?;
 
-    let subscriber = SYNC_SERVICE
+    let mut subscriber = SYNC_SERVICE
         .with(|s| s.borrow().as_ref().map(SyncService::state))
         .ok_or(HarmonyError::Sync("sync not started".into()))?;
+
+    subscriber.reset();
 
     let stream = wasm_streams::ReadableStream::from_stream(subscriber.map(|state| {
         serde_wasm_bindgen::to_value(&map_state(&state))

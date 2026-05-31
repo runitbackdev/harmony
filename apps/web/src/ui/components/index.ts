@@ -1,3 +1,8 @@
+export {
+  ConnectionIndicator,
+  type ConnectionIndicatorProps,
+  type ConnectionTone,
+} from "./connection_indicator";
 export { ContextMenu, type ContextMenuProps, type VirtualAnchor } from "./context_menu";
 export { Dialog } from "./dialog";
 export { Drawer } from "./drawer";

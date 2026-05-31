@@ -4,6 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { Dialog, MxAvatar, Rail, TextField } from "@/ui";
 import { Home, ImagePlus, Plus, X } from "lucide-react";
 import { createSpace, useSpaces } from "@/spaces/api";
+import { SyncIndicator } from "./sync-indicator";
 import * as v from "valibot";
 
 // #region Schemas
@@ -152,6 +153,11 @@ export function SpaceRail({ className, onAfterNavigate }: SpaceRailProps) {
         <Rail.Item label="Create space" data-rail="add-server" onClick={() => setCreateOpen(true)}>
           <Plus size={20} />
         </Rail.Item>
+
+        <div className="mt-auto flex flex-col items-center gap-2" data-rail="footer">
+          <Rail.Separator />
+          <SyncIndicator className="mb-1" />
+        </div>
       </Rail>
 
       <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
