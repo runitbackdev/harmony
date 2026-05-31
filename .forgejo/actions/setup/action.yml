@@ -1,5 +1,5 @@
 name: Setup toolchain
-description: Provision the mise-managed toolchain, JS dependencies, and the harmony CLI.
+description: Provision the toolchain, JS dependencies, and the harmony CLI.
 
 runs:
   using: composite
@@ -8,15 +8,30 @@ runs:
       shell: bash
       run: |
         apt-get update
-        apt-get install -y --no-install-recommends clang pkg-config libssl-dev
+        apt-get install -y --no-install-recommends clang pkg-config libssl-dev curl
 
-    - name: Install mise tools
-      uses: https://github.com/jdx/mise-action@v2
-      with:
-        version: latest
-        cache: true
-        # Only the tools CI needs — skip committed/watchexec/hivemind.
-        install_args: rust node pnpm just cargo:wasm-pack cargo:typos-cli
+    - name: Install Rust
+      shell: bash
+      run: |
+        curl -sSfL https://sh.rustup.rs | sh -s -- -y --no-modify-path
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+    - name: Add wasm32 target
+      shell: bash
+      run: |
+        "$HOME/.cargo/bin/rustup" target add wasm32-unknown-unknown
+
+    - name: Install pnpm
+      shell: bash
+      run: npm install -g pnpm
+
+    - name: Install just
+      shell: bash
+      run: |
+        url=$(curl -sSf https://api.github.com/repos/casey/just/releases/latest \
+          | grep 'browser_download_url.*x86_64-unknown-linux-musl.tar.gz' \
+          | cut -d'"' -f4)
+        curl -sSfL "$url" | tar xz -C /usr/local/bin just
 
     - name: Cache cargo
       uses: https://code.forgejo.org/actions/cache@v4
@@ -28,6 +43,20 @@ runs:
         key: cargo-${{ hashFiles('Cargo.lock') }}
         restore-keys: cargo-
 
+    - name: Install wasm-pack
+      shell: bash
+      run: curl -sSfL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
+
+    - name: Install typos
+      shell: bash
+      run: |
+        url=$(curl -sSf https://api.github.com/repos/crate-ci/typos/releases/latest \
+          | grep 'browser_download_url.*x86_64-unknown-linux-musl.tar.gz' \
+          | cut -d'"' -f4)
+        tmp=$(mktemp -d)
+        curl -sSfL "$url" | tar xz -C "$tmp"
+        mv "$tmp/typos" /usr/local/bin/typos
+
     - name: Install JS dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
@@ -35,5 +64,4 @@ runs:
     - name: Install harmony CLI
       shell: bash
       run: |
-        cargo install --path tools/harmony-cli --force
-        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        "$HOME/.cargo/bin/cargo" install --path tools/harmony-cli --force

@@ -79,14 +79,14 @@ Before the human submits your work, ensure:
 
 ## Tech Stack Quick Reference
 
-| Layer           | Technology                     |
-| :-------------- | :----------------------------- |
-| Core Engine     | Rust (WASM) + Matrix Rust SDK  |
-| Logic Layer     | SharedWorker (TS)              |
-| Frontend        | React 19 + TypeScript          |
-| Routing         | TanStack Router                |
-| State           | Valtio + TanStack Query        |
-| Styling         | Tailwind CSS 4 + Skeleton Labs |
-| Toolchain       | Vite+ (`vp`)                   |
-| Package Manager | pnpm (monorepo)                |
+| Layer           | Technology                         |
+| :-------------- | :--------------------------------- |
+| Core Engine     | Rust (WASM) + Matrix Rust SDK      |
+| Logic Layer     | SharedWorker (TS)                  |
+| Frontend        | React 19 + TypeScript              |
+| Routing         | TanStack Router                    |
+| State           | Valtio + TanStack Query            |
+| Styling         | Tailwind CSS 4 + Skeleton Labs     |
+| Toolchain       | Vite+ (`vp`)                       |
+| Package Manager | pnpm (monorepo)                    |
 | Task Runner     | `harmony` CLI (forwards to `just`) |

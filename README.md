@@ -93,19 +93,19 @@ harmony build      # production build
 harmony codegen    # build WASM + regenerate TS protocol bindings
 ```
 
-| Command            | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `harmony web`      | Vite only, hosted homeserver                   |
-| `harmony dev`      | Synapse (detached) + herald + web              |
-| `harmony build`    | Production build (WASM + web)                  |
-| `harmony codegen`  | Build WASM + emit `maps.generated.ts` (`--release` for prod) |
-| `harmony check`    | Run cargo check, clippy, eslint, typos         |
-| `harmony fmt`      | Format Rust and TypeScript files               |
-| `harmony clean`    | Remove build artifacts                         |
-| `harmony db …`     | CREATE / DROP / RESET herald database          |
-| `harmony migration …` | Generate / apply / status / snapshot Herald migrations |
-| `harmony psql`     | Open psql shell against herald DB              |
-| `harmony self-update` | Reinstall `harmony` from this workspace     |
+| Command               | Description                                                  |
+| --------------------- | ------------------------------------------------------------ |
+| `harmony web`         | Vite only, hosted homeserver                                 |
+| `harmony dev`         | Synapse (detached) + herald + web                            |
+| `harmony build`       | Production build (WASM + web)                                |
+| `harmony codegen`     | Build WASM + emit `maps.generated.ts` (`--release` for prod) |
+| `harmony check`       | Run cargo check, clippy, eslint, typos                       |
+| `harmony fmt`         | Format Rust and TypeScript files                             |
+| `harmony clean`       | Remove build artifacts                                       |
+| `harmony db …`        | CREATE / DROP / RESET herald database                        |
+| `harmony migration …` | Generate / apply / status / snapshot Herald migrations       |
+| `harmony psql`        | Open psql shell against herald DB                            |
+| `harmony self-update` | Reinstall `harmony` from this workspace                      |
 
 Override the homeserver any time:
 

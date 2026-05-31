@@ -43,16 +43,16 @@ Harmony is a Matrix chat client. The heavy lifting (protocol, sync, crypto) runs
 
 ## Packages
 
-| Package                          | What it does                                                                                  |
-| -------------------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/web`                       | React 19 app w/ TanStack Router. Owns `ui/`, `composer/`, `primitives/` and per-domain APIs.  |
-| `apps/herald`                    | Rust appservice (Axum + toasty + Postgres). Custom statuses, invites, presence.               |
-| `packages/core`                  | Bridge runtime: `rpc`/`command`/`subscribe`, Transport, MessagePort dispatcher, `protocol/`.  |
-| `packages/react`                 | Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.                       |
-| `packages/wasm`                  | Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).                                          |
-| `crates/wasm`                    | Rust crate wrapping `matrix-sdk`. Every bridge fn marked `#[harmony_export]`.                 |
-| `crates/harmony-protocol`        | `Rpc<T>` / `Command` / `Subscription<I,C>` wrappers + `HarmonyError`.                         |
-| `crates/harmony-protocol-macros` | `#[harmony_export]` proc macro: emits wasm-bindgen export + `__harmony_protocol` entry.       |
+| Package                          | What it does                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                       | React 19 app w/ TanStack Router. Owns `ui/`, `composer/`, `primitives/` and per-domain APIs.                                                |
+| `apps/herald`                    | Rust appservice (Axum + toasty + Postgres). Custom statuses, invites, presence.                                                             |
+| `packages/core`                  | Bridge runtime: `rpc`/`command`/`subscribe`, Transport, MessagePort dispatcher, `protocol/`.                                                |
+| `packages/react`                 | Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.                                                                     |
+| `packages/wasm`                  | Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).                                                                                        |
+| `crates/wasm`                    | Rust crate wrapping `matrix-sdk`. Every bridge fn marked `#[harmony_export]`.                                                               |
+| `crates/harmony-protocol`        | `Rpc<T>` / `Command` / `Subscription<I,C>` wrappers + `HarmonyError`.                                                                       |
+| `crates/harmony-protocol-macros` | `#[harmony_export]` proc macro: emits wasm-bindgen export + `__harmony_protocol` entry.                                                     |
 | `tools/harmony-cli`              | `harmony` CLI. `harmony codegen` builds WASM, reads `__harmony_protocol` section, generates `packages/core/lib/protocol/maps.generated.ts`. |
 
 ## Bridge: Rpc / Command / Subscription
@@ -110,11 +110,11 @@ Subscriptions skip the response id and stream `ReadableStream<C>` chunks instead
 
 ## Build Tools
 
-| Tool        | Purpose                                                         |
-| ----------- | --------------------------------------------------------------- |
-| `pnpm`      | Package manager, workspace linking                              |
-| `vite`      | Dev server + bundler for the web app                            |
-| `wasm-pack` | Compiles Rust crate to WASM + JS bindings                       |
+| Tool        | Purpose                                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `pnpm`      | Package manager, workspace linking                                                                               |
+| `vite`      | Dev server + bundler for the web app                                                                             |
+| `wasm-pack` | Compiles Rust crate to WASM + JS bindings                                                                        |
 | `harmony`   | Typed workspace CLI (`harmony dev`, `harmony codegen`, `harmony db`, …) — forwards unknown subcommands to `just` |
-| `just`      | Orchestration recipes (compose, hivemind, multi-step shell)     |
-| `lefthook`  | Git hooks for formatting, linting, commit messages              |
+| `just`      | Orchestration recipes (compose, hivemind, multi-step shell)                                                      |
+| `lefthook`  | Git hooks for formatting, linting, commit messages                                                               |
