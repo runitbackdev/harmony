@@ -1,16 +1,12 @@
-import type {
-  commands as commandsMap,
-  rpc as rpcMap,
-  subscriptions as subscriptionsMap,
-} from "./maps.generated";
+import type { CommandMap, RpcMap, SubscriptionMap } from "./maps.generated";
 
-export type RpcName = keyof typeof rpcMap;
-export type CommandName = keyof typeof commandsMap;
-export type SubscriptionName = keyof typeof subscriptionsMap;
+export type RpcName = keyof RpcMap;
+export type CommandName = keyof CommandMap;
+export type SubscriptionName = keyof SubscriptionMap;
 
-type RpcEntry<K extends RpcName> = (typeof rpcMap)[K];
-type CommandEntry<K extends CommandName> = (typeof commandsMap)[K];
-type SubscriptionEntry<K extends SubscriptionName> = (typeof subscriptionsMap)[K];
+type RpcEntry<K extends RpcName> = RpcMap[K];
+type CommandEntry<K extends CommandName> = CommandMap[K];
+type SubscriptionEntry<K extends SubscriptionName> = SubscriptionMap[K];
 
 /** Input type of an RPC call. */
 export type RpcInput<K extends RpcName> =

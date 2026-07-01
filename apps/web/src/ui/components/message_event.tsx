@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import type { Attachment, ReplyTarget } from "@harmony/wasm";
+import type { Attachment, ReplyTarget } from "@harmony/harmony-bindings-web";
 import { Reply } from "lucide-react";
 import { cn } from "../utils";
 import { sanitizeHtml } from "../sanitize";

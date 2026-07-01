@@ -12,6 +12,8 @@ import type {
 } from "./protocol/types";
 import type { RpcResult, StreamHandle, Transport } from "./transport";
 import { TransportSharedWorker } from "./transport/shared-worker";
+import { TransportTauri } from "./transport/tauri";
+import { isNative } from "./platform";
 
 /**
  * Typed client over a {@link Transport}. The three methods cover every
@@ -61,6 +63,7 @@ export class HarmonyClient {
 }
 
 function createDefaultClient(): HarmonyClient {
+  if (isNative()) return new HarmonyClient(new TransportTauri());
   const worker = new HarmonyWorker({ name: "harmony-sync" });
   return new HarmonyClient(new TransportSharedWorker(worker.port));
 }

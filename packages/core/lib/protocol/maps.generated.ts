@@ -2,14 +2,16 @@
 // Regenerate: harmony codegen
 /* eslint-disable */
 
-import * as wasm from "@harmony/wasm";
 import type {
   CreateRoomInput,
   CreateSpaceInput,
   EditMessageInput,
   FocusOnEventInput,
+  HarmonyError,
   ListDiff,
   LoginRequest,
+  MediaContent,
+  MediaFetchInput,
   MediaUploadInput,
   MediaUploaded,
   MemberData,
@@ -27,45 +29,91 @@ import type {
   SyncStatus,
   TimelineStreamMessage,
   ToggleReactionInput,
-} from "@harmony/wasm";
-import type { RpcResult } from "../transport";
+} from "./types.generated";
 
-export type RpcFn<I, O> = (input: I) => Promise<RpcResult<O>>;
-export type CommandFn<I> = (input: I) => Promise<RpcResult<void>>;
-export type SubscriptionFn<I, Init, Chunk> = (input: I) => Promise<{ ok: true; initial: Init; stream: ReadableStream<Chunk> } | { ok: false; error: import("../transport").HarmonyError }>;
+export type RpcFn<I, O> = (input: I) => Promise<{ ok: true; value: O } | { ok: false; error: HarmonyError }>;
+export type CommandFn<I> = (input: I) => Promise<{ ok: true } | { ok: false; error: HarmonyError }>;
+export type SubscriptionFn<I, Init, Chunk> = (input: I) => Promise<{ ok: true; initial: Init; stream: ReadableStream<Chunk> } | { ok: false; error: HarmonyError }>;
+export type SubscriptionEntry<Fn> = { fn: Fn; snapshot?: string };
 
-export const rpc = {
-  "auth.login": wasm.authLogin as RpcFn<LoginRequest, SessionData>,
-  "auth.restore": wasm.authRestoreSession as RpcFn<RestoreRequest, SessionData>,
-  "diagnostics.ping": wasm.diagnosticsPing as RpcFn<void, string>,
-  "lifecycle.warm": wasm.lifecycleWarm as RpcFn<void, void>,
-  "media.upload": wasm.mediaUpload as RpcFn<MediaUploadInput, MediaUploaded>,
-  "members.get": wasm.membersGetMembers as RpcFn<string, MemberData[]>,
-  "rooms.get_all": wasm.roomsGetAll as RpcFn<void, RoomDataWithSpace[]>,
-  "spaces.create": wasm.spacesCreateSpace as RpcFn<CreateSpaceInput, SpaceData>,
-  "spaces.create_room": wasm.spacesCreateRoom as RpcFn<CreateRoomInput, RoomData>,
-  "spaces.descendants": wasm.spacesGetDescendants as RpcFn<string, string[]>,
-  "spaces.get": wasm.spacesGet as RpcFn<void, SpaceData[]>,
-  "timeline.edit": wasm.timelineEditMessage as RpcFn<EditMessageInput, void>,
-  "timeline.focus_on_event": wasm.timelineFocusOnEvent as RpcFn<FocusOnEventInput, ModeSwapResult>,
-  "timeline.get_room_state": wasm.timelineGetRoomState as RpcFn<string, RoomStateSnapshot>,
-  "timeline.paginate": wasm.timelinePaginateRoom as RpcFn<PaginateInput, PaginateResult>,
-  "timeline.redact": wasm.timelineRedactMessage as RpcFn<RedactMessageInput, void>,
-  "timeline.return_to_live": wasm.timelineReturnToLive as RpcFn<string, ModeSwapResult>,
-  "timeline.send": wasm.timelineSendMessage as RpcFn<SendMessageInput, void>,
-  "timeline.toggle_reaction": wasm.timelineToggleReaction as RpcFn<ToggleReactionInput, boolean>,
-} as const;
+export type RpcMap = {
+  "auth.login": RpcFn<LoginRequest, SessionData>;
+  "auth.restore": RpcFn<RestoreRequest, SessionData>;
+  "diagnostics.ping": RpcFn<void, string>;
+  "lifecycle.warm": RpcFn<void, void>;
+  "media.fetch": RpcFn<MediaFetchInput, MediaContent>;
+  "media.upload": RpcFn<MediaUploadInput, MediaUploaded>;
+  "members.get": RpcFn<string, MemberData[]>;
+  "rooms.get_all": RpcFn<void, RoomDataWithSpace[]>;
+  "spaces.create": RpcFn<CreateSpaceInput, SpaceData>;
+  "spaces.create_room": RpcFn<CreateRoomInput, RoomData>;
+  "spaces.descendants": RpcFn<string, string[]>;
+  "spaces.get": RpcFn<void, SpaceData[]>;
+  "timeline.edit": RpcFn<EditMessageInput, void>;
+  "timeline.focus_on_event": RpcFn<FocusOnEventInput, ModeSwapResult>;
+  "timeline.get_room_state": RpcFn<string, RoomStateSnapshot>;
+  "timeline.paginate": RpcFn<PaginateInput, PaginateResult>;
+  "timeline.redact": RpcFn<RedactMessageInput, void>;
+  "timeline.return_to_live": RpcFn<string, ModeSwapResult>;
+  "timeline.send": RpcFn<SendMessageInput, void>;
+  "timeline.toggle_reaction": RpcFn<ToggleReactionInput, boolean>;
+};
 
-export const commands = {
-  "auth.logout": wasm.authLogout as CommandFn<void>,
-  "sync.stop": wasm.syncStopSync as CommandFn<void>,
-  "timeline.mark_as_read": wasm.timelineMarkAsRead as CommandFn<string>,
-} as const;
+export type CommandMap = {
+  "auth.logout": CommandFn<void>;
+  "sync.stop": CommandFn<void>;
+  "timeline.mark_as_read": CommandFn<string>;
+};
 
-export const subscriptions = {
-  "members.subscribe": { fn: wasm.membersSubscribeMembers as SubscriptionFn<string, MemberData[], ListDiff<MemberData>> },
-  "rooms.subscribe_in_space": { fn: wasm.roomsSubscribeInSpace as SubscriptionFn<string, RoomData[], ListDiff<RoomData>> },
-  "spaces.subscribe": { fn: wasm.spacesSubscribe as SubscriptionFn<void, SpaceData[], ListDiff<SpaceData>> },
-  "sync.start": { fn: wasm.syncStartSync as SubscriptionFn<void, void, SyncStatus> },
-  "timeline.subscribe": { fn: wasm.timelineSubscribeRoom as SubscriptionFn<string, RoomStateSnapshot, TimelineStreamMessage> },
-} as const;
+export type SubscriptionMap = {
+  "members.subscribe": SubscriptionEntry<SubscriptionFn<string, MemberData[], ListDiff<MemberData>>>;
+  "rooms.subscribe_in_space": SubscriptionEntry<SubscriptionFn<string, RoomData[], ListDiff<RoomData>>>;
+  "spaces.subscribe": SubscriptionEntry<SubscriptionFn<void, SpaceData[], ListDiff<SpaceData>>>;
+  "sync.start": SubscriptionEntry<SubscriptionFn<void, void, SyncStatus>>;
+  "timeline.subscribe": SubscriptionEntry<SubscriptionFn<string, RoomStateSnapshot, TimelineStreamMessage>>;
+};
+
+export const rpcNames = [
+  "auth.login",
+  "auth.restore",
+  "diagnostics.ping",
+  "lifecycle.warm",
+  "media.fetch",
+  "media.upload",
+  "members.get",
+  "rooms.get_all",
+  "spaces.create",
+  "spaces.create_room",
+  "spaces.descendants",
+  "spaces.get",
+  "timeline.edit",
+  "timeline.focus_on_event",
+  "timeline.get_room_state",
+  "timeline.paginate",
+  "timeline.redact",
+  "timeline.return_to_live",
+  "timeline.send",
+  "timeline.toggle_reaction",
+] as const;
+
+export const commandNames = [
+  "auth.logout",
+  "sync.stop",
+  "timeline.mark_as_read",
+] as const;
+
+export const subscriptionNames = [
+  "members.subscribe",
+  "rooms.subscribe_in_space",
+  "spaces.subscribe",
+  "sync.start",
+  "timeline.subscribe",
+] as const;
+
+export type RpcName = typeof rpcNames[number];
+export type CommandName = typeof commandNames[number];
+export type SubscriptionName = typeof subscriptionNames[number];
+
+export const subscriptionSnapshots: Partial<Record<SubscriptionName, RpcName>> = {
+
+};

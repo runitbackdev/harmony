@@ -1,0 +1,14 @@
+[package]
+name = "harmony-bindings-desktop"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+harmony-protocol = { path = "../harmony-protocol", features = ["desktop"] }
+tauri = "2"

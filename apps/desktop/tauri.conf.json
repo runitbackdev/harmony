@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Harmony",
+  "version": "0.0.0",
+  "identifier": "com.harmony.desktop",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../web/dist",
+    "beforeDevCommand": "pnpm --filter web dev",
+    "beforeBuildCommand": "pnpm --filter web build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Harmony",
+        "width": 1200,
+        "height": 800,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.png", "icons/icon.ico"]
+  }
+}

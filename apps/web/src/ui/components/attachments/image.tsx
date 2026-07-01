@@ -1,23 +1,25 @@
 import { useState } from "react";
 import Lightbox from "./lightbox";
 import { ImageOff, Loader2 } from "lucide-react";
-import { mxcToHttp } from "../../media";
+import { useMediaSrc } from "@harmony/react";
 import { cn } from "../../utils";
-import type { Attachment } from "@harmony/wasm";
+import type { Attachment } from "@harmony/harmony-bindings-web";
 
 // Matches the `max-w-sm` / `max-h-80` bounds applied to the <img> below.
 const MAX_WIDTH = 384;
 const MAX_HEIGHT = 320;
 
 export default function AttachmentImage({ attachment }: { attachment: Attachment }) {
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  // Resolving the src (sync for plaintext, async decrypt for encrypted) and
+  // decoding the <img> are two phases; track them separately and combine.
+  const { src, status: srcStatus } = useMediaSrc(attachment);
+  const [imgStatus, setImgStatus] = useState<"loading" | "loaded" | "error">("loading");
   const [expanded, setExpanded] = useState<boolean>(false);
 
   const info = attachment.info as { width?: number; height?: number } | undefined;
   const width = info?.width ?? 400;
   const height = info?.height ?? 320;
   const name = attachment.filename ?? attachment.body;
-  const src = mxcToHttp(attachment.url ?? null);
 
   // The box the image will occupy once loaded (object-contain within the bounds).
   // Used to size the error state when there's no <img> in the tree to reserve it.
@@ -25,8 +27,10 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
   const displayWidth = Math.round(width * scale);
   const displayHeight = Math.round(height * scale);
 
-  const loaded = status === "loaded";
-  const failed = !src || status === "error";
+  const loaded = srcStatus === "loaded" && !!src && imgStatus === "loaded";
+  const failed =
+    srcStatus === "error" || imgStatus === "error" || (srcStatus !== "loading" && !src);
+  const loading = !loaded && !failed;
 
   return (
     <>
@@ -41,7 +45,7 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
         aria-label={`View full size ${name}`}
         onClick={() => loaded && setExpanded(true)}
       >
-        {status === "loading" && src && (
+        {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-100-900">
             <Loader2 className="h-6 w-6 animate-spin text-surface-500" />
           </div>
@@ -64,8 +68,8 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
             height={height}
             className={cn("block max-h-80 max-w-sm object-contain", !loaded && "opacity-0")}
             decoding="async"
-            onLoad={() => setStatus("loaded")}
-            onError={() => setStatus("error")}
+            onLoad={() => setImgStatus("loaded")}
+            onError={() => setImgStatus("error")}
           />
         )}
       </button>

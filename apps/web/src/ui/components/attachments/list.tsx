@@ -1,4 +1,4 @@
-import type { Attachment } from "@harmony/wasm";
+import type { Attachment } from "@harmony/harmony-bindings-web";
 import AttachmentAudio from "./audio";
 import AttachmentFile from "./file";
 import AttachmentImage from "./image";

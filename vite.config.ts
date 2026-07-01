@@ -9,7 +9,14 @@ export default defineConfig({
       "valtio/avoid-this-in-proxy": "error",
       "@tanstack/router/create-route-property-order": "warn",
     },
-    ignorePatterns: ["dist", "node_modules", "crates"],
+    ignorePatterns: [
+      "dist",
+      "node_modules",
+      "crates",
+      "**/*.generated.ts",
+      "**/*.generated.d.ts",
+      "**/*.gen.ts",
+    ],
     settings: {
       typeAware: true,
     },

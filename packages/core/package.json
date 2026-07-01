@@ -13,7 +13,8 @@
     "./session/local-storage": "./lib/session/local-storage.ts"
   },
   "dependencies": {
-    "@harmony/wasm": "workspace:*"
+    "@harmony/harmony-bindings-web": "workspace:*",
+    "@tauri-apps/api": "^2"
   },
   "devDependencies": {
     "vite": "catalog:",

@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { scan } from "react-scan";
 import { HOMESERVER_ORIGIN, listenForTokenRequests } from "@harmony/react";
+import { whenMediaReady } from "@harmony/core";
 import "./index.css";
 import App from "./App.tsx";
 import { sessionStore } from "@/lib/session";
@@ -20,6 +21,11 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register(swUrl, { type: "module" }).catch((err) => {
     console.error("[sw] registration failed:", err);
   });
+
+  // Start the claim round-trip immediately so a hard-reloaded page is (likely)
+  // controlled by the time the boot gate awaits it. Memoized — the route's
+  // `whenMediaReady` reuses this same in-flight promise.
+  void whenMediaReady();
 }
 
 createRoot(document.getElementById("root")!).render(

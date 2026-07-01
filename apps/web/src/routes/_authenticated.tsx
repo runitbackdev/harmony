@@ -1,5 +1,5 @@
 import { HOMESERVER_ORIGIN } from "@harmony/react";
-import { setMediaAuth } from "@harmony/core";
+import { setMediaAuth, whenMediaReady } from "@harmony/core";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { restore } from "@/auth/api";
 import { useAccountCommands } from "@/auth/commands";
@@ -21,7 +21,10 @@ export const Route = createFileRoute("/_authenticated")({
 
     setMediaAuth(result.value.accessToken, HOMESERVER_ORIGIN);
 
-    const warmed = await warm();
+    // Wait out the SW claim under the boot spinner (concurrent with `warm`, so
+    // it adds no latency on a soft load). The chat UI then mounts already
+    // controlled, so plaintext media renders without a per-image spinner flash.
+    const [warmed] = await Promise.all([warm(), whenMediaReady()]);
     if (!warmed.ok) throw new Error(warmed.error.message ?? warmed.error.code);
   },
   pendingComponent: () => (

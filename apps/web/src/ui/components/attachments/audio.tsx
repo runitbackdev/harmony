@@ -1,9 +1,9 @@
-import type { Attachment } from "@harmony/wasm";
+import type { Attachment } from "@harmony/harmony-bindings-web";
 import { Loader2 } from "lucide-react";
-import { useMediaBlob } from "../../hooks/use-media-blob";
+import { useMediaSrc } from "@harmony/react";
 
 export default function AttachmentAudio({ attachment }: { attachment: Attachment }) {
-  const { status, url } = useMediaBlob(attachment.url ?? null);
+  const { status, src } = useMediaSrc(attachment);
   const name = attachment.filename ?? attachment.body;
 
   if (status === "error") {
@@ -25,7 +25,7 @@ export default function AttachmentAudio({ attachment }: { attachment: Attachment
 
   return (
     <audio
-      src={url}
+      src={src ?? undefined}
       controls
       className="mt-1 w-full max-w-sm"
       aria-label={`Audio: ${name}`}

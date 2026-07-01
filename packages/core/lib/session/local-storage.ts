@@ -1,4 +1,4 @@
-import type { SessionData } from "@harmony/wasm";
+import type { SessionData } from "@harmony/harmony-bindings-web";
 import type { SessionStore } from "./store";
 
 const STORAGE_KEY = "harmony_session";

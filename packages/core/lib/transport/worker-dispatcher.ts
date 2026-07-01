@@ -1,8 +1,8 @@
 import {
-  commands as commandsMap,
-  rpc as rpcMap,
-  subscriptions as subscriptionsMap,
-} from "../protocol/maps.generated";
+  webCommands as commandsMap,
+  webRpc as rpcMap,
+  webSubscriptions as subscriptionsMap,
+} from "./web/dispatch.generated";
 import type {
   BridgeCommand,
   BridgeRequest,
@@ -38,7 +38,12 @@ const SUBSCRIPTIONS = subscriptionsMap as unknown as SubscriptionMap;
  * each subscriber's MessagePort tagged with their per-client `id`.
  */
 type SharedSubscription = {
-  reader: ReadableStreamDefaultReader<unknown>;
+  // Resolves when the upstream `entry.fn` settles. Joiners await it before
+  // snapshotting so the room state their snapshot reads has been created.
+  started: Promise<SubscriptionStarted>;
+  // The creator sets this once the upstream is ready and starts the pump;
+  // null while the upstream is still starting.
+  reader: ReadableStreamDefaultReader<unknown> | null;
   subscribers: Map<string, MessagePort>;
 };
 
@@ -75,13 +80,14 @@ export function createWorkerDispatcher(): WorkerDispatcher {
     const state = active.get(key);
     if (!state) return;
     active.delete(key);
-    state.reader.cancel().catch(() => {});
+    // `reader` is null if the upstream is still starting; the creator's
+    // post-await path sees the entry was removed and cancels the stream then.
+    state.reader?.cancel().catch(() => {});
   }
 
-  function pump(key: string) {
-    const state = active.get(key);
-    if (!state) return;
+  function pump(key: string, state: SharedSubscription) {
     const { reader } = state;
+    if (!reader) return;
     const loop = async () => {
       while (true) {
         let result: ReadableStreamReadResult<unknown>;
@@ -89,16 +95,22 @@ export function createWorkerDispatcher(): WorkerDispatcher {
           result = await reader.read();
         } catch (error) {
           console.error(`[bridge] subscription ${key} read error:`, error);
-          endSubscription(key);
+          // Only tear down if this entry is still ours. The dedup check in
+          // `handleSubscribe` races with the async upstream start (a subscribe
+          // arriving before a prior one reaches `active.set` — e.g. StrictMode's
+          // remount), so a stale upstream can outlive its slot. Clobbering by
+          // key would kill the live subscription that replaced us.
+          if (active.get(key) === state) endSubscription(key);
           return;
         }
         if (result.done) {
-          active.delete(key);
+          if (active.get(key) === state) active.delete(key);
           return;
         }
-        const current = active.get(key);
-        if (!current) return;
-        for (const [subId, subPort] of current.subscribers) {
+        // A newer upstream replaced us: stop quietly rather than fan our now
+        // stale chunks out to the live subscription's subscribers.
+        if (active.get(key) !== state) return;
+        for (const [subId, subPort] of state.subscribers) {
           try {
             subPort.postMessage({ kind: "chunk", id: subId, chunk: result.value });
           } catch (error) {
@@ -113,7 +125,7 @@ export function createWorkerDispatcher(): WorkerDispatcher {
   async function handleRequest(port: MessagePort, msg: BridgeRequest) {
     const fn = RPC[msg.name];
     if (!fn) {
-      respond(port, msg.id, errorResult("unknown_rpc", msg.name));
+      respond(port, msg.id, errorResult("unknown", `unknown rpc: ${msg.name}`));
       return;
     }
     try {
@@ -144,37 +156,62 @@ export function createWorkerDispatcher(): WorkerDispatcher {
   async function handleSubscribe(port: MessagePort, msg: BridgeSubscribe) {
     const entry = SUBSCRIPTIONS[msg.name];
     if (!entry) {
-      respond(port, msg.id, errorResult("unknown_subscription", msg.name));
+      respond(port, msg.id, errorResult("unknown", `unknown subscription: ${msg.name}`));
       return;
     }
     const key = `${msg.name}::${stableStringify(msg.input)}`;
-    const existing = active.get(key);
-    if (existing) {
-      existing.subscribers.set(msg.id, port);
-      registerSubscriber(port, key, msg.id);
-      const snapshot = await fetchSnapshot(entry);
-      respond(port, msg.id, snapshot);
+
+    // Register synchronously, before awaiting the async upstream start. The
+    // dedup check (`active.get(key)`) would otherwise race the start: a second
+    // subscribe arriving before the first reaches `active.set` spins up a
+    // duplicate upstream. Inserting the shared entry up front makes concurrent
+    // subscribers join one upstream + one pump, and lets a paired
+    // unsubscribe find the subscriber instead of dropping it.
+    let shared = active.get(key);
+    const isCreator = shared === undefined;
+    if (shared === undefined) {
+      shared = { started: startUpstream(entry, msg.input), reader: null, subscribers: new Map() };
+      active.set(key, shared);
+    }
+    shared.subscribers.set(msg.id, port);
+    registerSubscriber(port, key, msg.id);
+
+    const started = await shared.started;
+
+    if (isCreator) {
+      const live = active.get(key) === shared;
+      if (!started.ok) {
+        if (live) active.delete(key);
+        respond(port, msg.id, { ok: false, error: started.error });
+        return;
+      }
+      if (!live) {
+        // Every subscriber unsubscribed while the upstream was starting
+        // (StrictMode mount/unmount, quick navigate-away). Discard the
+        // now-orphaned stream rather than leaking it.
+        started.stream.cancel().catch(() => {});
+        respond(port, msg.id, errorResult("unknown", "subscription closed"));
+        return;
+      }
+      shared.reader = started.stream.getReader();
+      respond(port, msg.id, { ok: true, value: started.initial });
+      pump(key, shared);
       return;
     }
-    let started: SubscriptionStarted;
-    try {
-      started = await entry.fn(msg.input);
-    } catch (error) {
-      respond(port, msg.id, errorResult("unknown", errorMessage(error)));
-      return;
-    }
+
+    // Joiner: the creator's upstream is already live, so seed from a fresh
+    // snapshot of the current state (diffs since the upstream started are
+    // already folded in). Future diffs arrive via the shared pump.
     if (!started.ok) {
       respond(port, msg.id, { ok: false, error: started.error });
       return;
     }
-    const state: SharedSubscription = {
-      reader: started.stream.getReader(),
-      subscribers: new Map([[msg.id, port]]),
-    };
-    active.set(key, state);
-    registerSubscriber(port, key, msg.id);
-    respond(port, msg.id, { ok: true, value: started.initial });
-    pump(key);
+    if (active.get(key) !== shared) {
+      respond(port, msg.id, errorResult("unknown", "subscription closed"));
+      return;
+    }
+    const snapshot = await fetchSnapshot(entry, msg.input);
+    respond(port, msg.id, snapshot);
   }
 
   function handleUnsubscribe(port: MessagePort, msg: BridgeUnsubscribe) {
@@ -187,12 +224,17 @@ export function createWorkerDispatcher(): WorkerDispatcher {
     }
   }
 
-  async function fetchSnapshot(entry: SubscriptionEntry): Promise<RpcResult<unknown>> {
+  async function fetchSnapshot(
+    entry: SubscriptionEntry,
+    input: unknown,
+  ): Promise<RpcResult<unknown>> {
     if (!entry.snapshot) return { ok: true, value: undefined };
     const fn = RPC[entry.snapshot];
-    if (!fn) return errorResult("missing_snapshot_fn", entry.snapshot);
+    if (!fn) return errorResult("unknown", `missing snapshot fn: ${entry.snapshot}`);
     try {
-      return normalizeResult((await fn(undefined)) as RpcResult<unknown> | undefined);
+      // The snapshot RPC shares the subscription's input (e.g. the room id),
+      // so a late joiner snapshots the same scope it's subscribing to.
+      return normalizeResult((await fn(input)) as RpcResult<unknown> | undefined);
     } catch (error) {
       return errorResult("unknown", errorMessage(error));
     }
@@ -276,6 +318,20 @@ function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return JSON.stringify(error);
+}
+
+/**
+ * Kick off a subscription's upstream, normalizing a thrown startup error into
+ * the `SubscriptionStarted` error shape so callers can `await` it without a
+ * try/catch and store the promise in the shared entry.
+ */
+function startUpstream(entry: SubscriptionEntry, input: unknown): Promise<SubscriptionStarted> {
+  return entry.fn(input).catch(
+    (error: unknown): SubscriptionStarted => ({
+      ok: false,
+      error: { code: "unknown", message: errorMessage(error) },
+    }),
+  );
 }
 
 /**

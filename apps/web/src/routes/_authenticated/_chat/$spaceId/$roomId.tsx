@@ -13,7 +13,7 @@ import {
 import { getMembers, useMembers } from "@/members/api";
 import { useRoomsInSpace } from "@/rooms/api";
 import { useSession } from "@/auth/api";
-import { mediaUpload } from "@harmony/react";
+import { buildAttachment, mediaUpload } from "@harmony/react";
 import { Drawer, MemberList, MessageList, type MessageListHandle } from "@/ui";
 import { Transition, useMediaQuery } from "@/primitives";
 import { Composer, EditComposer } from "@/composer";
@@ -25,7 +25,6 @@ import { useOmnibarCommands } from "@/omnibar";
 import { recordUsage } from "@/omnibar/store";
 import { useRoomCommands } from "@/rooms/commands";
 import { NavContext } from "./route";
-import { buildAttachment } from "./-attachments";
 import { useDropZone } from "@/ui/hooks/use-drop-zone";
 
 export const Route = createFileRoute("/_authenticated/_chat/$spaceId/$roomId")({
@@ -399,13 +398,15 @@ function TimelineView() {
                       ),
                     )
                   : null;
-              void sendMessage({
+              console.log("[send] attachments", attachments);
+              const sendResult = await sendMessage({
                 roomId,
                 body,
                 formattedBody: html,
                 replyToEventId: replyTarget?.eventId ?? null,
                 attachments,
               });
+              console.log("[send] result", sendResult);
               setReplyTarget(null);
               messageListRef.current?.scrollToBottom();
             }}

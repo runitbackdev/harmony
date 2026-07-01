@@ -9,6 +9,13 @@ React 19 frontend. Owns routes, design system (`src/ui/`), rich-text editor (`sr
 - **Forms**: TanStack Form + Valibot.
 - **Components**: `src/ui/` (Skeleton Labs + Tailwind 4 design tokens).
 
+## Desktop (Tauri)
+
+The same frontend runs natively via the Tauri shell at `apps/desktop`. `createDefaultClient` selects `TransportTauri` when `window.__TAURI__` is present, otherwise the SharedWorker.
+
+- `just desktop-dev` — launch the desktop shell against the vite dev server (hot reload).
+- `just desktop-build` — produce a release bundle.
+
 ## Core Patterns
 
 ### 1. Domain API wrappers

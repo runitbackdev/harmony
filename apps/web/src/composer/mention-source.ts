@@ -1,5 +1,5 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import type { MemberData } from "@harmony/wasm";
+import type { MemberData } from "@harmony/harmony-bindings-web";
 
 type GetMembers = (roomId: string) => Promise<MemberData[]>;
 

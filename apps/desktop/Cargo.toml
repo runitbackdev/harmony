@@ -1,0 +1,16 @@
+[package]
+name = "harmony-desktop"
+version = "0.0.0"
+edition = "2024"
+
+[lints]
+workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+harmony-bindings-desktop = { path = "../../crates/harmony-bindings-desktop" }
+tauri = { version = "2", features = [] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

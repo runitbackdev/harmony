@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { mxcToHttpThumbnail } from "./media";
+import { mediaThumbnailSrc } from "@harmony/core";
 
 const ALLOWED_TAGS = [
   "font",
@@ -76,7 +76,7 @@ function rewriteMxcImageSrc(el: Element) {
     el.removeAttribute("src");
     return;
   }
-  const resolved = mxcToHttpThumbnail(src, 320);
+  const resolved = mediaThumbnailSrc(src, 320);
   if (resolved) {
     el.setAttribute("src", resolved);
   } else {

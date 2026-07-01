@@ -54,7 +54,7 @@ export class TransportSharedWorker implements Transport {
 
   request(name: string, input: unknown): Promise<RpcResult<unknown>> {
     if (this.disposed) {
-      return Promise.resolve(errorResult("transport_disposed"));
+      return Promise.resolve(errorResult("unknown", "transport disposed"));
     }
     const id = this.allocateId("req");
     return new Promise((resolve, reject) => {
@@ -76,11 +76,12 @@ export class TransportSharedWorker implements Transport {
   ): StreamHandle<unknown> {
     if (this.disposed) {
       return {
-        initial: Promise.resolve(errorResult("transport_disposed")),
+        initial: Promise.resolve(errorResult("unknown", "transport disposed")),
         unsubscribe: () => {},
       };
     }
     const id = this.allocateId("sub");
+    console.log("[echo-debug] SUB", name, id, JSON.stringify(input));
     const initial = new Promise<RpcResult<unknown>>((resolve, reject) => {
       this.subscriptions.set(id, {
         resolveInitial: resolve,
@@ -93,6 +94,7 @@ export class TransportSharedWorker implements Transport {
     return {
       initial,
       unsubscribe: () => {
+        console.log("[echo-debug] UNSUB", name, id);
         if (!this.subscriptions.delete(id)) return;
         try {
           this.port.postMessage({ kind: "unsubscribe", id });
@@ -136,6 +138,15 @@ export class TransportSharedWorker implements Transport {
         return;
       }
       const subscription = this.subscriptions.get(message.id);
+      console.log(
+        "[echo-debug] INITIAL",
+        message.id,
+        "hasHandler:",
+        !!subscription,
+        "ok:",
+        message.result.ok,
+        message.result,
+      );
       if (subscription) {
         subscription.resolveInitial(message.result);
         if (!message.result.ok) this.subscriptions.delete(message.id);
@@ -143,6 +154,13 @@ export class TransportSharedWorker implements Transport {
       return;
     }
     const subscription = this.subscriptions.get(message.id);
+    console.log(
+      "[echo-debug] 1.transport.deliver",
+      message.id,
+      "hasHandler:",
+      !!subscription,
+      message.chunk,
+    );
     if (subscription) subscription.onChunk(message.chunk);
   }
 

@@ -24,7 +24,7 @@ import {
 import { emojiCompletionSource } from "./emoji-source";
 import { markdownToHtml } from "./md-to-html";
 import EmojiPickerButton from "./emoji-picker";
-import type { MemberData, ReplyTarget } from "@harmony/wasm";
+import type { MemberData, ReplyTarget } from "@harmony/harmony-bindings-web";
 import "./composer.css";
 import "./attachments.css";
 import { AttachmentChip, AttachmentPickerButton } from "./attachments";

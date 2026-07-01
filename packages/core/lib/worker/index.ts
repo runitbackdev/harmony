@@ -1,4 +1,4 @@
-import init, { configureTracing } from "@harmony/wasm";
+import init, { configureTracing } from "@harmony/harmony-bindings-web";
 import { createWorkerDispatcher } from "../transport/worker-dispatcher";
 import { isBridgeInbound } from "../transport";
 

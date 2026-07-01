@@ -1,6 +1,7 @@
 import { Avatar } from "@skeletonlabs/skeleton-react";
 import { cn, getInitials } from "../utils";
-import { mxcToHttpThumbnail } from "../media";
+import { mediaThumbnailSrc } from "@harmony/core";
+import { useMediaReady } from "@harmony/react";
 
 interface MxAvatarProps {
   mxc: string | null;
@@ -11,7 +12,9 @@ interface MxAvatarProps {
 }
 
 function MxAvatar({ mxc, name, size = 96, alt, className }: MxAvatarProps) {
-  const src = mxcToHttpThumbnail(mxc, size);
+  // Hold the thumbnail URL until the SW controls the page; until then show the
+  // initials fallback rather than emitting a URL that 404s on a hard reload.
+  const src = useMediaReady() ? mediaThumbnailSrc(mxc, size) : null;
 
   return (
     <Avatar className={cn(className)}>

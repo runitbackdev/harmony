@@ -5,7 +5,7 @@ import type {
   SubscriptionInput,
   SubscriptionName,
 } from "@harmony/core/protocol/types";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { proxy, useSnapshot } from "valtio";
 
 /**
@@ -38,12 +38,35 @@ export function useListSubscription<K extends SubscriptionName>(
     [name, input],
   );
 
+  // Callers pass `applyDiff` as an inline closure, so its identity changes
+  // every render. Holding it in a ref keeps it out of the effect's deps —
+  // otherwise the effect would resubscribe on every render, tearing down the
+  // live stream and dropping in-flight diffs (e.g. send local echoes).
+  const applyDiffRef = useRef(applyDiff);
+  applyDiffRef.current = applyDiff;
+
   useEffect(() => {
     let alive = true;
-    const handle = subscribe(name, input, (chunk) => {
-      if (!alive || store.value == null) return;
-      const next = applyDiff(store.value, chunk);
+    const pending: SubscriptionChunk<K>[] = [];
+
+    const applyChunk = (chunk: SubscriptionChunk<K>) => {
+      if (store.value == null) return;
+      const next = applyDiffRef.current(store.value, chunk);
       if (next !== undefined) store.value = next;
+    };
+
+    // Chunks can arrive before `initial` resolves (the desktop transport
+    // delivers buffered chunks a microtask ahead of the initial promise).
+    // Diffs are relative to the initial snapshot, so hold them in order and
+    // replay once it lands rather than dropping them.
+    const handle = subscribe(name, input, (chunk) => {
+      if (!alive) return;
+      console.log("[echo-debug] 2.hook.onChunk", name, "status:", store.status, chunk);
+      if (store.status !== "ready") {
+        pending.push(chunk);
+        return;
+      }
+      applyChunk(chunk);
     });
     handle.initial
       .then((result) => {
@@ -51,6 +74,8 @@ export function useListSubscription<K extends SubscriptionName>(
         if (result.ok) {
           store.value = result.value;
           store.status = "ready";
+          for (const chunk of pending) applyChunk(chunk);
+          pending.length = 0;
         } else {
           store.error = result.error;
           store.status = "error";
@@ -65,7 +90,9 @@ export function useListSubscription<K extends SubscriptionName>(
       alive = false;
       handle.unsubscribe();
     };
-  }, [store, name, input, applyDiff]);
+    // `applyDiff` is intentionally read through a ref, not depended on — the
+    // subscription must outlive renders. See the ref note above.
+  }, [store, name, input]);
 
   return useSnapshot(store) as {
     status: "idle" | "ready" | "error";

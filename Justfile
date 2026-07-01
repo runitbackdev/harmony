@@ -16,6 +16,14 @@ build:
     harmony codegen --release
     pnpm --filter web build
 
+# Desktop (Tauri) — dev launches the shell against the vite dev server (hot reload).
+desktop-dev:
+    cd apps/desktop && pnpm exec tauri dev
+
+# Desktop (Tauri) — build produces a release bundle of the native app.
+desktop-build:
+    cd apps/desktop && pnpm exec tauri build
+
 check:
     cargo check --workspace
     cargo clippy --workspace

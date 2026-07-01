@@ -1,219 +1,86 @@
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::Write as _;
-use std::path::Path;
-use std::process::Command;
+//! `harmony codegen` entry point.
+//!
+//! Walks the `inventory` registry populated by `#[harmony_export]` and
+//! produces every output a binding consumer needs:
+//!
+//! - `packages/core/lib/protocol/types.generated.d.ts` — specta-emitted
+//!   wire types (shared by every target).
+//! - `packages/core/lib/protocol/maps.generated.ts` — transport-agnostic
+//!   `Rpc/Command/Subscription` typing tables (shared).
+//! - Per-target dispatch + handler outputs, delegated to:
+//!   - [`web`] — wasm-pack build, `wasm.d.ts` extension, web dispatch.
+//!   - [`desktop`] — Tauri dispatch + handler list macro.
+//!   - [`mobile`] — placeholder dispatch stub.
+//!
+//! The orchestrator owns nothing per-target; each submodule owns its
+//! file paths and emission shape.
 
-use anyhow::{Context, Result, anyhow, bail};
-use serde::{Deserialize, Serialize};
-use walrus::IdsToIndices;
+mod desktop;
+mod entries;
+mod maps;
+mod mobile;
+mod web;
+
+use anyhow::{Context, Result, anyhow};
+use harmony_protocol::{HarmonyEntry, HarmonyError, HarmonyTypes};
+use specta::Types;
+use specta_typescript::Typescript;
 
 use crate::util::repo::workspace_root;
 
-const SECTION: &str = "__harmony_protocol";
-const WASM_CRATE: &str = "crates/wasm";
-const WASM_OUT_DIR: &str = "packages/wasm";
-const WASM_BG_PATH: &str = "packages/wasm/wasm_bg.wasm";
-const OUTPUT_PATH: &str = "packages/core/lib/protocol/maps.generated.ts";
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Entry {
-    wire: String,
-    js: String,
-    kind: Kind,
-    #[serde(default = "void_ts")]
-    input_ts: String,
-    #[serde(default)]
-    output_ts: Option<String>,
-    #[serde(default)]
-    initial_ts: Option<String>,
-    #[serde(default)]
-    chunk_ts: Option<String>,
-    #[serde(default)]
-    snapshot_for: Option<String>,
-    #[serde(default)]
-    wasm_types: Vec<String>,
-}
-
-fn void_ts() -> String {
-    "void".into()
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-enum Kind {
-    Rpc,
-    Command,
-    Subscription,
-}
+const TYPES_OUTPUT_PATH: &str = "packages/core/lib/protocol/types.generated.d.ts";
+const MAPS_OUTPUT_PATH: &str = "packages/core/lib/protocol/maps.generated.ts";
 
 pub fn run(release: bool) -> Result<()> {
     let root = workspace_root()?;
-    let wasm_path = root.join(WASM_BG_PATH);
-    let output_path = root.join(OUTPUT_PATH);
 
-    build_wasm(&root, release)?;
+    // 1. Build the specta type universe from inventory. `HarmonyError`
+    //    isn't transitively registered through `Rpc<T>`'s hand-rolled
+    //    serde impl, so seed it explicitly.
+    let mut types = Types::default();
+    types.register_mut::<HarmonyError>();
+    for entry in inventory::iter::<HarmonyEntry> {
+        let register = match &entry.types {
+            HarmonyTypes::Rpc { register, .. }
+            | HarmonyTypes::Command { register, .. }
+            | HarmonyTypes::Subscription { register, .. } => register,
+        };
+        register(&mut types);
+    }
 
-    let entries = read_section(&wasm_path)?;
-    let generated = render(&entries);
+    // 2. Apply serde rules (rename_all, tag/content, etc.) and resolve
+    //    into a printable TypeScript module.
+    let resolved =
+        specta_serde::apply(types).map_err(|e| anyhow!("specta-serde apply failed: {e}"))?;
+    let types_source = Typescript::default()
+        .export(&resolved)
+        .map_err(|e| anyhow!("specta-typescript export failed: {e}"))?;
 
+    // 3. Shared outputs (types + maps) — consumed by every target.
+    let types_path = root.join(TYPES_OUTPUT_PATH);
+    let maps_path = root.join(MAPS_OUTPUT_PATH);
     std::fs::create_dir_all(
-        output_path
+        types_path
             .parent()
-            .ok_or_else(|| anyhow!("output path has no parent"))?,
+            .ok_or_else(|| anyhow!("types output path has no parent"))?,
     )?;
-    std::fs::write(&output_path, generated)
-        .with_context(|| format!("writing {}", output_path.display()))?;
+    std::fs::write(&types_path, &types_source)
+        .with_context(|| format!("writing {}", types_path.display()))?;
+
+    let entries = entries::collect_entries();
+    std::fs::write(&maps_path, maps::render(&entries))
+        .with_context(|| format!("writing {}", maps_path.display()))?;
+
+    // 4. Per-target outputs. Each target owns its file paths + emission
+    //    so adding a new target is a single new module + one `run` call.
+    web::run(&root, release, &types_source, &entries)?;
+    desktop::run(&root, &entries)?;
+    mobile::run(&root, &entries)?;
 
     eprintln!(
-        "harmony codegen: wrote {} entries to {}",
-        entries.len(),
-        output_path.display()
+        "harmony codegen: wrote {types}, {maps}, web/desktop/mobile outputs",
+        types = types_path.display(),
+        maps = maps_path.display(),
     );
     Ok(())
-}
-
-fn build_wasm(root: &Path, release: bool) -> Result<()> {
-    let crate_path = root.join(WASM_CRATE);
-    let out_dir = root.join(WASM_OUT_DIR);
-
-    let mut cmd = Command::new("wasm-pack");
-    cmd.arg("build")
-        .arg(&crate_path)
-        .arg("--target")
-        .arg("web")
-        .arg("--scope")
-        .arg("harmony")
-        .arg("--out-dir")
-        .arg(&out_dir);
-    if !release {
-        cmd.arg("--dev");
-    }
-
-    let status = cmd
-        .status()
-        .context("failed to spawn `wasm-pack` — is it installed and on PATH?")?;
-    if !status.success() {
-        bail!("wasm-pack exited with status {status}");
-    }
-    Ok(())
-}
-
-fn read_section(wasm_path: &Path) -> Result<Vec<Entry>> {
-    let module = walrus::Module::from_file(wasm_path)
-        .with_context(|| format!("parsing {}", wasm_path.display()))?;
-    let Some(section) = module
-        .customs
-        .iter()
-        .find(|(_, c)| c.name() == SECTION)
-        .map(|(_, c)| c)
-    else {
-        return Ok(Vec::new());
-    };
-    let raw = section.data(&IdsToIndices::default()).into_owned();
-    parse_ndjson(&raw)
-}
-
-fn parse_ndjson(bytes: &[u8]) -> Result<Vec<Entry>> {
-    let text = std::str::from_utf8(bytes).context("custom section is not valid UTF-8")?;
-    let mut entries = Vec::new();
-    for (idx, line) in text.lines().enumerate() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let entry: Entry =
-            serde_json::from_str(line).with_context(|| format!("parsing entry {idx}: {line}"))?;
-        entries.push(entry);
-    }
-    Ok(entries)
-}
-
-fn render(entries: &[Entry]) -> String {
-    let mut by_kind: BTreeMap<&'static str, Vec<&Entry>> = BTreeMap::new();
-    by_kind.insert("rpc", Vec::new());
-    by_kind.insert("commands", Vec::new());
-    by_kind.insert("subscriptions", Vec::new());
-    let mut referenced: BTreeSet<&str> = BTreeSet::new();
-
-    for entry in entries {
-        let key = match entry.kind {
-            Kind::Rpc => "rpc",
-            Kind::Command => "commands",
-            Kind::Subscription => "subscriptions",
-        };
-        by_kind.get_mut(key).expect("preinserted").push(entry);
-        for name in &entry.wasm_types {
-            referenced.insert(name.as_str());
-        }
-    }
-    for list in by_kind.values_mut() {
-        list.sort_by(|a, b| a.wire.cmp(&b.wire));
-    }
-
-    let mut out = String::new();
-    out.push_str("// AUTO-GENERATED by harmony codegen. Do not edit.\n");
-    out.push_str("// Regenerate: harmony codegen\n");
-    out.push_str("/* eslint-disable */\n\n");
-    out.push_str("import * as wasm from \"@harmony/wasm\";\n");
-    if !referenced.is_empty() {
-        out.push_str("import type {\n");
-        for name in &referenced {
-            writeln!(out, "  {name},").expect("string write");
-        }
-        out.push_str("} from \"@harmony/wasm\";\n");
-    }
-    out.push_str("import type { RpcResult } from \"../transport\";\n\n");
-
-    out.push_str("export type RpcFn<I, O> = (input: I) => Promise<RpcResult<O>>;\n");
-    out.push_str("export type CommandFn<I> = (input: I) => Promise<RpcResult<void>>;\n");
-    out.push_str("export type SubscriptionFn<I, Init, Chunk> = (input: I) => Promise<{ ok: true; initial: Init; stream: ReadableStream<Chunk> } | { ok: false; error: import(\"../transport\").HarmonyError }>;\n\n");
-
-    out.push_str("export const rpc = {\n");
-    for entry in by_kind.get("rpc").expect("preinserted") {
-        let output = entry.output_ts.as_deref().unwrap_or("void");
-        writeln!(
-            out,
-            "  {wire:?}: wasm.{js} as RpcFn<{input}, {output}>,",
-            wire = entry.wire,
-            js = entry.js,
-            input = entry.input_ts,
-        )
-        .expect("string write");
-    }
-    out.push_str("} as const;\n\n");
-
-    out.push_str("export const commands = {\n");
-    for entry in by_kind.get("commands").expect("preinserted") {
-        writeln!(
-            out,
-            "  {wire:?}: wasm.{js} as CommandFn<{input}>,",
-            wire = entry.wire,
-            js = entry.js,
-            input = entry.input_ts,
-        )
-        .expect("string write");
-    }
-    out.push_str("} as const;\n\n");
-
-    out.push_str("export const subscriptions = {\n");
-    for entry in by_kind.get("subscriptions").expect("preinserted") {
-        let initial = entry.initial_ts.as_deref().unwrap_or("unknown");
-        let chunk = entry.chunk_ts.as_deref().unwrap_or("unknown");
-        let snapshot = entry
-            .snapshot_for
-            .as_deref()
-            .map(|s| format!(", snapshot: {s:?}"))
-            .unwrap_or_default();
-        writeln!(
-            out,
-            "  {wire:?}: {{ fn: wasm.{js} as SubscriptionFn<{input}, {initial}, {chunk}>{snapshot} }},",
-            wire = entry.wire,
-            js = entry.js,
-            input = entry.input_ts,
-        )
-        .expect("string write");
-    }
-    out.push_str("} as const;\n");
-
-    out
 }

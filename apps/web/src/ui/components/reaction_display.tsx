@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { ReactionGroup } from "@harmony/wasm";
+import type { ReactionGroup } from "@harmony/harmony-bindings-web";
 import { Transition } from "@/primitives";
 
 interface ReactionDisplayProps {

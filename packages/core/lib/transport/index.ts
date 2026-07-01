@@ -13,6 +13,14 @@ export type HarmonyError = {
   [extra: string]: unknown;
 };
 
+/**
+ * A live subscription. `onChunk` (passed to `subscribe`) may fire BEFORE
+ * `initial` resolves — the desktop transport can deliver buffered chunks a
+ * microtask ahead of the initial promise. Chunks are ordered, but diffs are
+ * relative to the initial snapshot, so consumers must buffer chunks until
+ * `initial` lands and then replay them in order. Never drop pre-initial
+ * chunks.
+ */
 export type StreamHandle<I> = {
   initial: Promise<RpcResult<I>>;
   unsubscribe: () => void;

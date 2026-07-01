@@ -1,4 +1,4 @@
-import type { ListDiff } from "@harmony/wasm";
+import type { ListDiff } from "@harmony/harmony-bindings-web";
 
 export type { ListDiff };
 

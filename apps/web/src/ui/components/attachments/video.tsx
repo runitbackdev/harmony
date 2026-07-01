@@ -1,9 +1,9 @@
-import type { Attachment } from "@harmony/wasm";
+import type { Attachment } from "@harmony/harmony-bindings-web";
 import { Loader2 } from "lucide-react";
-import { useMediaBlob } from "../../hooks/use-media-blob";
+import { useMediaSrc } from "@harmony/react";
 
 export default function AttachmentVideo({ attachment }: { attachment: Attachment }) {
-  const { status, url } = useMediaBlob(attachment.url ?? null);
+  const { status, src } = useMediaSrc(attachment);
 
   const info = attachment.info as { width?: number; height?: number } | undefined;
   const name = attachment.filename ?? attachment.body;
@@ -26,7 +26,7 @@ export default function AttachmentVideo({ attachment }: { attachment: Attachment
 
   return (
     <video
-      src={url}
+      src={src ?? undefined}
       controls
       width={info?.width}
       height={info?.height}

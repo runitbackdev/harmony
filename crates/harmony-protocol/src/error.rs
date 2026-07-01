@@ -1,12 +1,12 @@
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tsify::Tsify;
+
+use crate::harmony;
 
 /// Universal error type carried by `Rpc<T>` and `Command` across the
 /// Harmony bridge. Serialized as a `{ code, ... }` discriminated union.
-#[derive(Tsify, Serialize, Deserialize, Error, Debug, Clone)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
-#[serde(tag = "code", rename_all = "snake_case")]
+#[harmony]
+#[serde(tag = "code")]
+#[derive(Error, Debug, Clone)]
 pub enum HarmonyError {
     #[error("invalid credentials")]
     InvalidCredentials,

@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { HTMLAttributes } from "react";
 import { useLongPress } from "@react-aria/interactions";
-import type { TimelineEventData as TimelineEvent } from "@harmony/wasm";
+import type { TimelineEventData as TimelineEvent } from "@harmony/harmony-bindings-web";
 import { cn } from "../utils";
 import { useLoadMoreOnScroll, useNewMessageIndicator, useStickToBottom } from "../hooks/scroll";
 import { MessageActionBar } from "./message_action_bar";

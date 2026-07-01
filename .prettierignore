@@ -1,2 +1,6 @@
 **/*.generated.ts
+**/*.generated.d.ts
 **/*.gen.ts
+
+# Tauri-generated permission schemas (regenerated minified on build)
+apps/desktop/gen/

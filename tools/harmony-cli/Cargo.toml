@@ -13,9 +13,16 @@ workspace = true
 [dependencies]
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+indoc = "2"
+itertools = "0.14"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = "0.7"
 url = "2"
-walrus = "0.26"
+
+harmony-protocol = { path = "../../crates/harmony-protocol" }
+specta = { version = "=2.0.0-rc.24", features = ["derive"] }
+specta-serde = "=0.0.11"
+specta-typescript = "=0.0.11"
+inventory = "0.3"
