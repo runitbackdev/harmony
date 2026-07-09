@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use super::entries::{EntryRow, group_by_kind, snapshot_map};
 
 const TAURI_DISPATCH_OUTPUT_PATH: &str = "packages/core/lib/transport/tauri/dispatch.generated.ts";
-const HANDLERS_OUTPUT_PATH: &str = "crates/harmony-bindings-desktop/src/handlers.generated.rs";
+const HANDLERS_OUTPUT_PATH: &str = "packages/bindings/desktop/src/handlers.generated.rs";
 
 /// Run the desktop target: write the populated Tauri dispatch table
 /// (frontend invoke glue) and the Rust handler-list macro consumed by

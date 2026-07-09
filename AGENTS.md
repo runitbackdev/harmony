@@ -20,9 +20,9 @@ This file provides guidance for AI coding agents (Gemini CLI, Claude Code, Curso
 
 ## Before You Begin
 
-1. Read [ARCHITECTURE.md](./ARCHITECTURE.md) to understand the SharedWorker and WASM data flow.
+1. Read [ARCHITECTURE.md](./docs/ARCHITECTURE.md) to understand the SharedWorker and WASM data flow.
 2. Read [CONTRIBUTING.md](./CONTRIBUTING.md) and understand the project's conventions.
-3. Read the [AI Policy](./AI_POLICY.md) — contributions must comply with it.
+3. Read the [AI Policy](./docs/AI_POLICY.md) — contributions must comply with it.
 4. Familiarize yourself with the project structure and the [Matrix protocol](https://matrix.org).
 
 ## Project Context
@@ -37,12 +37,11 @@ Key architecture:
 Key directories:
 
 - `apps/web` — React 19 web app. Owns routes, design system (`src/ui/`), composer (`src/composer/`), primitives (`src/primitives/`), and per-domain API wrappers (`src/<domain>/api.ts`).
-- `apps/herald` — Rust appservice (Axum + toasty + Postgres) for custom statuses, invites, presence.
 - `packages/core` — Bridge runtime: `rpc` / `command` / `subscribe` + Transport + generic worker dispatcher. Owns generated wire map.
 - `packages/react` — Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.
-- `packages/wasm` — Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).
-- `crates/wasm` — Rust crate wrapping `matrix-rust-sdk`. Bridge fns marked `#[harmony_export]`.
-- `crates/harmony-protocol` + `crates/harmony-protocol-macros` — `Rpc/Command/Subscription` wrappers + the `#[harmony_export]` proc macro.
+- `packages/wasm` — Build artifact of `packages/wasm` (`.wasm` + `.d.ts`).
+- `packages/wasm` — Rust crate wrapping `matrix-rust-sdk`. Bridge fns marked `#[harmony_export]`.
+- `packages/harmony-protocol` + `packages/harmony-protocol-macros` — `Rpc/Command/Subscription` wrappers + the `#[harmony_export]` proc macro.
 - `tools/harmony-cli` — `harmony` CLI binary. Typed workspace commands: `codegen` (build WASM + emit `packages/core/lib/protocol/maps.generated.ts`), `db`, `migration`, `psql`, `self-update`. Unknown subcommands forward to `just`.
 
 ## Rules for AI Agents
@@ -73,9 +72,9 @@ Before the human submits your work, ensure:
 
 - [ ] `vp check` passes (Oxlint and TypeScript checks)
 - [ ] `vp test` passes (Vitest suites)
-- [ ] WASM is rebuilt if `crates/wasm` was changed (`harmony codegen`)
+- [ ] WASM is rebuilt if `packages/wasm` was changed (`harmony codegen`)
 - [ ] PR description explains _what_ and _why_, not just _how_
-- [ ] AI usage is disclosed per the [AI Policy](./AI_POLICY.md)
+- [ ] AI usage is disclosed per the [AI Policy](./docs/AI_POLICY.md)
 
 ## Tech Stack Quick Reference
 

@@ -1,6 +1,14 @@
 [workspace]
 resolver = "3"
-members = ["apps/herald", "apps/desktop", "crates/*", "tools/harmony-cli"]
+members = [
+    "apps/desktop",
+    "packages/bindings/desktop",
+    "packages/bindings/mobile",
+    "packages/bindings/web",
+    "packages/harmony-protocol",
+    "packages/harmony-protocol-macros",
+    "tools/harmony-cli",
+]
 
 [workspace.lints.rust]
 unsafe_code = "deny"

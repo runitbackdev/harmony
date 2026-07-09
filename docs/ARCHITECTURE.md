@@ -33,7 +33,7 @@ Harmony is a Matrix chat client. The heavy lifting (protocol, sync, crypto) runs
 │  └────────────────┬──────────────────────────┘          │
 │                   ▼                                     │
 │  ┌───────────────────────────────────────────┐          │
-│  │  crates/wasm  (Rust → WASM)               │          │
+│  │  packages/wasm  (Rust → WASM)             │          │
 │  │  matrix-sdk · IndexedDB · crypto          │          │
 │  │  #[harmony_export] fns emit metadata into │          │
 │  │  __harmony_protocol custom section        │          │
@@ -46,13 +46,12 @@ Harmony is a Matrix chat client. The heavy lifting (protocol, sync, crypto) runs
 | Package                          | What it does                                                                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/web`                       | React 19 app w/ TanStack Router. Owns `ui/`, `composer/`, `primitives/` and per-domain APIs.                                                |
-| `apps/herald`                    | Rust appservice (Axum + toasty + Postgres). Custom statuses, invites, presence.                                                             |
 | `packages/core`                  | Bridge runtime: `rpc`/`command`/`subscribe`, Transport, MessagePort dispatcher, `protocol/`.                                                |
 | `packages/react`                 | Generic React primitives: `useRpc`, `useStream`, `useListSubscription`.                                                                     |
-| `packages/wasm`                  | Build artifact of `crates/wasm` (`.wasm` + `.d.ts`).                                                                                        |
-| `crates/wasm`                    | Rust crate wrapping `matrix-sdk`. Every bridge fn marked `#[harmony_export]`.                                                               |
-| `crates/harmony-protocol`        | `Rpc<T>` / `Command` / `Subscription<I,C>` wrappers + `HarmonyError`.                                                                       |
-| `crates/harmony-protocol-macros` | `#[harmony_export]` proc macro: emits wasm-bindgen export + `__harmony_protocol` entry.                                                     |
+| `packages/wasm`                  | Build artifact of `packages/wasm` (`.wasm` + `.d.ts`).                                                                                        |
+| `packages/wasm`                    | Rust crate wrapping `matrix-sdk`. Every bridge fn marked `#[harmony_export]`.                                                               |
+| `packages/harmony-protocol`        | `Rpc<T>` / `Command` / `Subscription<I,C>` wrappers + `HarmonyError`.                                                                       |
+| `packages/harmony-protocol-macros` | `#[harmony_export]` proc macro: emits wasm-bindgen export + `__harmony_protocol` entry.                                                     |
 | `tools/harmony-cli`              | `harmony` CLI. `harmony codegen` builds WASM, reads `__harmony_protocol` section, generates `packages/core/lib/protocol/maps.generated.ts`. |
 
 ## Bridge: Rpc / Command / Subscription

@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use super::entries::{EntryRow, group_by_kind, snapshot_map};
 
-const HARMONY_PROTOCOL_CRATE: &str = "crates/harmony-bindings-web";
+const HARMONY_PROTOCOL_CRATE: &str = "packages/bindings/web";
 const WASM_OUT_DIR: &str = "packages/wasm";
 const WASM_DTS_PATH: &str = "packages/wasm/wasm.d.ts";
 const WEB_DISPATCH_OUTPUT_PATH: &str = "packages/core/lib/transport/web/dispatch.generated.ts";

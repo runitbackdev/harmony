@@ -3,7 +3,7 @@ target
 .git
 apps/web
 packages
-synapse
+.docker
 *.md
 .env*
 dist

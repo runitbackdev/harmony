@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 workspace = true
 
 [dependencies]
-harmony-protocol = { path = "../harmony-protocol", features = ["web"] }
+harmony-protocol = { path = "../../harmony-protocol", features = ["web"] }
 tracing = { version = "0.1", features = ["release_max_level_off"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

@@ -10,7 +10,7 @@ Thanks for helping out! Here's everything you need to get going.
 
 ```sh
 just setup        # mise install, pnpm install, install `harmony` CLI, build WASM, install git hooks
-harmony dev       # full local stack (synapse + herald + web)
+harmony dev       # full local stack (synapse + web)
 ```
 
 Run `harmony self-update` after pulling changes to `tools/harmony-cli`.
@@ -20,13 +20,12 @@ Run `harmony self-update` after pulling changes to `tools/harmony-cli`.
 | Command                  | What it does                                |
 | ------------------------ | ------------------------------------------- |
 | `harmony web`            | Frontend only, hosted homeserver            |
-| `harmony dev`            | Full local stack (synapse + herald + web)   |
+| `harmony dev`            | Full local stack (synapse + web)            |
 | `harmony build`          | Production build (WASM + web)               |
 | `harmony codegen`        | Build WASM + emit `maps.generated.ts`       |
 | `harmony check`          | Run cargo check, clippy, eslint, typos      |
 | `harmony fmt`            | Format Rust + TypeScript                    |
 | `harmony clean`          | Remove all build artifacts                  |
-| `harmony db reset --yes` | Drop + recreate Herald DB, apply migrations |
 
 `harmony` forwards unknown subcommands to `just`, so any orchestration recipe (`synapse`, `synapse-reset`, etc.) works via `harmony <name>`.
 
@@ -56,4 +55,4 @@ Formatting fixes are auto-staged. If clippy or eslint fail, fix the issues and c
 
 ## Project Structure
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the codebase fits together. The short version: bridge fns + types go in `crates/wasm` (`#[harmony_export]` annotated), the worker runtime + generated wire maps live in `packages/core`, generic React primitives live in `packages/react`, and UI + per-domain wrappers live in `apps/web`.
+See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for how the codebase fits together. The short version: bridge fns + types go in `packages/wasm` (`#[harmony_export]` annotated), the worker runtime + generated wire maps live in `packages/core`, generic React primitives live in `packages/react`, and UI + per-domain wrappers live in `apps/web`.

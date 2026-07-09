@@ -12,3 +12,4 @@ node_modules
 .beads-credential-key
 
 **/docs
+!/docs

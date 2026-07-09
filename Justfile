@@ -5,11 +5,10 @@ web host="http://localhost:8008":
     @test -d packages/wasm || harmony codegen
     VITE_HOMESERVER_URL="{{host}}" pnpm --filter web dev
 
-# Full local stack — synapse + postgres (detached) + herald + web via hivemind.
+# Full local stack — synapse (detached) + web via hivemind.
 dev:
     @test -d packages/wasm || harmony codegen
     @just synapse
-    @just postgres
     hivemind Procfile.dev
 
 build:
@@ -42,6 +41,7 @@ clean:
     pnpm --filter web exec rm -rf dist
 
 setup:
+    git submodule update --init --recursive
     mise install
     cargo install --path tools/harmony-cli --force
     @just gen-rpc
@@ -51,17 +51,11 @@ setup:
 gen-rpc:
     harmony codegen
 
-psql:
-    psql "${HERALD_DATABASE_URL:-${DATABASE_URL:?'set HERALD_DATABASE_URL or DATABASE_URL'}}"
-
 self-update:
     cargo install --path tools/harmony-cli --force
 
 synapse:
     {{ compose }} up -d synapse
-
-postgres:
-    {{ compose }} up -d postgres
 
 synapse-stop:
     {{ compose }} down

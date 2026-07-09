@@ -6,7 +6,7 @@
 
 <br />
 <div align="center">
-  <img src="assets/logo.svg" alt="Harmony logo" width="40" height="40" />
+  <img src="docs/assets/logo.svg" alt="Harmony logo" width="40" height="40" />
   <h3 align="center">Harmony</h3>
 
   <p align="center">
@@ -63,7 +63,7 @@ Matrix has a UX problem — most clients feel like they were built for protocol 
 
 ### Prerequisites
 
-- [mise](https://mise.jdx.dev) — pins Rust, Node, pnpm, Ruby, `just`, `wasm-pack`, `hivemind`, and other dev tools
+- [mise](https://mise.jdx.dev) — pins Rust, Node, pnpm, `just`, `wasm-pack`, `hivemind`, and other dev tools
 - A container runtime — [Docker](https://docs.docker.com/get-docker/) or [Podman](https://podman.io). Only required if running a local Synapse (the default frontend dev path uses a hosted homeserver).
 
 > **Atomic desktops (Bazzite, Silverblue, Bluefin, NixOS):** install `mise` via Homebrew (`brew install mise`) — no `rpm-ostree` layering required. Podman ships out of the box; the Justfile auto-detects it.
@@ -88,7 +88,7 @@ Most workflows go through `harmony` (typed CLI). Unknown subcommands forward to 
 
 ```sh
 harmony web        # frontend only — points at hosted homeserver, no local backend
-harmony dev        # frontend + local synapse + herald (full local stack)
+harmony dev        # frontend + local synapse
 harmony build      # production build
 harmony codegen    # build WASM + regenerate TS protocol bindings
 ```
@@ -96,15 +96,11 @@ harmony codegen    # build WASM + regenerate TS protocol bindings
 | Command               | Description                                                  |
 | --------------------- | ------------------------------------------------------------ |
 | `harmony web`         | Vite only, hosted homeserver                                 |
-| `harmony dev`         | Synapse (detached) + herald + web                            |
 | `harmony build`       | Production build (WASM + web)                                |
 | `harmony codegen`     | Build WASM + emit `maps.generated.ts` (`--release` for prod) |
 | `harmony check`       | Run cargo check, clippy, eslint, typos                       |
 | `harmony fmt`         | Format Rust and TypeScript files                             |
 | `harmony clean`       | Remove build artifacts                                       |
-| `harmony db …`        | CREATE / DROP / RESET herald database                        |
-| `harmony migration …` | Generate / apply / status / snapshot Herald migrations       |
-| `harmony psql`        | Open psql shell against herald DB                            |
 | `harmony self-update` | Reinstall `harmony` from this workspace                      |
 
 Override the homeserver any time:
@@ -153,7 +149,7 @@ harmony setup-users
 ```
 harmony/
 ├── apps/web/          # React web application
-├── crates/wasm/       # Rust WASM crate
+├── packages/wasm/       # Rust WASM crate
 ├── packages/
 │   ├── composer/      # Lexical-based message composer
 │   ├── core/          # Core client logic

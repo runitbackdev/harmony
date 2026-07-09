@@ -1,2 +1,1 @@
-herald: cd apps/herald && HERALD_HS_TOKEN=herald-dev-hs-token HERALD_AS_TOKEN=herald-dev-as-token cargo run
 web: VITE_HOMESERVER_URL=http://localhost:8008 pnpm --filter web dev
