@@ -22,10 +22,10 @@ export default function AttachmentFile({ attachment }: { attachment: Attachment 
       data-scope="attachment"
       data-part="file"
       className={cn(
-        "mt-1 flex max-w-sm items-center gap-3 rounded-lg border border-surface-200-800 px-3 py-2",
-        "text-left text-sm text-surface-800-200 transition-colors",
+        "mt-1 flex max-w-sm items-center gap-3 rounded-lg border border-line px-3 py-2",
+        "text-left text-small text-ink transition-colors",
         ready
-          ? "hover:border-surface-400-600 hover:text-surface-950-50"
+          ? "hover:border-line hover:text-ink"
           : "pointer-events-none cursor-default opacity-60",
       )}
       aria-label={`Download ${name}`}
@@ -40,7 +40,7 @@ export default function AttachmentFile({ attachment }: { attachment: Attachment 
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="shrink-0 text-surface-400"
+        className="shrink-0 text-faint"
       >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
@@ -48,13 +48,13 @@ export default function AttachmentFile({ attachment }: { attachment: Attachment 
       <div className="min-w-0">
         <div className="truncate font-medium">{name}</div>
         {(size != null || mimetype) && (
-          <div className="text-xs text-surface-500">
+          <div className="text-data text-sub">
             {[mimetype, size != null ? formatBytes(size) : null].filter(Boolean).join(" · ")}
           </div>
         )}
       </div>
       {loading ? (
-        <Loader2 className="ml-auto h-3.5 w-3.5 shrink-0 animate-spin text-surface-400" />
+        <Loader2 className="ml-auto h-3.5 w-3.5 shrink-0 animate-spin text-faint" />
       ) : (
         ready && (
           <svg
@@ -67,7 +67,7 @@ export default function AttachmentFile({ attachment }: { attachment: Attachment 
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="ml-auto shrink-0 text-surface-400"
+            className="ml-auto shrink-0 text-faint"
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />

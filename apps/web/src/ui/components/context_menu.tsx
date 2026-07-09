@@ -191,7 +191,7 @@ function DesktopMenu({
               data-part="root"
               style={floatingStyles}
               className={cn(
-                "z-50 min-w-44 rounded-md border border-surface-300-700 bg-surface-50-950 p-1 shadow-lg",
+                "z-50 min-w-44 rounded-md border border-line bg-surface p-1 shadow-lg",
                 "focus-visible:outline-none",
               )}
               {...getFloatingProps()}
@@ -240,15 +240,15 @@ function MobileSheet({ open, onOpenChange, title, children }: MobileSheetProps) 
             data-scope="context-menu"
             data-part="root"
             className={cn(
-              "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-xl border-t border-surface-300-700",
-              "bg-surface-50-950 pb-[env(safe-area-inset-bottom)] shadow-xl",
+              "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-xl border-t border-line",
+              "bg-surface pb-[env(safe-area-inset-bottom)] shadow-xl",
               "focus-visible:outline-none",
             )}
           >
             <Drawer.Handle
               data-scope="context-menu"
               data-part="handle"
-              className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-surface-300-700"
+              className="mx-auto my-3 h-1 w-10 shrink-0 rounded-full bg-soft"
             />
             <Drawer.Title className="sr-only">{title}</Drawer.Title>
             <div
@@ -312,10 +312,10 @@ function Item({
       className={cn(
         "flex w-full items-center gap-2 rounded text-left transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        isMobile ? "px-3 py-3 text-base" : "px-2 py-1.5 text-sm",
+        isMobile ? "px-3 py-3 text-body" : "px-2 py-1.5 text-small",
         variant === "danger"
-          ? "text-error-500 hover:bg-error-500 hover:text-white data-active:bg-error-500 data-active:text-white"
-          : "text-surface-800-200 hover:bg-surface-200-800 data-active:bg-surface-200-800",
+          ? "text-danger hover:bg-danger hover:text-danger-ink data-active:bg-danger data-active:text-danger-ink"
+          : "text-ink hover:bg-soft data-active:bg-soft",
       )}
       {...getItemProps({
         onClick: handle,
@@ -330,7 +330,7 @@ function Item({
       {Icon && <Icon size={isMobile ? 18 : 14} className="shrink-0" />}
       <span className="flex-1 truncate">{children}</span>
       {shortcut && !isMobile && (
-        <span className="ml-2 text-xs text-surface-500" aria-hidden>
+        <span className="ml-2 text-data text-sub" aria-hidden>
           {shortcut}
         </span>
       )}
@@ -349,7 +349,7 @@ function Separator() {
       role="separator"
       data-scope="context-menu"
       data-part="separator"
-      className={cn("my-1 h-px bg-surface-300-700", isMobile ? "mx-2" : "mx-1")}
+      className={cn("my-1 h-px bg-soft", isMobile ? "mx-2" : "mx-1")}
     />
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
-import { Dialog, TextField } from "@/ui";
+import { Button, Dialog } from "@runitback/react";
+import { TextField } from "@/ui";
 import { AtSign, Boxes, ChevronDown, ChevronUp, X } from "lucide-react";
 import { createSpace } from "@/spaces/api";
 import { useForm } from "@tanstack/react-form";
@@ -52,53 +53,47 @@ function CreateSpaceDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(e) => onOpenChange(e.open)}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Create a Space</Dialog.Title>
-            <Dialog.Description>Give your space a name to get started.</Dialog.Description>
+        <Dialog.Popup>
+          <Dialog.Title>Create a Space</Dialog.Title>
+          <Dialog.Description>Give your space a name to get started.</Dialog.Description>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                void form.handleSubmit();
-              }}
-              className="mt-4 space-y-4"
-            >
-              <form.Field name="name">
-                {(field) => (
-                  <TextField
-                    label="Name"
-                    type="text"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    error={field.state.meta.errors[0]?.message}
-                    autoFocus
-                  />
-                )}
-              </form.Field>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+            className="mt-4 space-y-4"
+          >
+            <form.Field name="name">
+              {(field) => (
+                <TextField
+                  label="Name"
+                  type="text"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  error={field.state.meta.errors[0]?.message}
+                  autoFocus
+                />
+              )}
+            </form.Field>
 
-              <button
-                className="btn preset-filled-primary-500 w-full"
-                type="submit"
-                disabled={form.state.isSubmitting}
-              >
-                {form.state.isSubmitting ? "Creating…" : "Create"}
-              </button>
-            </form>
+            <Button type="submit" disabled={form.state.isSubmitting} className="w-full">
+              {form.state.isSubmitting ? "Creating…" : "Create"}
+            </Button>
+          </form>
 
-            <Dialog.CloseTrigger>
-              <X size={16} aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+            <X size={16} aria-hidden="true" />
+            <span className="sr-only">Close</span>
+          </Dialog.Close>
+        </Dialog.Popup>
       </Dialog.Portal>
-    </Dialog>
+    </Dialog.Root>
   );
 }
 

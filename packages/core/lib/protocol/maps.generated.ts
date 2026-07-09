@@ -115,5 +115,7 @@ export type CommandName = typeof commandNames[number];
 export type SubscriptionName = typeof subscriptionNames[number];
 
 export const subscriptionSnapshots: Partial<Record<SubscriptionName, RpcName>> = {
-
+  "members.subscribe": "members.get",
+  "spaces.subscribe": "spaces.get",
+  "timeline.subscribe": "timeline.get_room_state",
 };

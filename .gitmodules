@@ -1,0 +1,3 @@
+[submodule "vendor/design"]
+	path = vendor/design
+	url = git@codeberg.org:runitback/design.git

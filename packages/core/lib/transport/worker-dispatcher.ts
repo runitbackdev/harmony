@@ -44,6 +44,10 @@ type SharedSubscription = {
   // The creator sets this once the upstream is ready and starts the pump;
   // null while the upstream is still starting.
   reader: ReadableStreamDefaultReader<unknown> | null;
+  // Whether `started.initial` has been handed to a subscriber. Stays false
+  // when the creator unsubscribes mid-start; the first joiner inherits the
+  // initial instead of fetching a snapshot.
+  initialClaimed: boolean;
   subscribers: Map<string, MessagePort>;
 };
 
@@ -79,10 +83,13 @@ export function createWorkerDispatcher(): WorkerDispatcher {
   function endSubscription(key: string) {
     const state = active.get(key);
     if (!state) return;
+    // Still starting: keep the entry registered so a re-subscribe (StrictMode
+    // remount) joins this upstream instead of racing a duplicate one — two
+    // concurrent upstreams for one key clobber each other's Rust-side state.
+    // The creator's post-await path reaps it if nobody rejoined by then.
+    if (state.reader === null) return;
     active.delete(key);
-    // `reader` is null if the upstream is still starting; the creator's
-    // post-await path sees the entry was removed and cancels the stream then.
-    state.reader?.cancel().catch(() => {});
+    state.reader.cancel().catch(() => {});
   }
 
   function pump(key: string, state: SharedSubscription) {
@@ -170,7 +177,12 @@ export function createWorkerDispatcher(): WorkerDispatcher {
     let shared = active.get(key);
     const isCreator = shared === undefined;
     if (shared === undefined) {
-      shared = { started: startUpstream(entry, msg.input), reader: null, subscribers: new Map() };
+      shared = {
+        started: startUpstream(entry, msg.input),
+        reader: null,
+        initialClaimed: false,
+        subscribers: new Map(),
+      };
       active.set(key, shared);
     }
     shared.subscribers.set(msg.id, port);
@@ -186,15 +198,23 @@ export function createWorkerDispatcher(): WorkerDispatcher {
         return;
       }
       if (!live) {
-        // Every subscriber unsubscribed while the upstream was starting
-        // (StrictMode mount/unmount, quick navigate-away). Discard the
-        // now-orphaned stream rather than leaking it.
+        started.stream.cancel().catch(() => {});
+        respond(port, msg.id, errorResult("unknown", "subscription closed"));
+        return;
+      }
+      if (shared.subscribers.size === 0) {
+        // Every subscriber unsubscribed while the upstream was starting and
+        // nobody rejoined. Discard the now-orphaned stream rather than leaking it.
+        active.delete(key);
         started.stream.cancel().catch(() => {});
         respond(port, msg.id, errorResult("unknown", "subscription closed"));
         return;
       }
       shared.reader = started.stream.getReader();
-      respond(port, msg.id, { ok: true, value: started.initial });
+      if (shared.subscribers.has(msg.id)) {
+        shared.initialClaimed = true;
+        respond(port, msg.id, { ok: true, value: started.initial });
+      }
       pump(key, shared);
       return;
     }
@@ -208,6 +228,15 @@ export function createWorkerDispatcher(): WorkerDispatcher {
     }
     if (active.get(key) !== shared) {
       respond(port, msg.id, errorResult("unknown", "subscription closed"));
+      return;
+    }
+    // The creator left while the upstream was starting (StrictMode remount):
+    // inherit its unconsumed initial. It's position-consistent with the diff
+    // stream, unlike a snapshot fetched mid-stream — chunks that raced the
+    // snapshot RPC would already be folded in and get double-applied on replay.
+    if (!shared.initialClaimed) {
+      shared.initialClaimed = true;
+      respond(port, msg.id, { ok: true, value: started.initial });
       return;
     }
     const snapshot = await fetchSnapshot(entry, msg.input);

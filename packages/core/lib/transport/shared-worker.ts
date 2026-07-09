@@ -81,7 +81,7 @@ export class TransportSharedWorker implements Transport {
       };
     }
     const id = this.allocateId("sub");
-    console.log("[echo-debug] SUB", name, id, JSON.stringify(input));
+
     const initial = new Promise<RpcResult<unknown>>((resolve, reject) => {
       this.subscriptions.set(id, {
         resolveInitial: resolve,
@@ -94,7 +94,6 @@ export class TransportSharedWorker implements Transport {
     return {
       initial,
       unsubscribe: () => {
-        console.log("[echo-debug] UNSUB", name, id);
         if (!this.subscriptions.delete(id)) return;
         try {
           this.port.postMessage({ kind: "unsubscribe", id });
@@ -138,15 +137,7 @@ export class TransportSharedWorker implements Transport {
         return;
       }
       const subscription = this.subscriptions.get(message.id);
-      console.log(
-        "[echo-debug] INITIAL",
-        message.id,
-        "hasHandler:",
-        !!subscription,
-        "ok:",
-        message.result.ok,
-        message.result,
-      );
+
       if (subscription) {
         subscription.resolveInitial(message.result);
         if (!message.result.ok) this.subscriptions.delete(message.id);
@@ -154,13 +145,7 @@ export class TransportSharedWorker implements Transport {
       return;
     }
     const subscription = this.subscriptions.get(message.id);
-    console.log(
-      "[echo-debug] 1.transport.deliver",
-      message.id,
-      "hasHandler:",
-      !!subscription,
-      message.chunk,
-    );
+
     if (subscription) subscription.onChunk(message.chunk);
   }
 

@@ -33,17 +33,8 @@ const EMPTY_EVENTS: TimelineEventData[] = [];
 export function useTimeline(roomId: string) {
   const sub = useListSubscription("timeline.subscribe", roomId, (state, chunk) => {
     if (chunk.kind === "error") return;
-    if (chunk.generation !== state.generation) {
-      console.warn(
-        "[echo-debug] 3.reducer DROPPED gen mismatch",
-        "chunk:",
-        chunk.generation,
-        "state:",
-        state.generation,
-      );
-      return;
-    }
-    console.log("[echo-debug] 3.reducer apply", chunk.diffs);
+    if (chunk.generation !== state.generation) return;
+
     const events = [...state.events];
     for (const diff of chunk.diffs) applyListDiff(events, diff);
     return { ...state, events };

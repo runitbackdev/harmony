@@ -114,7 +114,7 @@ function ReactionDisplay({ reactions, currentUserId, onToggleReaction }: Reactio
                 data-pending={reaction.pending || undefined}
                 data-fresh={reaction.fresh || undefined}
                 tabIndex={indexForFocus === focusIndex ? 0 : -1}
-                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs cursor-pointer transition-colors border-surface-300-700 hover:bg-surface-200-800 data-active:border-primary-500 data-active:bg-primary-500/10 data-pending:opacity-50"
+                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-data cursor-pointer transition-colors border-line hover:bg-soft data-active:border-accent data-active:bg-accent/10 data-pending:opacity-50"
                 onClick={() => onToggleReaction?.(reaction.key)}
               >
                 <span data-scope="reaction" data-part="emoji">
@@ -123,7 +123,7 @@ function ReactionDisplay({ reactions, currentUserId, onToggleReaction }: Reactio
                 <span
                   data-scope="reaction"
                   data-part="count"
-                  className={active ? "text-surface-950-50" : "text-surface-500"}
+                  className={active ? "text-ink" : "text-sub"}
                 >
                   {reaction.count}
                 </span>

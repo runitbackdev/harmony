@@ -58,10 +58,8 @@ function RoomHeader({ spaceId, roomId }: { spaceId: string; roomId: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Hash size={16} className="text-surface-500" />
-      <h2 className="text-sm font-semibold text-surface-950-50">
-        {room?.displayName ?? "Unknown"}
-      </h2>
+      <Hash size={16} className="text-sub" />
+      <h2 className="text-small font-semibold text-ink">{room?.displayName ?? "Unknown"}</h2>
     </div>
   );
 }
@@ -121,6 +119,7 @@ const ConnectedTimeline = forwardRef<
     if (event.content.type !== "message") return null;
     return (
       <EditComposer
+        key={event.id ?? event.transactionId}
         target={{
           eventId: event.id ?? undefined,
           transactionId: event.transactionId ?? undefined,
@@ -135,7 +134,7 @@ const ConnectedTimeline = forwardRef<
   if (debug) {
     return (
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
-        <ul className="space-y-1 font-mono text-sm text-surface-950-50">
+        <ul className="space-y-1 font-mono text-small text-ink">
           {events.map((event: TimelineEventData, i: number) => (
             <li
               key={event.id ?? i}
@@ -145,11 +144,9 @@ const ConnectedTimeline = forwardRef<
                   : "transition-opacity duration-300"
               }
             >
-              <span className="text-surface-500">{event.senderName ?? event.sender}</span>{" "}
+              <span className="text-sub">{event.senderName ?? event.sender}</span>{" "}
               {formatContent(event.content)}
-              {event.sendState && (
-                <span className="text-surface-400"> [{event.sendState.state}]</span>
-              )}
+              {event.sendState && <span className="text-faint"> [{event.sendState.state}]</span>}
             </li>
           ))}
         </ul>
@@ -159,6 +156,7 @@ const ConnectedTimeline = forwardRef<
 
   return (
     <MessageList
+      key={roomId}
       ref={ref}
       events={events}
       onLoadMore={handleLoadMore}
@@ -340,21 +338,21 @@ function TimelineView() {
     <div className="flex flex-1 min-h-0 min-w-0">
       <div className="relative flex flex-1 flex-col min-h-0 min-w-0" {...dropZoneProps}>
         {isDragging && (
-          <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-primary-500 bg-primary-500/10 backdrop-blur-[1px]">
-            <div className="rounded-xl bg-surface-100-900 px-6 py-4 text-center shadow-xl">
-              <p className="text-base font-semibold text-surface-950-50">Drop files to upload</p>
-              <p className="mt-0.5 text-xs text-surface-500">Release to add to message</p>
+          <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-accent bg-accent/10 backdrop-blur-[1px]">
+            <div className="rounded-xl bg-surface px-6 py-4 text-center shadow-xl">
+              <p className="text-body font-semibold text-ink">Drop files to upload</p>
+              <p className="mt-0.5 text-data text-sub">Release to add to message</p>
             </div>
           </div>
         )}
         <header
           data-scope="room"
           data-part="header"
-          className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2"
+          className="flex items-center gap-2 border-b border-line px-4 py-2"
         >
           <button
             type="button"
-            className="md:hidden text-surface-500 transition-colors hover:text-surface-950-50 mr-2"
+            className="md:hidden text-sub transition-colors hover:text-ink mr-2"
             onClick={() => navContext?.setNavOpen(true)}
             aria-label="Open navigation"
           >
@@ -368,7 +366,7 @@ function TimelineView() {
               onClick={() => setMembersOpen(!membersOpen)}
               aria-label={membersOpen ? "Hide members" : "Show members"}
               aria-pressed={membersOpen}
-              className="text-surface-500 transition-colors hover:text-surface-950-50 aria-pressed:text-surface-950-50"
+              className="text-sub transition-colors hover:text-ink aria-pressed:text-ink"
             >
               <Users size={16} />
             </button>
@@ -382,8 +380,9 @@ function TimelineView() {
           onReply={handleReply}
         />
 
-        <div className="border-t border-surface-200-800 p-4">
+        <div className="border-t border-line p-4">
           <Composer
+            key={roomId}
             ref={composerRef}
             roomId={roomId}
             getMembers={getMembersForComposer}

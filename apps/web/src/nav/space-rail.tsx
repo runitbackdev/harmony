@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, MxAvatar, Rail, TextField } from "@/ui";
+import { Button, Dialog } from "@runitback/react";
+import { MxAvatar, Rail, TextField } from "@/ui";
 import { Home, ImagePlus, Plus, X } from "lucide-react";
 import { createSpace, useSpaces } from "@/spaces/api";
 import { SyncIndicator } from "./sync-indicator";
@@ -42,13 +43,13 @@ function AvatarPicker({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="flex size-20 items-center justify-center overflow-hidden rounded-full bg-surface-300-700 transition-opacity hover:opacity-80"
+        className="flex size-20 items-center justify-center overflow-hidden rounded-full bg-soft transition-opacity hover:opacity-80"
         aria-label="Choose space avatar"
       >
         {previewUrl ? (
           <img src={previewUrl} alt="" className="size-full object-cover" />
         ) : (
-          <ImagePlus size={24} className="text-surface-500" />
+          <ImagePlus size={24} className="text-sub" />
         )}
       </button>
       <input
@@ -62,7 +63,7 @@ function AvatarPicker({
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="text-xs text-surface-500 transition-colors hover:text-surface-950-50"
+          className="text-data text-sub transition-colors hover:text-ink"
         >
           Remove
         </button>
@@ -141,7 +142,7 @@ export function SpaceRail({ className, onAfterNavigate }: SpaceRailProps) {
                   mxc={space.avatarUrl}
                   name={space.displayName}
                   size={96}
-                  className="size-full rounded-[inherit]! text-xs font-semibold"
+                  className="size-full rounded-[inherit]! text-data font-semibold"
                 />
               </Rail.Item>
             ))}
@@ -160,59 +161,51 @@ export function SpaceRail({ className, onAfterNavigate }: SpaceRailProps) {
         </div>
       </Rail>
 
-      <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
+      <Dialog.Root open={createOpen} onOpenChange={setCreateOpen}>
         <Dialog.Portal>
           <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Title>Create a Space</Dialog.Title>
-              <Dialog.Description>Give your space a name to get started.</Dialog.Description>
+          <Dialog.Popup>
+            <Dialog.Title>Create a Space</Dialog.Title>
+            <Dialog.Description>Give your space a name to get started.</Dialog.Description>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  void form.handleSubmit();
-                }}
-                className="mt-4 space-y-4"
-              >
-                <form.Field name="avatar">
-                  {(field) => (
-                    <AvatarPicker file={field.state.value} onChange={field.handleChange} />
-                  )}
-                </form.Field>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+              className="mt-4 space-y-4"
+            >
+              <form.Field name="avatar">
+                {(field) => <AvatarPicker file={field.state.value} onChange={field.handleChange} />}
+              </form.Field>
 
-                <form.Field name="name">
-                  {(field) => (
-                    <TextField
-                      label="Name"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      error={field.state.meta.errors[0]?.message}
-                      autoFocus
-                    />
-                  )}
-                </form.Field>
+              <form.Field name="name">
+                {(field) => (
+                  <TextField
+                    label="Name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    error={field.state.meta.errors[0]?.message}
+                    autoFocus
+                  />
+                )}
+              </form.Field>
 
-                <button
-                  className="btn preset-filled-primary-500 w-full"
-                  type="submit"
-                  disabled={form.state.isSubmitting}
-                >
-                  {form.state.isSubmitting ? "Creating…" : "Create"}
-                </button>
-              </form>
+              <Button type="submit" disabled={form.state.isSubmitting} className="w-full">
+                {form.state.isSubmitting ? "Creating…" : "Create"}
+              </Button>
+            </form>
 
-              <Dialog.CloseTrigger>
-                <X size={16} aria-hidden="true" />
-                <span className="sr-only">Close</span>
-              </Dialog.CloseTrigger>
-            </Dialog.Content>
-          </Dialog.Positioner>
+            <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+              <X size={16} aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
+          </Dialog.Popup>
         </Dialog.Portal>
-      </Dialog>
+      </Dialog.Root>
     </>
   );
 }

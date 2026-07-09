@@ -32,9 +32,9 @@ function DateDivider({ timestamp, className, ...props }: DateDividerProps) {
       className={cn("flex items-center gap-3 py-3", className)}
       {...props}
     >
-      <div className="h-px flex-1 bg-surface-300-700" />
-      <span className="text-xs font-medium text-surface-500">{formatDate(timestamp)}</span>
-      <div className="h-px flex-1 bg-surface-300-700" />
+      <div className="h-px flex-1 bg-soft" />
+      <span className="text-data font-medium text-sub">{formatDate(timestamp)}</span>
+      <div className="h-px flex-1 bg-soft" />
     </div>
   );
 }
@@ -51,9 +51,9 @@ function ReadMarker({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
       className={cn("flex items-center gap-3 py-2", className)}
       {...props}
     >
-      <div className="h-px flex-1 bg-error-500" />
-      <span className="text-xs font-medium text-error-500">New</span>
-      <div className="h-px flex-1 bg-error-500" />
+      <div className="h-px flex-1 bg-danger" />
+      <span className="text-data font-medium text-danger">New</span>
+      <div className="h-px flex-1 bg-danger" />
     </div>
   );
 }
@@ -67,7 +67,7 @@ function TimelineStart({ className, ...props }: HTMLAttributes<HTMLDivElement>) 
     <div
       data-scope="timeline-divider"
       data-part="timeline-start"
-      className={cn("py-4 text-center text-xs text-surface-500", className)}
+      className={cn("py-4 text-center text-data text-sub", className)}
       {...props}
     >
       This is the beginning of the conversation.

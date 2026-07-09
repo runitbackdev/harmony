@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/_chat/$spaceId/")({
 function EmptySpace() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <p className="text-sm text-surface-500">No channels yet — create one to get started.</p>
+      <p className="text-small text-sub">No channels yet — create one to get started.</p>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/_chat/")({
 function NoSpaces() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <p className="text-sm text-surface-500">No spaces yet — create one to get started.</p>
+      <p className="text-small text-sub">No spaces yet — create one to get started.</p>
     </div>
   );
 }

@@ -1,3 +1,3 @@
-export { Composer, type ComposerHandle } from "./composer";
-export { EditComposer, type EditTarget } from "./edit-composer";
+export { Composer, EditComposer } from "@/composer-slate";
+export type { ComposerHandle, EditTarget } from "@/composer-slate";
 export { default as EmojiPickerButton } from "./emoji-picker";

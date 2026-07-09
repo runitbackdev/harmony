@@ -1,7 +1,8 @@
 import { createContext, useState } from "react";
 import { createFileRoute, Outlet, redirect, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Drawer, Sidebar, TextField } from "@/ui";
+import { Button, Dialog, Input } from "@runitback/react";
+import { Drawer, Sidebar, TextField } from "@/ui";
 import { createRoom, getDescendants } from "@/spaces/api";
 import { createInviteErrorMessage, useCreateInvite } from "@/invites/api";
 import { Check, Copy, Menu, Plus, UserPlus, X } from "lucide-react";
@@ -48,11 +49,11 @@ function PendingSkeleton() {
   return (
     <Sidebar className="hidden md:flex">
       <Sidebar.Header data-sidebar="header">
-        <div className="h-5 w-32 animate-pulse rounded bg-surface-300-700" />
+        <div className="h-5 w-32 animate-pulse rounded bg-soft" />
       </Sidebar.Header>
       <div className="flex-1 space-y-2 p-2">
         {SKELETON_WIDTHS.map((width, i) => (
-          <div key={i} className="h-8 animate-pulse rounded bg-surface-300-700" style={{ width }} />
+          <div key={i} className="h-8 animate-pulse rounded bg-soft" style={{ width }} />
         ))}
       </div>
     </Sidebar>
@@ -100,21 +101,19 @@ function RouteComponent() {
       <div className="flex flex-1 flex-col min-h-0 min-w-0">
         {!roomId ? (
           <div className="flex flex-1 flex-col">
-            <header className="flex items-center gap-2 border-b border-surface-200-800 px-4 py-2 md:hidden">
+            <header className="flex items-center gap-2 border-b border-line px-4 py-2 md:hidden">
               <button
                 type="button"
-                className="text-surface-500 transition-colors hover:text-surface-950-50 mr-2"
+                className="text-sub transition-colors hover:text-ink mr-2"
                 onClick={() => setNavOpen(true)}
                 aria-label="Open navigation"
               >
                 <Menu size={20} />
               </button>
-              <h2 className="text-sm font-semibold text-surface-950-50">Channels</h2>
+              <h2 className="text-small font-semibold text-ink">Channels</h2>
             </header>
             <div className="flex flex-1 items-center justify-center">
-              <p className="text-sm text-surface-500">
-                No channels yet — create one to get started.
-              </p>
+              <p className="text-small text-sub">No channels yet — create one to get started.</p>
             </div>
           </div>
         ) : (
@@ -155,53 +154,47 @@ function CreateRoomDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={(e) => onOpenChange(e.open)}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Create a Channel</Dialog.Title>
-            <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
+        <Dialog.Popup>
+          <Dialog.Title>Create a Channel</Dialog.Title>
+          <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                void form.handleSubmit();
-              }}
-              className="mt-4 space-y-4"
-            >
-              <form.Field name="name">
-                {(field) => (
-                  <TextField
-                    label="Name"
-                    type="text"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    error={field.state.meta.errors[0]?.message}
-                    autoFocus
-                  />
-                )}
-              </form.Field>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void form.handleSubmit();
+            }}
+            className="mt-4 space-y-4"
+          >
+            <form.Field name="name">
+              {(field) => (
+                <TextField
+                  label="Name"
+                  type="text"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  error={field.state.meta.errors[0]?.message}
+                  autoFocus
+                />
+              )}
+            </form.Field>
 
-              <button
-                className="btn preset-filled-primary-500 w-full"
-                type="submit"
-                disabled={form.state.isSubmitting}
-              >
-                {form.state.isSubmitting ? "Creating…" : "Create"}
-              </button>
-            </form>
+            <Button type="submit" disabled={form.state.isSubmitting} className="w-full">
+              {form.state.isSubmitting ? "Creating…" : "Create"}
+            </Button>
+          </form>
 
-            <Dialog.CloseTrigger>
-              <X size={16} aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+            <X size={16} aria-hidden="true" />
+            <span className="sr-only">Close</span>
+          </Dialog.Close>
+        </Dialog.Popup>
       </Dialog.Portal>
-    </Dialog>
+    </Dialog.Root>
   );
 }
 
@@ -220,9 +213,9 @@ function InviteDialog({
     ? `${window.location.origin}/invite/${createInvite.data.code}`
     : null;
 
-  function handleClose(event: { open: boolean }) {
-    onOpenChange(event.open);
-    if (!event.open) setCopied(false);
+  function handleClose(open: boolean) {
+    onOpenChange(open);
+    if (!open) setCopied(false);
   }
 
   async function handleCopy() {
@@ -233,49 +226,44 @@ function InviteDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Invite People</Dialog.Title>
-            <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
+        <Dialog.Popup>
+          <Dialog.Title>Invite People</Dialog.Title>
+          <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
 
-            <div className="mt-4">
-              {createInvite.isPending ? (
-                <div className="h-10 animate-pulse rounded bg-surface-200-800" />
-              ) : createInvite.isError ? (
-                <p className="text-error-500 text-sm">
-                  {createInviteErrorMessage(createInvite.error)}
-                </p>
-              ) : inviteUrl ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={inviteUrl}
-                    aria-label="Invite link"
-                    className="input flex-1 truncate bg-surface-200-800 px-3 py-2 text-sm"
-                    onClick={(e) => e.currentTarget.select()}
-                  />
-                  <button
-                    className="btn preset-filled-primary-500 shrink-0 gap-1.5"
-                    onClick={() => void handleCopy()}
-                  >
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+          <div className="mt-4">
+            {createInvite.isPending ? (
+              <div className="h-10 animate-pulse rounded bg-soft" />
+            ) : createInvite.isError ? (
+              <p className="text-danger text-small">
+                {createInviteErrorMessage(createInvite.error)}
+              </p>
+            ) : inviteUrl ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  readOnly
+                  value={inviteUrl}
+                  aria-label="Invite link"
+                  className="flex-1 truncate"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <Button className="shrink-0" onClick={() => void handleCopy()}>
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
 
-            <Dialog.CloseTrigger>
-              <X size={16} aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+            <X size={16} aria-hidden="true" />
+            <span className="sr-only">Close</span>
+          </Dialog.Close>
+        </Dialog.Popup>
       </Dialog.Portal>
-    </Dialog>
+    </Dialog.Root>
   );
 }

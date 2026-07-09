@@ -28,10 +28,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (!warmed.ok) throw new Error(warmed.error.message ?? warmed.error.code);
   },
   pendingComponent: () => (
-    <div className="flex h-screen items-center justify-center bg-surface-50-950" role="status">
+    <div className="flex h-screen items-center justify-center bg-bg" role="status">
       <div className="flex flex-col items-center gap-4">
-        <div className="size-12 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500" />
-        <p className="text-surface-500 text-sm">Loading Harmony...</p>
+        <div className="size-12 animate-spin rounded-full border-4 border-line border-t-accent" />
+        <p className="text-sub text-small">Loading Harmony...</p>
       </div>
     </div>
   ),

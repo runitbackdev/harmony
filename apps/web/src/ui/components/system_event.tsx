@@ -12,7 +12,7 @@ function SystemEvent({ content, className, ...props }: SystemEventProps) {
     <div
       data-scope="system-event"
       data-part="root"
-      className={cn("py-1 text-center text-xs text-surface-500", className)}
+      className={cn("py-1 text-center text-data text-sub", className)}
       {...props}
     >
       <span data-scope="system-event" data-part="content">

@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 import type { Attachment, ReplyTarget } from "@harmony/harmony-bindings-web";
 import { Reply } from "lucide-react";
 import { cn } from "../utils";
-import { sanitizeHtml } from "../sanitize";
+import { renderMatrixHtml } from "./rich_html";
 import { MxAvatar } from "./mx_avatar";
 import AttachmentList from "./attachments/list";
 
@@ -59,7 +59,7 @@ function MessageEvent({
         "group/message flex gap-4",
         grouped ? "py-px" : "pt-4",
         pending && "opacity-50",
-        highlight && "bg-warning-500/10 -mx-4 px-4",
+        highlight && "bg-warn/10 -mx-4 px-4",
         "transition-opacity duration-300",
         className,
       )}
@@ -74,7 +74,7 @@ function MessageEvent({
           <span
             data-scope="message-event"
             data-part="hover-timestamp"
-            className="self-center whitespace-nowrap text-[10px] text-surface-500 opacity-0 group-hover/message:opacity-100 transition-opacity"
+            className="self-center whitespace-nowrap text-[10px] text-sub opacity-0 group-hover/message:opacity-100 transition-opacity"
           >
             {time}
           </span>
@@ -88,39 +88,26 @@ function MessageEvent({
             <span
               data-scope="message-event"
               data-part="sender"
-              className="text-sm font-medium text-surface-950-50"
+              className="text-small font-medium text-ink"
             >
               {sender}
             </span>
-            <span
-              data-scope="message-event"
-              data-part="timestamp"
-              className="text-xs text-surface-500"
-            >
+            <span data-scope="message-event" data-part="timestamp" className="text-data text-sub">
               {time}
             </span>
           </div>
         )}
         {replyTo && <ReplyQuote replyTo={replyTo} onClick={onReplyClick} />}
-        {editing ??
-          (formattedBody ? (
-            <div
-              data-scope="message-event"
-              data-part="body"
-              data-edited={edited || undefined}
-              className="rich-text text-sm leading-5 text-surface-800-200"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedBody) }}
-            />
-          ) : (
-            <div
-              data-scope="message-event"
-              data-part="body"
-              data-edited={edited || undefined}
-              className="text-sm leading-5 text-surface-800-200"
-            >
-              {body}
-            </div>
-          ))}
+        {editing ?? (
+          <div
+            data-scope="message-event"
+            data-part="body"
+            className="text-small leading-5 text-ink"
+          >
+            {formattedBody ? renderMatrixHtml(formattedBody) : body}
+            {edited && <span className="text-xs text-sub"> (edited)</span>}
+          </div>
+        )}
         {attachments && <AttachmentList attachments={attachments} />}
         {reactions}
       </div>
@@ -148,10 +135,10 @@ function ReplyQuote({
       data-scope="message-event"
       data-part="reply-quote"
       onClick={() => onClick?.(replyTo.eventId)}
-      className="mb-1 flex max-w-full items-center gap-1.5 rounded border-l-2 border-surface-400-600 bg-surface-100-900 px-2 py-1 text-left text-xs text-surface-500 hover:border-primary-500 hover:text-surface-950-50 transition-colors"
+      className="mb-1 flex max-w-full items-center gap-1.5 rounded border-l-2 border-line bg-surface px-2 py-1 text-left text-data text-sub hover:border-accent hover:text-ink transition-colors"
     >
       <Reply size={12} className="shrink-0 -scale-x-100" />
-      <span className="font-medium text-surface-700-300 truncate">{name}</span>
+      <span className="font-medium text-sub truncate">{name}</span>
       <span className="truncate min-w-0">{snippet}</span>
     </button>
   );

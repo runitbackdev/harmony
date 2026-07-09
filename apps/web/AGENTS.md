@@ -7,7 +7,7 @@ React 19 frontend. Owns routes, design system (`src/ui/`), rich-text editor (`sr
 - **Routing**: TanStack Router (file-based).
 - **State**: Valtio (local reactive) + TanStack Query (HTTP / external server state).
 - **Forms**: TanStack Form + Valibot.
-- **Components**: `src/ui/` (Skeleton Labs + Tailwind 4 design tokens).
+- **Components**: `@runitback/react` (Base UI, web-only) for chrome; `src/ui/` for first-party chat-surface components. Tailwind 4 + `@runitback/styles` semantic tokens.
 
 ## Desktop (Tauri)
 
@@ -54,7 +54,7 @@ Routes needing a session nest under `_authenticated`. Layout calls `await sessio
 
 ### 5. Styling
 
-Use Skeleton tokens (`bg-surface-100-900`, `text-primary-500`). No hardcoded colors.
+Use `@runitback/styles` semantic tokens (`bg-surface`, `text-ink`, `text-sub`, `border-line`, `bg-accent`, `text-link`, `bg-soft`). No numeric ramps, no hardcoded colors. Light is the default; `[data-theme="dark"]` flips tokens.
 
 ## HTTP (Herald) APIs
 

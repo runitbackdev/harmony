@@ -13,7 +13,7 @@ function Rail({ children, className, ...props }: RailProps) {
       data-scope="space-rail"
       data-part="root"
       className={cn(
-        "flex flex-col items-center gap-2 py-2 px-1.5 bg-surface-100-900 border-r border-surface-300-700",
+        "flex flex-col items-center gap-2 py-2 px-1.5 bg-surface border-r border-line",
         className,
       )}
       {...props}
@@ -45,10 +45,10 @@ function Item({ active, unread, mentionCount, label, children, className, ...pro
       aria-label={label}
       className={cn(
         "relative flex items-center justify-center size-10 rounded-xl",
-        "bg-surface-300-700 text-surface-600-400 cursor-pointer transition-all",
-        "hover:rounded-lg hover:bg-surface-400-600",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
-        active && "rounded-lg bg-primary-500 text-on-primary",
+        "bg-soft text-sub cursor-pointer transition-all",
+        "hover:rounded-lg hover:bg-soft",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+        active && "rounded-lg bg-accent text-accent-ink",
         className,
       )}
       {...props}
@@ -57,7 +57,7 @@ function Item({ active, unread, mentionCount, label, children, className, ...pro
         data-scope="space-rail"
         data-part="indicator"
         className={cn(
-          "absolute -left-1.5 w-1 rounded-full bg-surface-950-50 transition-all",
+          "absolute -left-1.5 w-1 rounded-full bg-accent transition-all",
           active ? "h-5" : unread ? "h-2" : "h-0",
         )}
       />
@@ -66,7 +66,7 @@ function Item({ active, unread, mentionCount, label, children, className, ...pro
         <span
           data-scope="space-rail"
           data-part="mention-badge"
-          className="absolute -top-1 -right-1 min-w-4 h-4 px-1 flex items-center justify-center font-bold rounded-full text-[12px] badge preset-filled-error-500"
+          className="absolute -top-1 -right-1 min-w-4 h-4 px-1 flex items-center justify-center font-bold rounded-full text-[12px] bg-danger text-danger-ink"
         >
           {mentionCount}
         </span>
@@ -85,7 +85,7 @@ function Separator({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
       data-scope="space-rail"
       data-part="separator"
       role="separator"
-      className={cn("w-6 h-px bg-surface-300-700 my-1", className)}
+      className={cn("w-6 h-px bg-soft my-1", className)}
       {...props}
     />
   );

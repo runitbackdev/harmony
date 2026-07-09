@@ -9,10 +9,10 @@ import { cn } from "../utils";
 export type ConnectionTone = "online" | "pending" | "offline" | "error";
 
 const TONE_COLOR: Record<ConnectionTone, string> = {
-  online: "bg-success-500",
-  pending: "bg-warning-500",
-  offline: "bg-surface-400-600",
-  error: "bg-error-500",
+  online: "bg-success",
+  pending: "bg-warn",
+  offline: "bg-faint",
+  error: "bg-danger",
 };
 
 export interface ConnectionIndicatorProps extends HTMLAttributes<HTMLSpanElement> {

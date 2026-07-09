@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useDelayedUnmount } from "@/primitives";
-import { Dialog } from "../components/dialog";
+import { Button, Dialog } from "@runitback/react";
 
 interface UseDeleteConfirmOptions {
   title?: string;
@@ -48,38 +48,28 @@ function useDeleteConfirm({
 
   const dialog =
     status === "unmounted" ? null : (
-      <Dialog
+      <Dialog.Root
         open={open}
-        onOpenChange={(details) => {
-          if (!details.open) close();
+        onOpenChange={(open) => {
+          if (!open) close();
         }}
       >
         <Dialog.Portal>
           <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content ref={contentRef}>
-              <Dialog.Title>{title}</Dialog.Title>
-              <Dialog.Description>{description}</Dialog.Description>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-surface-600-400 hover:bg-surface-200-800 transition-colors"
-                  onClick={close}
-                >
-                  {cancelLabel}
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg bg-error-500 px-4 py-2 text-sm font-medium text-white hover:bg-error-600 transition-colors"
-                  onClick={confirm}
-                >
-                  {confirmLabel}
-                </button>
-              </div>
-            </Dialog.Content>
-          </Dialog.Positioner>
+          <Dialog.Popup ref={contentRef}>
+            <Dialog.Title>{title}</Dialog.Title>
+            <Dialog.Description>{description}</Dialog.Description>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="ghost" onClick={close}>
+                {cancelLabel}
+              </Button>
+              <Button variant="danger" onClick={confirm}>
+                {confirmLabel}
+              </Button>
+            </div>
+          </Dialog.Popup>
         </Dialog.Portal>
-      </Dialog>
+      </Dialog.Root>
     );
 
   return { open, request, dialog };

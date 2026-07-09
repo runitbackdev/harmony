@@ -440,24 +440,19 @@ where
     let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
 
     spawn(async move {
-        tracing::warn!("[echo-debug] pump: task STARTED");
         let mut cancel = cancel_rx.fuse();
         let mut stream = Box::pin(incoming).fuse();
 
         loop {
             futures_util::select_biased! {
                 _ = cancel => {
-                    tracing::warn!("[echo-debug] pump: CANCELLED (cancel_tx dropped)");
                     break;
                 }
                 next = stream.next() => {
                     let Some(item) = next else {
-                        tracing::warn!("[echo-debug] pump: incoming stream ENDED");
                         break;
                     };
-                    tracing::warn!("[echo-debug] pump: forwarding a diff batch -> output_tx");
                     if output_tx.unbounded_send(item).is_err() {
-                        tracing::warn!("[echo-debug] pump: output_tx send FAILED (receiver gone)");
                         break;
                     }
                 }
@@ -510,8 +505,15 @@ async fn subscribe_room_impl(
     let room = client
         .get_room(&parsed)
         .ok_or(InternalError::RoomNotFound)?;
+
+    if let Some(room_list_service) = crate::sync::get_room_list_service() {
+        room_list_service.subscribe_to_rooms(&[&parsed]).await;
+    }
+
     let live = build_live_timeline(&room).await?;
-    let _ = live.paginate_backwards(50).await;
+    if let Err(error) = live.paginate_backwards(50).await {
+        tracing::warn!("initial backfill failed for {parsed}: {error}");
+    }
 
     let (output_tx, output_rx) = mpsc::unbounded::<TimelineStreamMessage>();
     let generation: u32 = 1;

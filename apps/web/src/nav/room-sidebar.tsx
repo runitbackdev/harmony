@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Dialog, Sidebar, TextField } from "@/ui";
+import { Button, Dialog, Input } from "@runitback/react";
+import { Sidebar, TextField } from "@/ui";
 import { createRoom } from "@/spaces/api";
 import { useRoomsInSpace } from "@/rooms/api";
 import { useSpaces } from "@/spaces/api";
@@ -43,7 +44,7 @@ function RoomList({ spaceId, onPick }: { spaceId: string; onPick?: () => void })
   if (rooms.length === 0) {
     return (
       <div className="flex items-center justify-center p-4">
-        <p className="text-sm text-surface-500">No channels yet.</p>
+        <p className="text-small text-sub">No channels yet.</p>
       </div>
     );
   }
@@ -90,9 +91,9 @@ function InviteDialog({
     ? `${window.location.origin}/invite/${createInvite.data.code}`
     : null;
 
-  function handleClose(event: { open: boolean }) {
-    onOpenChange(event.open);
-    if (!event.open) setCopied(false);
+  function handleClose(open: boolean) {
+    onOpenChange(open);
+    if (!open) setCopied(false);
   }
 
   async function handleCopy() {
@@ -103,50 +104,45 @@ function InviteDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog.Root open={open} onOpenChange={handleClose}>
       <Dialog.Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Title>Invite People</Dialog.Title>
-            <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
+        <Dialog.Popup>
+          <Dialog.Title>Invite People</Dialog.Title>
+          <Dialog.Description>Share this link to invite others to your space.</Dialog.Description>
 
-            <div className="mt-4">
-              {createInvite.isPending ? (
-                <div className="h-10 animate-pulse rounded bg-surface-200-800" />
-              ) : createInvite.isError ? (
-                <p className="text-error-500 text-sm">
-                  {createInviteErrorMessage(createInvite.error)}
-                </p>
-              ) : inviteUrl ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={inviteUrl}
-                    aria-label="Invite link"
-                    className="input flex-1 truncate bg-surface-200-800 px-3 py-2 text-sm"
-                    onClick={(e) => e.currentTarget.select()}
-                  />
-                  <button
-                    className="btn preset-filled-primary-500 shrink-0 gap-1.5"
-                    onClick={() => void handleCopy()}
-                  >
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+          <div className="mt-4">
+            {createInvite.isPending ? (
+              <div className="h-10 animate-pulse rounded bg-soft" />
+            ) : createInvite.isError ? (
+              <p className="text-danger text-small">
+                {createInviteErrorMessage(createInvite.error)}
+              </p>
+            ) : inviteUrl ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  readOnly
+                  value={inviteUrl}
+                  aria-label="Invite link"
+                  className="flex-1 truncate"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <Button className="shrink-0" onClick={() => void handleCopy()}>
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
 
-            <Dialog.CloseTrigger>
-              <X size={16} aria-hidden="true" />
-              <span className="sr-only">Close</span>
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
+          <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+            <X size={16} aria-hidden="true" />
+            <span className="sr-only">Close</span>
+          </Dialog.Close>
+        </Dialog.Popup>
       </Dialog.Portal>
-    </Dialog>
+    </Dialog.Root>
   );
 }
 
@@ -190,8 +186,9 @@ export function RoomSidebar({ spaceId, className, onAfterNavigate }: RoomSidebar
           <RoomList spaceId={spaceId} onPick={onAfterNavigate} />
         </div>
         <div className="space-y-1 p-2">
-          <button
-            className="btn preset-tonal-surface w-full gap-2 text-sm"
+          <Button
+            variant="secondary"
+            className="w-full"
             onClick={() => {
               setInviteOpen(true);
               if (!createInvite.data) createInvite.mutate({ spaceMxid: spaceId });
@@ -200,65 +197,60 @@ export function RoomSidebar({ spaceId, className, onAfterNavigate }: RoomSidebar
           >
             <Link size={16} />
             Invite People
-          </button>
-          <button
-            className="btn preset-tonal-surface w-full gap-2 text-sm"
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full"
             onClick={() => setCreateOpen(true)}
             aria-label="Create channel"
           >
             <Plus size={16} />
             Create Channel
-          </button>
+          </Button>
         </div>
       </Sidebar>
 
-      <Dialog open={createOpen} onOpenChange={(e) => setCreateOpen(e.open)}>
+      <Dialog.Root open={createOpen} onOpenChange={setCreateOpen}>
         <Dialog.Portal>
           <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Title>Create a Channel</Dialog.Title>
-              <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
+          <Dialog.Popup>
+            <Dialog.Title>Create a Channel</Dialog.Title>
+            <Dialog.Description>Give your channel a name to get started.</Dialog.Description>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  void form.handleSubmit();
-                }}
-                className="mt-4 space-y-4"
-              >
-                <form.Field name="name">
-                  {(field) => (
-                    <TextField
-                      label="Name"
-                      type="text"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      error={field.state.meta.errors[0]?.message}
-                      autoFocus
-                    />
-                  )}
-                </form.Field>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+              className="mt-4 space-y-4"
+            >
+              <form.Field name="name">
+                {(field) => (
+                  <TextField
+                    label="Name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    error={field.state.meta.errors[0]?.message}
+                    autoFocus
+                  />
+                )}
+              </form.Field>
 
-                <button
-                  className="btn preset-filled-primary-500 w-full"
-                  type="submit"
-                  disabled={form.state.isSubmitting}
-                >
-                  {form.state.isSubmitting ? "Creating…" : "Create"}
-                </button>
-              </form>
+              <Button type="submit" disabled={form.state.isSubmitting} className="w-full">
+                {form.state.isSubmitting ? "Creating…" : "Create"}
+              </Button>
+            </form>
 
-              <Dialog.CloseTrigger>
-                <X size={16} aria-hidden="true" />
-                <span className="sr-only">Close</span>
-              </Dialog.CloseTrigger>
-            </Dialog.Content>
-          </Dialog.Positioner>
+            <Dialog.Close className="absolute top-4 right-4 cursor-pointer text-sub transition-colors hover:text-ink">
+              <X size={16} aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
+          </Dialog.Popup>
         </Dialog.Portal>
-      </Dialog>
+      </Dialog.Root>
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} createInvite={createInvite} />
     </>

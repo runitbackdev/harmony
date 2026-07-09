@@ -54,7 +54,7 @@ function MessageActionBar({
           data-scope="message-action-bar"
           data-part="root"
           style={floatingStyles}
-          className="z-50 flex items-center gap-0.5 rounded-md border border-surface-300-700 bg-surface-50-950 px-1 py-0.5 shadow-sm"
+          className="z-50 flex items-center gap-0.5 rounded-md border border-line bg-surface px-1 py-0.5 shadow-sm"
           onPointerLeave={(e) => {
             if (deleteConfirm.open) return;
             if ("emojiPickerOpen" in document.documentElement.dataset) return;
@@ -71,7 +71,7 @@ function MessageActionBar({
               tabIndex={-1}
               data-scope="message-action-bar"
               data-part="action"
-              className="rounded p-1 text-sm hover:bg-surface-200-800 transition-colors"
+              className="rounded p-1 text-small hover:bg-soft transition-colors"
               onClick={() => onToggleReaction?.(emoji)}
             >
               {emoji}
@@ -93,7 +93,7 @@ function MessageActionBar({
               tabIndex={-1}
               data-scope="message-action-bar"
               data-part="action"
-              className="rounded p-1 text-surface-500 hover:bg-surface-200-800 hover:text-surface-950-50 transition-colors"
+              className="rounded p-1 text-sub hover:bg-soft hover:text-ink transition-colors"
               onClick={onEdit}
             >
               <Pencil size={14} />
@@ -107,7 +107,7 @@ function MessageActionBar({
               tabIndex={-1}
               data-scope="message-action-bar"
               data-part="action"
-              className="rounded p-1 text-surface-500 hover:bg-error-500 hover:text-white transition-colors"
+              className="rounded p-1 text-sub hover:bg-danger hover:text-danger-ink transition-colors"
               onClick={deleteConfirm.request}
             >
               <Trash2 size={14} />
@@ -121,7 +121,7 @@ function MessageActionBar({
               tabIndex={-1}
               data-scope="message-action-bar"
               data-part="action"
-              className="rounded p-1 text-surface-500 hover:bg-surface-200-800 hover:text-surface-950-50 transition-colors"
+              className="rounded p-1 text-sub hover:bg-soft hover:text-ink transition-colors"
               onClick={onReply}
             >
               <Reply size={14} />

@@ -11,10 +11,7 @@ function MemberList({ children, className, ...props }: MemberListProps) {
     <aside
       data-scope="member-list"
       data-part="root"
-      className={cn(
-        "flex h-full w-60 flex-col border-l border-surface-300-700 bg-surface-200-800",
-        className,
-      )}
+      className={cn("flex h-full w-60 flex-col border-l border-line bg-soft", className)}
       {...props}
     >
       {children}
@@ -31,13 +28,13 @@ function Header({ children, className, ...props }: HeaderProps) {
     <div
       data-scope="member-list"
       data-part="header"
-      className={cn("border-b border-surface-300-700 p-3", className)}
+      className={cn("border-b border-line p-3", className)}
       {...props}
     >
       <div
         data-scope="member-list"
         data-part="header-title"
-        className="text-base font-semibold text-surface-950-50"
+        className="text-body font-semibold text-ink"
       >
         {children}
       </div>
@@ -74,10 +71,10 @@ function Row({ name, avatarUrl, className, ...props }: RowProps) {
         data-scope="member-list"
         data-part="row"
         className={cn(
-          "flex w-full items-center gap-2 rounded-container px-2 py-1.5",
-          "cursor-pointer text-sm text-surface-600-400 transition-colors",
-          "hover:bg-surface-300-700",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
+          "flex w-full items-center gap-2 rounded-lg px-2 py-1.5",
+          "cursor-pointer text-small text-sub transition-colors",
+          "hover:bg-soft",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
           className,
         )}
         {...props}

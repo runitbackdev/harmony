@@ -39,4 +39,7 @@ export default defineConfig({
       "/api": "http://localhost:3000",
     },
   },
+  test: {
+    include: ["src/**/*.test.ts"],
+  },
 });

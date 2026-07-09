@@ -1,40 +1,37 @@
 import { proxy, useSnapshot } from "valtio";
 
-export const THEMES = ["cerberus", "mona", "vox", "astra", "kyoto"] as const;
-export type Theme = (typeof THEMES)[number];
+export type Mode = "light" | "dark";
 
-export const DEFAULT_THEME: Theme = "astra";
 const STORAGE_KEY = "harmony.theme";
+const DEFAULT_MODE: Mode = "dark";
 
-function readStoredTheme(): Theme {
-  if (typeof localStorage === "undefined") return DEFAULT_THEME;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && (THEMES as readonly string[]).includes(stored)) return stored as Theme;
-  return DEFAULT_THEME;
+function readStoredMode() {
+  if (typeof localStorage === "undefined") return DEFAULT_MODE;
+  return localStorage.getItem(STORAGE_KEY) === "light" ? "light" : DEFAULT_MODE;
 }
 
-const state = proxy({ theme: readStoredTheme() });
+const state = proxy({ mode: readStoredMode() });
 
-if (typeof document !== "undefined") {
-  document.documentElement.dataset.theme = state.theme;
+function apply(mode: Mode) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (mode === "dark") root.dataset.theme = "dark";
+  else delete root.dataset.theme;
 }
 
-export function setTheme(next: Theme): void {
-  state.theme = next;
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.theme = next;
-  }
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, next);
-  }
+apply(state.mode);
+
+export function setMode(next: Mode) {
+  state.mode = next;
+  apply(next);
+  if (typeof localStorage !== "undefined") localStorage.setItem(STORAGE_KEY, next);
 }
 
-export function useTheme(): [Theme, (next: Theme) => void] {
+export function toggleMode() {
+  setMode(state.mode === "dark" ? "light" : "dark");
+}
+
+export function useMode() {
   const snap = useSnapshot(state);
-  return [snap.theme, setTheme];
-}
-
-export function cycleTheme(current: Theme): Theme {
-  const i = THEMES.indexOf(current);
-  return THEMES[(i + 1) % THEMES.length];
+  return [snap.mode, setMode] as const;
 }

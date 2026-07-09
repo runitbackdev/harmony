@@ -10,7 +10,7 @@ export default function AttachmentVideo({ attachment }: { attachment: Attachment
 
   if (status === "error") {
     return (
-      <div className="mt-1 max-w-sm rounded-lg border border-surface-200-800 px-3 py-2 text-xs text-surface-500">
+      <div className="mt-1 max-w-sm rounded-lg border border-line px-3 py-2 text-data text-sub">
         Failed to load video
       </div>
     );
@@ -18,7 +18,7 @@ export default function AttachmentVideo({ attachment }: { attachment: Attachment
 
   if (status === "loading") {
     return (
-      <div className="mt-1 flex h-40 max-w-sm items-center justify-center rounded-lg border border-surface-200-800 text-surface-500">
+      <div className="mt-1 flex h-40 max-w-sm items-center justify-center rounded-lg border border-line text-sub">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );

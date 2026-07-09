@@ -1,8 +1,9 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useCombobox, useListCollection } from "@skeletonlabs/skeleton-react";
-import { Dialog } from "@/ui";
+import * as zagCombobox from "@zag-js/combobox";
+import { normalizeProps, useMachine } from "@zag-js/react";
+import { Dialog } from "@runitback/react";
 import type { RoomDataWithSpace } from "@harmony/core";
 import { fetchAllRooms, ROOMS_QUERY_KEY, ROOMS_STALE_TIME_MS } from "@/rooms/queries";
 import { useOmnibar } from "./use-omnibar";
@@ -89,11 +90,17 @@ export function Omnibar() {
     [parsed, allCommands, rooms, recents, frequencies, queries, scorers, currentSpaceId],
   );
 
-  const collection = useListCollection<OmnibarItem>({
-    items: filtered,
-    itemToValue: itemId,
-    itemToString: itemLabel,
-  });
+  const collection = useMemo(
+    () =>
+      zagCombobox.collection<OmnibarItem>({
+        items: filtered,
+        itemToValue: itemId,
+        itemToString: itemLabel,
+      }),
+    [filtered],
+  );
+
+  const comboboxId = useId();
 
   const handleSelect = (item: OmnibarItem) => {
     if (item.kind === "command") {
@@ -121,7 +128,8 @@ export function Omnibar() {
     setOpen(false);
   };
 
-  const combobox = useCombobox({
+  const comboboxService = useMachine(zagCombobox.machine, {
+    id: comboboxId,
     collection,
     inputValue: input,
     onInputValueChange: ({ inputValue }) => setInput(inputValue),
@@ -136,57 +144,56 @@ export function Omnibar() {
       if (item) handleSelect(item);
     },
   });
+  const combobox = zagCombobox.connect(comboboxService, normalizeProps);
 
   return (
-    <Dialog open={open} onOpenChange={({ open }) => setOpen(open)}>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content className="max-w-3xl p-0 overflow-hidden">
-            <Dialog.Title className="sr-only">Command palette</Dialog.Title>
-            <div {...combobox.getRootProps()}>
-              <div {...combobox.getControlProps()} className="border-b border-surface-300-700">
-                <input
-                  {...combobox.getInputProps()}
-                  autoFocus
-                  placeholder="Type a command or jump to a channel…"
-                  className="w-full bg-transparent px-5 py-4 outline-none text-lg placeholder:text-surface-500"
-                />
-              </div>
-              <div {...combobox.getContentProps()} className="h-56 overflow-y-auto py-1">
-                {filtered.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-surface-500">
-                    {input ? "No matches." : "Start typing…"}
-                  </div>
-                ) : (
-                  <ul {...combobox.getListProps()} className="flex flex-col">
-                    {filtered.map((item, idx) => (
-                      <OmnibarRow
-                        key={itemId(item)}
-                        item={item}
-                        query={parsed.query}
-                        showRecentHint={isShowingRecents && idx === 0}
-                        {...combobox.getItemProps({ item })}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="border-t border-surface-300-700 px-4 py-2 text-xs text-surface-500 flex items-center gap-3">
-                <span>
-                  <kbd className="font-mono">↑↓</kbd> navigate
-                </span>
-                <span>
-                  <kbd className="font-mono">⏎</kbd> select
-                </span>
-                <span>
-                  <kbd className="font-mono">esc</kbd> close
-                </span>
-              </div>
+        <Dialog.Popup className="max-w-3xl p-0 overflow-hidden">
+          <Dialog.Title className="sr-only">Command palette</Dialog.Title>
+          <div {...combobox.getRootProps()}>
+            <div {...combobox.getControlProps()} className="border-b border-line">
+              <input
+                {...combobox.getInputProps()}
+                autoFocus
+                placeholder="Type a command or jump to a channel…"
+                className="w-full bg-transparent px-5 py-4 outline-none text-subhead placeholder:text-faint"
+              />
             </div>
-          </Dialog.Content>
-        </Dialog.Positioner>
+            <div {...combobox.getContentProps()} className="h-56 overflow-y-auto py-1">
+              {filtered.length === 0 ? (
+                <div className="px-4 py-8 text-center text-small text-sub">
+                  {input ? "No matches." : "Start typing…"}
+                </div>
+              ) : (
+                <ul {...combobox.getListProps()} className="flex flex-col">
+                  {filtered.map((item, idx) => (
+                    <OmnibarRow
+                      key={itemId(item)}
+                      item={item}
+                      query={parsed.query}
+                      showRecentHint={isShowingRecents && idx === 0}
+                      {...combobox.getItemProps({ item })}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="border-t border-line px-4 py-2 text-data text-sub flex items-center gap-3">
+              <span>
+                <kbd className="font-mono">↑↓</kbd> navigate
+              </span>
+              <span>
+                <kbd className="font-mono">⏎</kbd> select
+              </span>
+              <span>
+                <kbd className="font-mono">esc</kbd> close
+              </span>
+            </div>
+          </div>
+        </Dialog.Popup>
       </Dialog.Portal>
-    </Dialog>
+    </Dialog.Root>
   );
 }

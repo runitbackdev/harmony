@@ -13,10 +13,7 @@ function Sidebar({ children, className, ...props }: SidebarProps) {
     <aside
       data-scope="sidebar"
       data-part="root"
-      className={cn(
-        "flex flex-col w-60 bg-surface-200-800 border-r border-surface-300-700 h-full",
-        className,
-      )}
+      className={cn("flex flex-col w-60 bg-soft border-r border-line h-full", className)}
       {...props}
     >
       {children}
@@ -37,13 +34,13 @@ function Header({ children, className, ...props }: HeaderProps) {
     <div
       data-scope="sidebar"
       data-part="header"
-      className={cn("p-3 border-b border-surface-300-700", className)}
+      className={cn("p-3 border-b border-line", className)}
       {...props}
     >
       <div
         data-scope="sidebar"
         data-part="header-title"
-        className="text-base font-semibold text-surface-950-50"
+        className="text-body font-semibold text-ink"
       >
         {children}
       </div>
@@ -65,7 +62,7 @@ function SectionLabel({ children, className, ...props }: SectionLabelProps) {
       data-scope="sidebar"
       data-part="section-label"
       className={cn(
-        "px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-surface-500",
+        "px-3 pt-2 pb-1 text-data font-semibold uppercase tracking-wide text-sub",
         className,
       )}
       {...props}
@@ -125,18 +122,18 @@ const Item = memo(function Item({
         data-state={active ? "active" : undefined}
         data-unread={unread || undefined}
         className={cn(
-          "flex w-full items-center gap-2 px-2 py-1.5 rounded-container text-sm",
-          "text-surface-600-400 cursor-pointer transition-colors",
-          "hover:bg-surface-300-700",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
-          active && "bg-surface-200-800 text-surface-950-50",
-          unread && "text-surface-950-50 font-medium",
+          "flex w-full items-center gap-2 px-2 py-1.5 rounded-lg text-small",
+          "text-sub cursor-pointer transition-colors",
+          "hover:bg-soft",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+          active && "bg-soft text-ink",
+          unread && "text-ink font-medium",
           className,
         )}
         {...props}
       >
         {icon && (
-          <span data-scope="sidebar" data-part="item-icon" className="text-surface-500">
+          <span data-scope="sidebar" data-part="item-icon" className="text-sub">
             {icon}
           </span>
         )}
@@ -170,13 +167,13 @@ function Dot({ mention, className, ...props }: DotProps) {
       {mention && (
         <span
           aria-hidden
-          className="absolute inline-flex size-full rounded-full bg-primary-500 opacity-75 motion-safe:animate-ping"
+          className="absolute inline-flex size-full rounded-full bg-accent opacity-75 motion-safe:animate-ping"
         />
       )}
       <span
         aria-hidden
         className={cn(
-          "relative inline-flex size-2 rounded-full bg-primary-500",
+          "relative inline-flex size-2 rounded-full bg-accent",
           !mention && "opacity-60",
         )}
       />

@@ -61,7 +61,7 @@ export function useListSubscription<K extends SubscriptionName>(
     // replay once it lands rather than dropping them.
     const handle = subscribe(name, input, (chunk) => {
       if (!alive) return;
-      console.log("[echo-debug] 2.hook.onChunk", name, "status:", store.status, chunk);
+
       if (store.status !== "ready") {
         pending.push(chunk);
         return;

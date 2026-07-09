@@ -1,4 +1,5 @@
 import { useRpc } from "@harmony/react";
+import { Button, Card } from "@runitback/react";
 import { TextField } from "@/ui";
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
@@ -55,11 +56,11 @@ function Login() {
   const failure = login.data && !login.data.ok ? login.data.error : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-50-950 p-4">
-      <div className="card preset-filled-surface-100-900 w-full max-w-sm space-y-6 p-8">
+    <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+      <Card className="w-full max-w-sm space-y-6 p-8">
         <header className="text-center">
-          <h1 className="h3">Harmony</h1>
-          <p className="text-surface-500 text-sm">Sign in to continue</p>
+          <h1 className="text-title">Harmony</h1>
+          <p className="text-sub text-small">Sign in to continue</p>
         </header>
 
         <form
@@ -97,17 +98,13 @@ function Login() {
             )}
           </form.Field>
 
-          {failure && <p className="text-error-500 text-sm">{failure.message ?? failure.code}</p>}
+          {failure && <p className="text-danger text-small">{failure.message ?? failure.code}</p>}
 
-          <button
-            className="btn preset-filled-primary-500 w-full"
-            type="submit"
-            disabled={login.isPending}
-          >
+          <Button type="submit" disabled={login.isPending} className="w-full">
             {login.isPending ? "Signing in…" : "Sign in"}
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

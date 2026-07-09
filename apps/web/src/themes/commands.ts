@@ -1,31 +1,19 @@
-import { Palette } from "lucide-react";
-import { cycleTheme, THEMES, useTheme, type Theme } from "@/lib/theme";
+import { Moon } from "lucide-react";
+import { toggleMode, useMode } from "@/lib/theme";
 import { useOmnibarCommands, type Command } from "@/omnibar";
 
-const capitalize = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+/** Registers the light/dark toggle command. Mount once at app root. */
+export function useThemeCommands() {
+  const [mode] = useMode();
 
-function buildThemeCommands(theme: Theme, setTheme: (next: Theme) => void): Command[] {
-  return [
-    {
-      id: "theme.cycle",
-      label: "Cycle to next theme",
-      icon: Palette,
-      keywords: ["theme", "switch", "next", "dark", "light"],
-      defaultScore: 0.9,
-      perform: () => setTheme(cycleTheme(theme)),
-    },
-    ...THEMES.map<Command>((t) => ({
-      id: `theme.set-${t}`,
-      label: `Switch to ${capitalize(t)} theme`,
-      icon: Palette,
-      keywords: ["theme", t],
-      perform: () => setTheme(t),
-    })),
-  ];
-}
+  const command: Command = {
+    id: "theme.toggle",
+    label: mode === "dark" ? "Switch to light theme" : "Switch to dark theme",
+    icon: Moon,
+    keywords: ["theme", "dark", "light", "toggle", "appearance"],
+    defaultScore: 0.9,
+    perform: toggleMode,
+  };
 
-/** Registers global theme-switching commands. Mount once at app root. */
-export function useThemeCommands(): void {
-  const [theme, setTheme] = useTheme();
-  useOmnibarCommands(buildThemeCommands(theme, setTheme), [theme]);
+  useOmnibarCommands([command], [mode]);
 }

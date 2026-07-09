@@ -15,8 +15,8 @@ export function OmnibarRow({ item, query, showRecentHint, className, ...rest }: 
       {...rest}
       className={cn(
         "flex items-center justify-between gap-3 px-4 py-2 cursor-pointer",
-        "text-surface-950-50",
-        "data-highlighted:bg-surface-100-900",
+        "text-ink",
+        "data-highlighted:bg-soft",
         className,
       )}
     >
@@ -50,10 +50,10 @@ function CommandContent({
   const Icon = item.command.icon;
   return (
     <>
-      <span className="flex items-center gap-2 text-sm">
-        <Icon size={14} className="text-surface-500" />
+      <span className="flex items-center gap-2 text-small">
+        <Icon size={14} className="text-sub" />
         {item.command.label}
-        {alias && <span className="text-surface-500"> ({alias})</span>}
+        {alias && <span className="text-sub"> ({alias})</span>}
       </span>
       {showRecentHint ? (
         <RecentHint />
@@ -73,8 +73,8 @@ function RoomContent({
 }) {
   return (
     <>
-      <span className="flex items-center gap-2 text-sm">
-        <Hash size={14} className="text-surface-500" />
+      <span className="flex items-center gap-2 text-small">
+        <Hash size={14} className="text-sub" />
         {item.room.displayName}
       </span>
       {showRecentHint ? (
@@ -88,7 +88,7 @@ function RoomContent({
 
 function RecentHint() {
   return (
-    <span className="flex items-center gap-1 text-xs text-surface-500 italic">
+    <span className="flex items-center gap-1 text-data text-sub italic">
       <History size={12} />
       recently opened
     </span>
@@ -96,9 +96,9 @@ function RecentHint() {
 }
 
 function Shortcut({ text }: { text: string }) {
-  return <kbd className="text-xs text-surface-500 font-mono">{text}</kbd>;
+  return <kbd className="text-data text-sub font-mono">{text}</kbd>;
 }
 
 function ParentSpace({ name }: { name: string }) {
-  return <span className="text-xs text-surface-500">{name}</span>;
+  return <span className="text-data text-sub">{name}</span>;
 }

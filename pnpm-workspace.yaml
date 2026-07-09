@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - vendor/design/packages/*
 
 allowBuilds:
   "@swc/core": true
@@ -17,11 +18,11 @@ catalog:
   react-dom: ^19.2.0
   typescript: ~6.0.2
   vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-  vite-plus: latest
+  vitest: npm:@voidzero-dev/vite-plus-test@^0.1.24
+  vite-plus: ^0.2.2
 overrides:
+  "@tanstack/virtual-core": "3.17.3"
   vite: "catalog:"
-  vitest: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite

@@ -36,9 +36,9 @@ export const tauriCommands: { [K in keyof CommandMap]: CommandMap[K] } = {
 };
 
 export const tauriSubscriptions: { [K in keyof SubscriptionMap]: SubscriptionMap[K] } = {
-  "members.subscribe": { fn: ((input) => subscribeViaTauri("members_subscribe", input)) as SubscriptionMap["members.subscribe"]["fn"] },
+  "members.subscribe": { fn: ((input) => subscribeViaTauri("members_subscribe", input)) as SubscriptionMap["members.subscribe"]["fn"], snapshot: "members.get" },
   "rooms.subscribe_in_space": { fn: ((input) => subscribeViaTauri("rooms_subscribe_in_space", input)) as SubscriptionMap["rooms.subscribe_in_space"]["fn"] },
-  "spaces.subscribe": { fn: ((input) => subscribeViaTauri("spaces_subscribe", input)) as SubscriptionMap["spaces.subscribe"]["fn"] },
+  "spaces.subscribe": { fn: ((input) => subscribeViaTauri("spaces_subscribe", input)) as SubscriptionMap["spaces.subscribe"]["fn"], snapshot: "spaces.get" },
   "sync.start": { fn: ((input) => subscribeViaTauri("sync_start", input)) as SubscriptionMap["sync.start"]["fn"] },
-  "timeline.subscribe": { fn: ((input) => subscribeViaTauri("timeline_subscribe", input)) as SubscriptionMap["timeline.subscribe"]["fn"] },
+  "timeline.subscribe": { fn: ((input) => subscribeViaTauri("timeline_subscribe", input)) as SubscriptionMap["timeline.subscribe"]["fn"], snapshot: "timeline.get_room_state" },
 };

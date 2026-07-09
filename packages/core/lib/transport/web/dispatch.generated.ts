@@ -35,9 +35,9 @@ export const webCommands: { [K in keyof CommandMap]: CommandMap[K] } = {
 };
 
 export const webSubscriptions: { [K in keyof SubscriptionMap]: SubscriptionMap[K] } = {
-  "members.subscribe": { fn: wasm.membersSubscribeMembers as SubscriptionMap["members.subscribe"]["fn"] },
+  "members.subscribe": { fn: wasm.membersSubscribeMembers as SubscriptionMap["members.subscribe"]["fn"], snapshot: "members.get" },
   "rooms.subscribe_in_space": { fn: wasm.roomsSubscribeInSpace as SubscriptionMap["rooms.subscribe_in_space"]["fn"] },
-  "spaces.subscribe": { fn: wasm.spacesSubscribe as SubscriptionMap["spaces.subscribe"]["fn"] },
+  "spaces.subscribe": { fn: wasm.spacesSubscribe as SubscriptionMap["spaces.subscribe"]["fn"], snapshot: "spaces.get" },
   "sync.start": { fn: wasm.syncStartSync as SubscriptionMap["sync.start"]["fn"] },
-  "timeline.subscribe": { fn: wasm.timelineSubscribeRoom as SubscriptionMap["timeline.subscribe"]["fn"] },
+  "timeline.subscribe": { fn: wasm.timelineSubscribeRoom as SubscriptionMap["timeline.subscribe"]["fn"], snapshot: "timeline.get_room_state" },
 };

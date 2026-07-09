@@ -8,7 +8,7 @@ export default function AttachmentAudio({ attachment }: { attachment: Attachment
 
   if (status === "error") {
     return (
-      <div className="mt-1 max-w-sm rounded-lg border border-surface-200-800 px-3 py-2 text-xs text-surface-500">
+      <div className="mt-1 max-w-sm rounded-lg border border-line px-3 py-2 text-data text-sub">
         Failed to load audio
       </div>
     );
@@ -16,7 +16,7 @@ export default function AttachmentAudio({ attachment }: { attachment: Attachment
 
   if (status === "loading") {
     return (
-      <div className="mt-1 flex h-9 max-w-sm items-center gap-2 rounded-lg border border-surface-200-800 px-3 text-xs text-surface-500">
+      <div className="mt-1 flex h-9 max-w-sm items-center gap-2 rounded-lg border border-line px-3 text-data text-sub">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading audio…
       </div>

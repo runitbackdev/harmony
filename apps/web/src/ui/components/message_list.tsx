@@ -3,16 +3,16 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
   memo,
 } from "react";
 import type { HTMLAttributes } from "react";
 import { useLongPress } from "@react-aria/interactions";
+import { ScrollArea } from "@runitback/react";
 import type { TimelineEventData as TimelineEvent } from "@harmony/harmony-bindings-web";
 import { cn } from "../utils";
-import { useLoadMoreOnScroll, useNewMessageIndicator, useStickToBottom } from "../hooks/scroll";
+import { useTimelineController } from "../timeline/use_timeline_controller";
 import { MessageActionBar } from "./message_action_bar";
 import { MessageContextMenu, type MessageMenuItem } from "./message_context_menu";
 import { MessageEvent } from "./message_event";
@@ -20,7 +20,6 @@ import { ReactionDisplay } from "./reaction_display";
 import { SystemEvent } from "./system_event";
 import { DateDivider, ReadMarker, TimelineStart } from "./timeline_divider";
 
-const GROUP_INTERVAL_MS = 8 * 60 * 1000;
 const SCROLL_IDLE_MS = 150;
 
 // #region Helpers
@@ -43,31 +42,8 @@ function formatSystemContent(event: TimelineEvent): string | null {
   }
 }
 
-function computeGrouping(events: TimelineEvent[]) {
-  const grouped: boolean[] = [];
-  let groupStartTime = 0;
-
-  for (let i = 0; i < events.length; i++) {
-    const curr = events[i];
-    const prev = i > 0 ? events[i - 1] : null;
-    const sameGroup =
-      prev?.content.type === "message" &&
-      curr.content.type === "message" &&
-      prev.sender === curr.sender &&
-      curr.timestamp - groupStartTime < GROUP_INTERVAL_MS;
-
-    if (!sameGroup) groupStartTime = curr.timestamp;
-    grouped.push(sameGroup);
-  }
-  return grouped;
-}
-
 function isPending(event: TimelineEvent): boolean {
   return event.sendState?.state === "notSentYet";
-}
-
-function eventKey(event: TimelineEvent, index: number): string {
-  return event.id ?? `pending-${index}`;
 }
 
 // #endregion
@@ -77,6 +53,7 @@ function eventKey(event: TimelineEvent, index: number): string {
 interface MessageRowProps {
   event: TimelineEvent;
   grouped: boolean;
+  flashing: boolean;
   index: number;
   currentUserId?: string;
   editingNode?: React.ReactNode;
@@ -90,6 +67,7 @@ interface MessageRowProps {
 const MessageRow = memo(function MessageRow({
   event,
   grouped,
+  flashing,
   index,
   currentUserId,
   editingNode,
@@ -166,15 +144,15 @@ const MessageRow = memo(function MessageRow({
     <div
       data-scope="message-row"
       data-part="root"
-      data-index={index}
       data-event-id={event.id ?? undefined}
+      data-flash={flashing ? "" : undefined}
       style={{
         overflowAnchor: "none",
         WebkitTouchCallout: "none",
       }}
       className={cn(
-        "px-4 transition-colors duration-700 data-flash:bg-primary-500/20",
-        !editingNode && "hover:bg-surface-100-900 data-active:bg-surface-100-900",
+        "px-4 transition-colors duration-700 data-flash:bg-accent/20",
+        !editingNode && "hover:bg-soft data-active:bg-soft",
       )}
       {...longPressProps}
       onPointerEnter={(e) => {
@@ -405,26 +383,16 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
   },
   ref,
 ) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
+  const {
+    scrollRef,
+    totalSize,
+    rows,
+    newCount,
+    scrollToBottom,
+    jumpToEvent,
+    handleScroll: onTimelineScroll,
+  } = useTimelineController({ events, onLoadMore, onJumpToEvent });
 
-  const handleReplyClick = useCallback(
-    (eventId: string) => {
-      const container = containerRef.current;
-      const target = container?.querySelector(
-        `[data-event-id="${CSS.escape(eventId)}"]`,
-      ) as HTMLElement | null;
-      if (target) {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
-        target.setAttribute("data-flash", "");
-        window.setTimeout(() => target.removeAttribute("data-flash"), 1500);
-        return;
-      }
-      onJumpToEvent?.(eventId);
-    },
-    [onJumpToEvent],
-  );
   const actionBarRef = useRef<ActionBarHandle>(null);
   const contextMenuRef = useRef<ContextMenuOverlayHandle>(null);
 
@@ -455,7 +423,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleScroll = useCallback(() => {
-    const container = containerRef.current;
+    const container = scrollRef.current;
     if (!container) return;
 
     actionBarRef.current?.hide();
@@ -466,72 +434,78 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
     scrollTimerRef.current = setTimeout(() => {
       container.style.pointerEvents = "";
     }, SCROLL_IDLE_MS);
-  }, []);
 
-  const filtered = useMemo(
-    () => events.filter((event) => event.content.type !== "unknown"),
-    [events],
-  );
-
-  const grouping = useMemo(() => computeGrouping(filtered), [filtered]);
-
-  const { isAtBottom, scrollToBottom } = useStickToBottom(containerRef, anchorRef, filtered.length);
-  const { newCount } = useNewMessageIndicator(isAtBottom, filtered.length);
-  useLoadMoreOnScroll(containerRef, sentinelRef, onLoadMore);
+    onTimelineScroll();
+  }, [scrollRef, onTimelineScroll]);
 
   useImperativeHandle(ref, () => ({ scrollToBottom }), [scrollToBottom]);
 
   return (
-    <div
+    <ScrollArea.Root
       data-scope="message-list"
       data-part="root"
-      ref={containerRef}
-      className={cn("relative flex-1 min-h-0 overflow-y-auto", className)}
-      onScroll={handleScroll}
+      className={cn("flex-1 min-h-0", className)}
       {...props}
     >
-      {newCount > 0 && (
-        <button
-          type="button"
-          data-scope="message-list"
-          data-part="new-messages"
-          onClick={scrollToBottom}
-          className="sticky top-0 z-10 flex w-full cursor-pointer items-center justify-center gap-1 bg-primary-500 py-1 text-xs font-medium text-on-primary"
-        >
-          {newCount} new {newCount === 1 ? "message" : "messages"} — Jump to latest
-        </button>
-      )}
-      <div ref={sentinelRef} data-scope="message-list" data-part="sentinel" />
-      {filtered.map((event, i) => {
-        const rowKey = eventKey(event, i);
-        const isEditing =
-          editingEventId != null &&
-          renderEditor != null &&
-          (event.id === editingEventId || event.transactionId === editingEventId);
-
-        return (
-          <MessageRow
-            key={rowKey}
-            event={event}
-            grouped={grouping[i]}
-            index={i}
-            currentUserId={currentUserId}
-            editingNode={isEditing ? renderEditor(event) : undefined}
-            onToggleReaction={onToggleReaction}
-            onPointerEnter={handlePointerEnter}
-            onPointerLeave={handlePointerLeave}
-            onShowContextMenu={handleShowContextMenu}
-            onReplyClick={handleReplyClick}
-          />
-        );
-      })}
-      <div
-        ref={anchorRef}
+      <ScrollArea.Viewport
+        ref={scrollRef}
         data-scope="message-list"
-        data-part="anchor"
-        style={{ overflowAnchor: "auto" }}
-        className="pb-4"
-      />
+        data-part="viewport"
+        style={{ overflowAnchor: "none" }}
+        onScroll={handleScroll}
+      >
+        {newCount > 0 && (
+          <button
+            type="button"
+            data-scope="message-list"
+            data-part="new-messages"
+            onClick={scrollToBottom}
+            className="sticky top-0 z-10 flex w-full cursor-pointer items-center justify-center gap-1 bg-accent py-1 text-data font-medium text-accent-ink"
+          >
+            {newCount} new {newCount === 1 ? "message" : "messages"} — Jump to latest
+          </button>
+        )}
+        <div style={{ height: totalSize, position: "relative", width: "100%" }}>
+          {rows.map((row) => {
+            const isEditing =
+              editingEventId != null &&
+              renderEditor != null &&
+              (row.event.id === editingEventId || row.event.transactionId === editingEventId);
+
+            return (
+              <div
+                key={row.key}
+                data-index={row.index}
+                ref={row.measureRef}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${row.start}px)`,
+                }}
+              >
+                <MessageRow
+                  event={row.event}
+                  grouped={row.grouped}
+                  flashing={row.flashing}
+                  index={row.index}
+                  currentUserId={currentUserId}
+                  editingNode={isEditing ? renderEditor(row.event) : undefined}
+                  onToggleReaction={onToggleReaction}
+                  onPointerEnter={handlePointerEnter}
+                  onPointerLeave={handlePointerLeave}
+                  onShowContextMenu={handleShowContextMenu}
+                  onReplyClick={jumpToEvent}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea.Viewport>
+      <ScrollArea.Scrollbar>
+        <ScrollArea.Thumb />
+      </ScrollArea.Scrollbar>
 
       <ActionBarOverlay
         ref={actionBarRef}
@@ -550,7 +524,7 @@ const MessageList = forwardRef<MessageListHandle, MessageListProps>(function Mes
         onDeleteMessage={onDeleteMessage}
         getExtras={getContextMenuExtras}
       />
-    </div>
+    </ScrollArea.Root>
   );
 });
 

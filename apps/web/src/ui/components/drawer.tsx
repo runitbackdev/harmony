@@ -55,7 +55,7 @@ function Content({ className, children, ...props }: ContentProps) {
   return (
     <VaulDrawer.Content
       className={cn(
-        "fixed bottom-0 z-50 flex flex-col bg-surface-100-900 border-surface-300-700 focus:outline-none h-full",
+        "fixed bottom-0 z-50 flex flex-col bg-surface border-line focus:outline-none h-full",
         className,
       )}
       {...props}
@@ -73,10 +73,7 @@ type TitleProps = ComponentProps<typeof VaulDrawer.Title>;
 
 function Title({ className, ...props }: TitleProps) {
   return (
-    <VaulDrawer.Title
-      className={cn("text-lg font-semibold text-surface-950-50", className)}
-      {...props}
-    />
+    <VaulDrawer.Title className={cn("text-subhead font-semibold text-ink", className)} {...props} />
   );
 }
 
@@ -87,9 +84,7 @@ function Title({ className, ...props }: TitleProps) {
 type DescriptionProps = ComponentProps<typeof VaulDrawer.Description>;
 
 function Description({ className, ...props }: DescriptionProps) {
-  return (
-    <VaulDrawer.Description className={cn("text-sm text-surface-600-400", className)} {...props} />
-  );
+  return <VaulDrawer.Description className={cn("text-small text-sub", className)} {...props} />;
 }
 
 // #endregion

@@ -2,12 +2,8 @@ import { useState } from "react";
 import Lightbox from "./lightbox";
 import { ImageOff, Loader2 } from "lucide-react";
 import { useMediaSrc } from "@harmony/react";
-import { cn } from "../../utils";
+import { cn, mediaDisplaySize, MEDIA_MAX_WIDTH, MEDIA_MAX_HEIGHT } from "../../utils";
 import type { Attachment } from "@harmony/harmony-bindings-web";
-
-// Matches the `max-w-sm` / `max-h-80` bounds applied to the <img> below.
-const MAX_WIDTH = 384;
-const MAX_HEIGHT = 320;
 
 export default function AttachmentImage({ attachment }: { attachment: Attachment }) {
   // Resolving the src (sync for plaintext, async decrypt for encrypted) and
@@ -21,11 +17,8 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
   const height = info?.height ?? 320;
   const name = attachment.filename ?? attachment.body;
 
-  // The box the image will occupy once loaded (object-contain within the bounds).
-  // Used to size the error state when there's no <img> in the tree to reserve it.
-  const scale = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height, 1);
-  const displayWidth = Math.round(width * scale);
-  const displayHeight = Math.round(height * scale);
+  // Reserve the box before the src resolves so the row height is stable.
+  const { width: displayWidth, height: displayHeight } = mediaDisplaySize(width, height);
 
   const loaded = srcStatus === "loaded" && !!src && imgStatus === "loaded";
   const failed =
@@ -36,25 +29,27 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
     <>
       <button
         type="button"
-        style={!src ? { width: displayWidth, height: displayHeight } : undefined}
+        style={
+          !src ? { width: displayWidth, height: displayHeight } : { maxWidth: MEDIA_MAX_WIDTH }
+        }
         className={cn(
-          "relative mt-1 inline-block max-w-sm overflow-hidden rounded-lg border transition-opacity",
-          failed ? "border-error-500/30" : "border-surface-200-800",
+          "relative mt-1 inline-block overflow-hidden rounded-lg border transition-opacity",
+          failed ? "border-danger/30" : "border-line",
           loaded ? "cursor-zoom-in hover:opacity-95" : "cursor-default",
         )}
         aria-label={`View full size ${name}`}
         onClick={() => loaded && setExpanded(true)}
       >
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-100-900">
-            <Loader2 className="h-6 w-6 animate-spin text-surface-500" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface">
+            <Loader2 className="h-6 w-6 animate-spin text-sub" />
           </div>
         )}
 
         {failed && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-error-500/10 p-4 text-center">
-            <ImageOff className="h-6 w-6 text-error-500" />
-            <span className="max-w-full truncate text-xs font-medium text-error-500">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-danger/10 p-4 text-center">
+            <ImageOff className="h-6 w-6 text-danger" />
+            <span className="max-w-full truncate text-data font-medium text-danger">
               Failed to load image
             </span>
           </div>
@@ -66,7 +61,8 @@ export default function AttachmentImage({ attachment }: { attachment: Attachment
             alt={name || "Image attachment"}
             width={width}
             height={height}
-            className={cn("block max-h-80 max-w-sm object-contain", !loaded && "opacity-0")}
+            style={{ maxWidth: MEDIA_MAX_WIDTH, maxHeight: MEDIA_MAX_HEIGHT }}
+            className={cn("block object-contain", !loaded && "opacity-0")}
             decoding="async"
             onLoad={() => setImgStatus("loaded")}
             onError={() => setImgStatus("error")}

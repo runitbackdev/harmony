@@ -1,6 +1,9 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  fmt: {
+    ignorePatterns: ["vendor/**"],
+  },
   lint: {
     plugins: ["react", "typescript"],
     jsPlugins: ["eslint-plugin-valtio", "@tanstack/eslint-plugin-router"],
@@ -13,6 +16,7 @@ export default defineConfig({
       "dist",
       "node_modules",
       "crates",
+      "**/vendor",
       "**/*.generated.ts",
       "**/*.generated.d.ts",
       "**/*.gen.ts",
