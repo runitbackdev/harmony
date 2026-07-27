@@ -1,0 +1,50 @@
+name: Setup toolchain
+description: Provision the toolchain, JS dependencies, and the harmony CLI.
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        git config --global url."https://codeberg.org/".insteadOf "git@codeberg.org:"
+        git submodule update --init --recursive
+
+    - name: Install system packages
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          clang pkg-config libssl-dev curl \
+          libgtk-3-dev libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+        components: clippy
+
+    - name: Cache cargo
+      uses: Swatinem/rust-cache@v2
+
+    - name: Install just, typos, and wasm-pack
+      uses: taiki-e/install-action@v2
+      with:
+        tool: just,typos,wasm-pack
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+
+    - name: Install JS dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Install harmony CLI
+      shell: bash
+      run: cargo install --path tools/harmony-cli --force

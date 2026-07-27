@@ -8,17 +8,18 @@ concurrency:
   group: main
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: docker
-    container:
-      image: docker.io/library/node:22-bookworm
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: https://code.forgejo.org/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Setup toolchain
-        uses: ./.forgejo/actions/setup
+        uses: ./.github/actions/setup
 
       - name: Check (lint, types, clippy, codegen drift, typos)
         run: just check
@@ -27,7 +28,7 @@ jobs:
         run: just build
 
       - name: Upload web build
-        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: apps/web/dist
