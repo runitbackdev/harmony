@@ -2,8 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "vp check",
-    "prepare": "pnpm --filter @runitback/react build"
+    "lint": "vp check"
   },
   "devDependencies": {
     "@tanstack/eslint-plugin-router": "^1.161.5",

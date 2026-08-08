@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useDelayedUnmount } from "@/primitives";
-import { Button, Dialog } from "@runitback/react";
+import { Button, Dialog } from "@runitbk/react";
 
 interface UseDeleteConfirmOptions {
   title?: string;

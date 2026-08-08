@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { HTMLAttributes } from "react";
 import { useLongPress } from "@react-aria/interactions";
-import { ScrollArea } from "@runitback/react";
+import { ScrollArea } from "@runitbk/react";
 import type { TimelineEventData as TimelineEvent } from "@harmony/harmony-bindings-web";
 import { cn } from "../utils";
 import { useTimelineController } from "../timeline/use_timeline_controller";

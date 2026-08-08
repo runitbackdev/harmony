@@ -1,4 +1,4 @@
-import { Avatar } from "@runitback/react";
+import { Avatar } from "@runitbk/react";
 import { getInitials } from "../utils";
 import { mediaThumbnailSrc } from "@harmony/core";
 import { useMediaReady } from "@harmony/react";

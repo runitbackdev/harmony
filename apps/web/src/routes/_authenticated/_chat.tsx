@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Outlet, useNavigate, useParams } from "@tanstack/react-router";
-import { Button, Dialog } from "@runitback/react";
+import { Button, Dialog } from "@runitbk/react";
 import { TextField } from "@/ui";
 import { AtSign, Boxes, ChevronDown, ChevronUp, X } from "lucide-react";
 import { createSpace } from "@/spaces/api";

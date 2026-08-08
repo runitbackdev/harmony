@@ -1,7 +1,7 @@
 import { createContext, useState } from "react";
 import { createFileRoute, Outlet, redirect, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Button, Dialog, Input } from "@runitback/react";
+import { Button, Dialog, Input } from "@runitbk/react";
 import { Drawer, Sidebar, TextField } from "@/ui";
 import { createRoom, getDescendants } from "@/spaces/api";
 import { createInviteErrorMessage, useCreateInvite } from "@/invites/api";

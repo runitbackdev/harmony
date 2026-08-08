@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Button, Dialog, Input } from "@runitback/react";
+import { Button, Dialog, Input } from "@runitbk/react";
 import { Sidebar, TextField } from "@/ui";
 import { createRoom } from "@/spaces/api";
 import { useRoomsInSpace } from "@/rooms/api";

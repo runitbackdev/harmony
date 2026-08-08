@@ -1,4 +1,4 @@
-import { Toast } from "@runitback/react";
+import { Toast } from "@runitbk/react";
 
 export const toastManager = Toast.createToastManager();
 

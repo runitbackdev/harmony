@@ -41,7 +41,6 @@ clean:
     pnpm --filter web exec rm -rf dist
 
 setup:
-    git submodule update --init --recursive
     mise install
     cargo install --path tools/harmony-cli --force
     @just gen-rpc

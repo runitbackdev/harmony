@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
-import { Button, Dialog } from "@runitback/react";
+import { Button, Dialog } from "@runitbk/react";
 import { MxAvatar, Rail, TextField } from "@/ui";
 import { Home, ImagePlus, Plus, X } from "lucide-react";
 import { createSpace, useSpaces } from "@/spaces/api";

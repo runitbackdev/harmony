@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { Toast } from "@runitback/react";
+import { Toast } from "@runitbk/react";
 import { toastManager } from "./toast";
 
 function ToastList() {
