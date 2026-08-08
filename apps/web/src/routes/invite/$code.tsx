@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Button, Card } from "@runitback/react";
+import { Button, Card } from "@runitbk/react";
 import { useSession } from "@/auth/api";
 import { HeraldApiError, useInvite, useRedeemInvite } from "@/invites/api";
 

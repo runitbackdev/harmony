@@ -1,8 +1,8 @@
 @import "tailwindcss";
-@import "@runitback/styles";
+@import "@runitbk/styles";
 
 /* Theme-independent constants for media chrome (lightbox/image/video overlays).
-   @runitback/styles resets --color-*: initial, which drops the defaults. */
+   @runitbk/styles resets --color-*: initial, which drops the defaults. */
 @theme {
   --color-white: #fff;
   --color-black: #000;
@@ -18,10 +18,10 @@
     U+200D, U+2300-23FF, U+2600-27BF, U+2B50, U+FE00-FE0F, U+1F000-1FAFF, U+E0020-E007F;
 }
 
-/* Tailwind ignores node_modules/workspace pkgs by default; scan @runitback/react
+/* Tailwind ignores node_modules by default; scan @runitbk/react
    so its component-only utilities (bg-scrim, shadow-2, data-starting-style, the
    popup positioning/transitions) are generated. */
-@source "../../../vendor/design/packages/react/dist";
+@source "../node_modules/@runitbk/react/dist";
 
 @source inline("font-bold italic line-through underline font-mono");
 

@@ -1,3 +1,0 @@
-[submodule "vendor/design"]
-	path = vendor/design
-	url = git@github.com:runitbacksoftware/design.git

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import * as zagCombobox from "@zag-js/combobox";
 import { normalizeProps, useMachine } from "@zag-js/react";
-import { Dialog } from "@runitback/react";
+import { Dialog } from "@runitbk/react";
 import type { RoomDataWithSpace } from "@harmony/core";
 import { fetchAllRooms, ROOMS_QUERY_KEY, ROOMS_STALE_TIME_MS } from "@/rooms/queries";
 import { useOmnibar } from "./use-omnibar";

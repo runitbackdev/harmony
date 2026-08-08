@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from "react";
-import { Input } from "@runitback/react";
+import { Input } from "@runitbk/react";
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;

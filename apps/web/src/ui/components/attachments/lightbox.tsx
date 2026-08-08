@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { Dialog } from "@runitback/react";
+import { Dialog } from "@runitbk/react";
 
 export default function Lightbox({
   src,
