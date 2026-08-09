@@ -36,6 +36,9 @@ rc_login:
     per_second: 100
     burst_count: 100
 
+app_service_config_files:
+  - /config/herald.registration.yaml
+
 experimental_features:
   msc3266_enabled: true
 
