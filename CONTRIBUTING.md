@@ -17,15 +17,15 @@ Run `harmony self-update` after pulling changes to `tools/harmony-cli`.
 
 ## Common Commands
 
-| Command                  | What it does                                |
-| ------------------------ | ------------------------------------------- |
-| `harmony web`            | Frontend only, hosted homeserver            |
-| `harmony dev`            | Full local stack (synapse + web)            |
-| `harmony build`          | Production build (WASM + web)               |
-| `harmony codegen`        | Build WASM + emit `maps.generated.ts`       |
-| `harmony check`          | Run cargo check, clippy, eslint, typos      |
-| `harmony fmt`            | Format Rust + TypeScript                    |
-| `harmony clean`          | Remove all build artifacts                  |
+| Command           | What it does                           |
+| ----------------- | -------------------------------------- |
+| `harmony web`     | Frontend only, hosted homeserver       |
+| `harmony dev`     | Full local stack (synapse + web)       |
+| `harmony build`   | Production build (WASM + web)          |
+| `harmony codegen` | Build WASM + emit `maps.generated.ts`  |
+| `harmony check`   | Run cargo check, clippy, eslint, typos |
+| `harmony fmt`     | Format Rust + TypeScript               |
+| `harmony clean`   | Remove all build artifacts             |
 
 `harmony` forwards unknown subcommands to `just`, so any orchestration recipe (`synapse`, `synapse-reset`, etc.) works via `harmony <name>`.
 
