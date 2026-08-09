@@ -1,13 +1,13 @@
 [workspace]
 resolver = "3"
 members = [
-    "apps/desktop",
-    "packages/bindings/desktop",
-    "packages/bindings/mobile",
-    "packages/bindings/web",
-    "packages/harmony-protocol",
-    "packages/harmony-protocol-macros",
-    "tools/harmony-cli",
+  "apps/desktop",
+  "packages/bindings/desktop",
+  "packages/bindings/mobile",
+  "packages/bindings/web",
+  "packages/harmony-protocol",
+  "packages/harmony-protocol-macros",
+  "tools/harmony-cli",
 ]
 
 [workspace.lints.rust]
