@@ -10,8 +10,8 @@ import type {
   BridgeUnsubscribe,
   HarmonyError,
   RpcResult,
-} from "./index";
-import { isBridgeInbound } from "./index";
+} from "@harmony/core/transport";
+import { isBridgeInbound } from "@harmony/core/transport";
 
 type AnyFn = (input: unknown) => Promise<unknown>;
 
@@ -355,12 +355,10 @@ function errorMessage(error: unknown): string {
  * try/catch and store the promise in the shared entry.
  */
 function startUpstream(entry: SubscriptionEntry, input: unknown): Promise<SubscriptionStarted> {
-  return entry.fn(input).catch(
-    (error: unknown): SubscriptionStarted => ({
-      ok: false,
-      error: { code: "unknown", message: errorMessage(error) },
-    }),
-  );
+  return entry.fn(input).catch((error: unknown): SubscriptionStarted => ({
+    ok: false,
+    error: { code: "unknown", message: errorMessage(error) },
+  }));
 }
 
 /**

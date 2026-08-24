@@ -1,11 +1,27 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { scan } from "react-scan";
-import { HOMESERVER_ORIGIN, listenForTokenRequests } from "@harmony/react";
+import { homeserverOrigin, listenForTokenRequests } from "@harmony/react";
+import { HarmonyClient, configureHarmony, configureHomeserver, hostTarget } from "@harmony/core";
 import { whenMediaReady } from "@harmony/core";
 import "./index.css";
 import App from "./App.tsx";
 import { sessionStore } from "@/lib/session";
+import { TransportSharedWorker } from "./transport/shared-worker";
+import { TransportTauri } from "./transport/tauri";
+import HarmonyWorker from "./transport/worker?sharedworker";
+
+// Host target is left to the runtime sniff — the desktop shell loads this same
+// bundle and identifies itself via `window.__TAURI__`.
+if (import.meta.env.VITE_HOMESERVER_URL) {
+  configureHomeserver(import.meta.env.VITE_HOMESERVER_URL);
+}
+
+configureHarmony(() => {
+  if (hostTarget() === "desktop") return new HarmonyClient(new TransportTauri());
+  const worker = new HarmonyWorker({ name: "harmony-sync" });
+  return new HarmonyClient(new TransportSharedWorker(worker.port));
+});
 
 if (import.meta.env.DEV) {
   scan({ enabled: true });
@@ -14,7 +30,7 @@ if (import.meta.env.DEV) {
 if ("serviceWorker" in navigator) {
   listenForTokenRequests(async () => {
     const session = await sessionStore.get();
-    return session ? { token: session.accessToken, homeserverOrigin: HOMESERVER_ORIGIN } : null;
+    return session ? { token: session.accessToken, homeserverOrigin: homeserverOrigin() } : null;
   });
 
   const swUrl = import.meta.env.DEV ? "/dev-sw.js?dev-sw" : "/sw.js";

@@ -1,4 +1,4 @@
-import type { SessionData } from "@harmony/harmony-bindings-web";
+import type { SessionData } from "../protocol/types.generated";
 
 /**
  * Host-agnostic interface for persisting the user's session token.

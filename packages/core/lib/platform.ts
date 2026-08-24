@@ -1,15 +1,22 @@
+export type HostTarget = "web" | "desktop" | "mobile";
+
 declare global {
   interface Window {
-    // Set by the Tauri shell when `withGlobalTauri` is enabled; present
-    // before page load, absent in a plain browser. Our native signal.
     __TAURI__?: unknown;
   }
 }
 
-export function isNative(): boolean {
-  return typeof window !== "undefined" && typeof window.__TAURI__ !== "undefined";
+let configured: HostTarget | null = null;
+
+export function configureHost(host: HostTarget) {
+  configured = host;
 }
 
-// Single runtime swap point. Evaluated once at load; bake to a constant per
-// build later if the dynamic check ever costs us.
-export const IS_DESKTOP = isNative();
+// Falls back to sniffing the Tauri global so web and desktop keep working
+// without an explicit bootstrap call. Mobile has no such tell and must
+// configure before the first read.
+export function hostTarget() {
+  configured ??=
+    typeof window !== "undefined" && typeof window.__TAURI__ !== "undefined" ? "desktop" : "web";
+  return configured;
+}

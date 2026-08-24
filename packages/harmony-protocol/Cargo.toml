@@ -25,22 +25,22 @@ desktop = ["dep:tauri", "dep:dashmap", "dep:tokio"]
 mobile = ["dep:uniffi"]
 
 [dependencies]
-harmony-protocol-macros = { path = "../harmony-protocol-macros" }
+harmony-protocol-macros = { workspace = true }
 
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }
 serde_bytes = "0.11"
 thiserror = "2"
-specta = { version = "=2.0.0-rc.24", features = ["derive"] }
+specta = { workspace = true }
 specta-macros = { version = "=2.0.0-rc.24", features = ["serde"] }
-specta-typescript = "=0.0.11"
-inventory = "0.3"
-tracing = { version = "0.1", features = ["release_max_level_off"] }
+specta-typescript = { workspace = true }
+inventory = { workspace = true }
+tracing = { workspace = true, features = ["release_max_level_off"] }
 futures-channel = "0.3"
 futures-util = "0.3"
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 mime = "0.3"
-matrix-sdk-common = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5cf097e32e30326d18091254bfcfa447c6de615" }
+matrix-sdk-common = { workspace = true }
 
 # Web (wasm32) binding deps — pulled in via `feature = "web"`.
 wasm-bindgen = { version = "0.2", optional = true }
@@ -53,22 +53,19 @@ getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
 uuid = { version = "1", features = ["js"], optional = true }
 
 # Desktop binding deps — pulled in via `feature = "desktop"`.
-tauri = { version = "2", optional = true }
+tauri = { workspace = true, optional = true }
 dashmap = { version = "6", optional = true }
-tokio = { version = "1", features = ["rt", "macros"], optional = true }
+tokio = { workspace = true, features = ["rt", "macros"], optional = true }
 
 # Mobile binding deps — pulled in via `feature = "mobile"`.
-uniffi = { version = "0.31", optional = true }
+uniffi = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-matrix-sdk-ui = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5cf097e32e30326d18091254bfcfa447c6de615", features = [
-  "js",
-  "unstable-msc4274",
-] }
-matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5cf097e32e30326d18091254bfcfa447c6de615", default-features = false, features = [
+matrix-sdk-ui = { workspace = true, features = ["js", "unstable-msc4274"] }
+matrix-sdk = { workspace = true, features = [
   "indexeddb",
   "e2e-encryption",
   "automatic-room-key-forwarding",
@@ -77,10 +74,8 @@ matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5c
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-matrix-sdk-ui = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5cf097e32e30326d18091254bfcfa447c6de615", features = [
-  "unstable-msc4274",
-] }
-matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk", rev = "e5cf097e32e30326d18091254bfcfa447c6de615", default-features = false, features = [
+matrix-sdk-ui = { workspace = true, features = ["unstable-msc4274"] }
+matrix-sdk = { workspace = true, features = [
   "bundled-sqlite",
   "e2e-encryption",
   "automatic-room-key-forwarding",

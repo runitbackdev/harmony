@@ -4,7 +4,7 @@
 
 import { invokeCommand, invokeRpc } from "./invoke";
 import { subscribeViaTauri } from "./subscribe";
-import type { CommandMap, RpcMap, SubscriptionMap } from "../../protocol/maps.generated";
+import type { CommandMap, RpcMap, SubscriptionMap } from "@harmony/core/protocol/maps.generated";
 
 export const tauriRpc: { [K in keyof RpcMap]: RpcMap[K] } = {
   "auth.login": ((input) => invokeRpc("auth_login", input)) as RpcMap["auth.login"],

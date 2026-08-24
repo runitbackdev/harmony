@@ -10,5 +10,5 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 workspace = true
 
 [dependencies]
-harmony-protocol = { path = "../../harmony-protocol", features = ["mobile"] }
-uniffi = "0.31"
+harmony-protocol = { workspace = true, features = ["mobile"] }
+uniffi = { workspace = true }

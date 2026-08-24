@@ -1,4 +1,4 @@
-import { IS_DESKTOP } from "./platform";
+import { hostTarget } from "./platform";
 
 type AuthInfo = { token: string; homeserverOrigin: string } | null;
 type GetAuth = () => AuthInfo | Promise<AuthInfo>;
@@ -21,11 +21,11 @@ export function clearMediaAuth() {
   post({ type: "harmony/auth/clear" });
 }
 
-// True when plaintext `/_media/` URLs are safe to render: desktop (no SW
-// needed) or a web page already controlled by the worker. False on a fresh
+// True when plaintext `/_media/` URLs are safe to render: any non-web host (no
+// SW needed) or a web page already controlled by the worker. False on a fresh
 // hard reload, where the page is uncontrolled until we claim it.
 export function isMediaReady(): boolean {
-  if (IS_DESKTOP) return true;
+  if (hostTarget() !== "web") return true;
   if (typeof navigator === "undefined" || !navigator.serviceWorker) return true;
   return navigator.serviceWorker.controller != null;
 }

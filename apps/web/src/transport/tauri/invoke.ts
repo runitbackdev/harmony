@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { HarmonyError, RpcResult } from "../index";
+import type { HarmonyError, RpcResult } from "@harmony/core/transport";
 
 /**
  * Thin wrappers around Tauri's `invoke` that match the `RpcFn` / `CommandFn`

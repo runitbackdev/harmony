@@ -8,8 +8,8 @@ import {
   memo,
 } from "react";
 import type { HTMLAttributes } from "react";
-import { useLongPress } from "@react-aria/interactions";
 import { ScrollArea } from "@runitbk/react";
+import { useLongPress } from "@/primitives";
 import type { TimelineEventData as TimelineEvent } from "@harmony/harmony-bindings-web";
 import { cn } from "../utils";
 import { useTimelineController } from "../timeline/use_timeline_controller";
@@ -77,12 +77,10 @@ const MessageRow = memo(function MessageRow({
   onShowContextMenu,
   onReplyClick,
 }: MessageRowProps) {
-  const { longPressProps } = useLongPress({
-    threshold: 500,
-    onLongPress: (e) => {
-      if (e.pointerType !== "touch") return;
+  const { longPressProps, isTouching } = useLongPress({
+    onLongPress: ({ x, y }) => {
       if (event.content.type !== "message") return;
-      onShowContextMenu(event, e.x, e.y);
+      onShowContextMenu(event, x, y);
     },
   });
   function renderContent() {
@@ -155,15 +153,13 @@ const MessageRow = memo(function MessageRow({
         !editingNode && "hover:bg-soft data-active:bg-soft",
       )}
       {...longPressProps}
-      onPointerEnter={(e) => {
-        longPressProps.onPointerEnter?.(e);
-        onPointerEnter(event, index, e.currentTarget);
-      }}
-      onPointerLeave={(e) => {
-        longPressProps.onPointerLeave?.(e);
-        onPointerLeave(e);
-      }}
+      onPointerEnter={(e) => onPointerEnter(event, index, e.currentTarget)}
+      onPointerLeave={onPointerLeave}
       onContextMenu={(e) => {
+        if (isTouching()) {
+          e.preventDefault();
+          return;
+        }
         if (event.content.type !== "message") return;
         e.preventDefault();
         onShowContextMenu(event, e.clientX, e.clientY);

@@ -1,8 +1,18 @@
-import { IS_DESKTOP } from "./platform";
+import { hostTarget } from "./platform";
 
 // Per-target gateway base for plaintext media. Web hits the same-origin
-// service-worker route; desktop hits the `media://` custom URI scheme.
-const MEDIA_BASE = IS_DESKTOP ? "media://" : "/_media/";
+// service-worker route; desktop hits the `media://` custom URI scheme. Mobile
+// has neither until the loopback byte-source lands, so callers get null.
+function mediaBase() {
+  switch (hostTarget()) {
+    case "desktop":
+      return "media://";
+    case "mobile":
+      return null;
+    default:
+      return "/_media/";
+  }
+}
 
 function parseMxc(mxc: string): [server: string, id: string] | null {
   if (!mxc.startsWith("mxc://")) return null;
@@ -12,14 +22,18 @@ function parseMxc(mxc: string): [server: string, id: string] | null {
 
 export function mediaSrc(mxc: string | null): string | null {
   if (!mxc) return null;
+  const base = mediaBase();
+  if (!base) return null;
   const parsed = parseMxc(mxc);
   if (!parsed) return null;
   const [server, id] = parsed;
-  return `${MEDIA_BASE}download/${server}/${id}?allow_redirect=true`;
+  return `${base}download/${server}/${id}?allow_redirect=true`;
 }
 
 export function mediaThumbnailSrc(mxc: string | null, size: number): string | null {
   if (!mxc) return null;
+  const base = mediaBase();
+  if (!base) return null;
   const parsed = parseMxc(mxc);
   if (!parsed) return null;
   const [server, id] = parsed;
@@ -29,5 +43,5 @@ export function mediaThumbnailSrc(mxc: string | null, size: number): string | nu
     method: "crop",
     allow_redirect: "true",
   });
-  return `${MEDIA_BASE}thumbnail/${server}/${id}?${params}`;
+  return `${base}thumbnail/${server}/${id}?${params}`;
 }

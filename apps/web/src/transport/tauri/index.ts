@@ -1,5 +1,5 @@
 import { tauriCommands, tauriRpc, tauriSubscriptions } from "./dispatch.generated";
-import type { HarmonyError, RpcResult, StreamHandle, Transport } from "../index";
+import type { HarmonyError, RpcResult, StreamHandle, Transport } from "@harmony/core/transport";
 
 /**
  * Client-side Transport adapter for the Tauri host.

@@ -1,6 +1,6 @@
 import init, { configureTracing } from "@harmony/harmony-bindings-web";
-import { createWorkerDispatcher } from "../transport/worker-dispatcher";
-import { isBridgeInbound } from "../transport";
+import { createWorkerDispatcher } from "../worker-dispatcher";
+import { isBridgeInbound } from "@harmony/core/transport";
 
 declare let self: SharedWorkerGlobalScope;
 

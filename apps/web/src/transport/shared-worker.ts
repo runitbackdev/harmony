@@ -6,8 +6,8 @@ import type {
   RpcResult,
   StreamHandle,
   Transport,
-} from "./index";
-import { isBridgeOutbound } from "./index";
+} from "@harmony/core/transport";
+import { isBridgeOutbound } from "@harmony/core/transport";
 
 type PendingRequest = {
   resolve: (result: RpcResult<unknown>) => void;

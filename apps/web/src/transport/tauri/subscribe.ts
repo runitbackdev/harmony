@@ -1,6 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 
-import type { HarmonyError, RpcResult } from "../index";
+import type { HarmonyError, RpcResult } from "@harmony/core/transport";
 
 /**
  * Wire envelope for chunks flowing over the Tauri Channel. Mirrors

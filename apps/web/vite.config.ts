@@ -18,7 +18,6 @@ export default defineConfig({
     }),
     tailwindcss(),
     react(),
-    // @ts-expect-error — @rolldown/plugin-babel@0.2.1 PluginOptions types are incorrect
     babel({ presets: [reactCompilerPreset()] }),
     wasm(),
     topLevelAwait(),

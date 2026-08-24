@@ -15,11 +15,11 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 indoc = "2"
 itertools = "0.14"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }
 
-harmony-protocol = { path = "../../packages/harmony-protocol" }
-specta = { version = "=2.0.0-rc.24", features = ["derive"] }
+harmony-protocol = { workspace = true }
+specta = { workspace = true }
 specta-serde = "=0.0.11"
-specta-typescript = "=0.0.11"
-inventory = "0.3"
+specta-typescript = { workspace = true }
+inventory = { workspace = true }

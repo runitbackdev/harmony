@@ -12,12 +12,12 @@
     "./session/store": "./lib/session/store.ts",
     "./session/local-storage": "./lib/session/local-storage.ts"
   },
-  "dependencies": {
-    "@harmony/harmony-bindings-web": "workspace:*",
-    "@tauri-apps/api": "^2"
+  "scripts": {
+    "test": "vp test"
   },
   "devDependencies": {
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   }
 }

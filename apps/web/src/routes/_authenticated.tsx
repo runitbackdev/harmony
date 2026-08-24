@@ -1,4 +1,4 @@
-import { HOMESERVER_ORIGIN } from "@harmony/react";
+import { homeserverOrigin } from "@harmony/react";
 import { setMediaAuth, whenMediaReady } from "@harmony/core";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { restore } from "@/auth/api";
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/login" });
     }
 
-    setMediaAuth(result.value.accessToken, HOMESERVER_ORIGIN);
+    setMediaAuth(result.value.accessToken, homeserverOrigin());
 
     // Wait out the SW claim under the boot spinner (concurrent with `warm`, so
     // it adds no latency on a soft load). The chat UI then mounts already

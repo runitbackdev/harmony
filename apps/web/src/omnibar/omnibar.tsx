@@ -1,9 +1,7 @@
-import { useDeferredValue, useEffect, useId, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import * as zagCombobox from "@zag-js/combobox";
-import { normalizeProps, useMachine } from "@zag-js/react";
-import { Dialog } from "@runitbk/react";
+import { Autocomplete, Dialog, ScrollArea } from "@runitbk/react";
 import type { RoomDataWithSpace } from "@harmony/core";
 import { fetchAllRooms, ROOMS_QUERY_KEY, ROOMS_STALE_TIME_MS } from "@/rooms/queries";
 import { useOmnibar } from "./use-omnibar";
@@ -28,15 +26,6 @@ function itemId(item: OmnibarItem) {
       return `cmd:${item.command.id}`;
     case "room":
       return `room:${item.room.roomId}`;
-  }
-}
-
-function itemLabel(item: OmnibarItem) {
-  switch (item.kind) {
-    case "command":
-      return item.command.label;
-    case "room":
-      return item.room.displayName;
   }
 }
 
@@ -90,18 +79,6 @@ export function Omnibar() {
     [parsed, allCommands, rooms, recents, frequencies, queries, scorers, currentSpaceId],
   );
 
-  const collection = useMemo(
-    () =>
-      zagCombobox.collection<OmnibarItem>({
-        items: filtered,
-        itemToValue: itemId,
-        itemToString: itemLabel,
-      }),
-    [filtered],
-  );
-
-  const comboboxId = useId();
-
   const handleSelect = (item: OmnibarItem) => {
     if (item.kind === "command") {
       recordUsage({ id: item.command.id, kind: "command", query: parsed.query });
@@ -128,58 +105,59 @@ export function Omnibar() {
     setOpen(false);
   };
 
-  const comboboxService = useMachine(zagCombobox.machine, {
-    id: comboboxId,
-    collection,
-    inputValue: input,
-    onInputValueChange: ({ inputValue }) => setInput(inputValue),
-    value: [],
-    selectionBehavior: "clear",
-    open: true,
-    disableLayer: true,
-    inputBehavior: "autohighlight",
-    defaultHighlightedValue: filtered[0] ? itemId(filtered[0]) : undefined,
-    onSelect: ({ itemValue }) => {
-      const item = filtered.find((i) => itemId(i) === itemValue);
-      if (item) handleSelect(item);
-    },
-  });
-  const combobox = zagCombobox.connect(comboboxService, normalizeProps);
-
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="max-w-3xl p-0 overflow-hidden">
           <Dialog.Title className="sr-only">Command palette</Dialog.Title>
-          <div {...combobox.getRootProps()}>
-            <div {...combobox.getControlProps()} className="border-b border-line">
-              <input
-                {...combobox.getInputProps()}
+          <Autocomplete.Root
+            open
+            inline
+            mode="none"
+            autoHighlight
+            items={filtered}
+            value={input}
+            onValueChange={(value) => setInput(value)}
+          >
+            <div className="border-b border-line">
+              <Autocomplete.Input
                 autoFocus
                 placeholder="Type a command or jump to a channel…"
-                className="w-full bg-transparent px-5 py-4 outline-none text-subhead placeholder:text-faint"
+                className="w-full rounded-none border-none bg-transparent px-5 py-4 outline-none focus:ring-0 text-subhead placeholder:text-faint"
               />
             </div>
-            <div {...combobox.getContentProps()} className="h-56 overflow-y-auto py-1">
-              {filtered.length === 0 ? (
-                <div className="px-4 py-8 text-center text-small text-sub">
-                  {input ? "No matches." : "Start typing…"}
-                </div>
-              ) : (
-                <ul {...combobox.getListProps()} className="flex flex-col">
-                  {filtered.map((item, idx) => (
-                    <OmnibarRow
-                      key={itemId(item)}
-                      item={item}
-                      query={parsed.query}
-                      showRecentHint={isShowingRecents && idx === 0}
-                      {...combobox.getItemProps({ item })}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
+            <ScrollArea.Root className="h-56">
+              <ScrollArea.Viewport className="py-1">
+                {filtered.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-small text-sub">
+                    {input ? "No matches." : "Start typing…"}
+                  </div>
+                ) : (
+                  <Autocomplete.List className="flex max-h-none flex-col overflow-visible">
+                    {filtered.map((item, idx) => (
+                      <Autocomplete.Item
+                        key={itemId(item)}
+                        value={item}
+                        index={idx}
+                        onClick={() => handleSelect(item)}
+                        className="rounded-none px-4 py-2 data-highlighted:ring-0"
+                        render={
+                          <OmnibarRow
+                            item={item}
+                            query={parsed.query}
+                            showRecentHint={isShowingRecents && idx === 0}
+                          />
+                        }
+                      />
+                    ))}
+                  </Autocomplete.List>
+                )}
+              </ScrollArea.Viewport>
+              <ScrollArea.Scrollbar>
+                <ScrollArea.Thumb />
+              </ScrollArea.Scrollbar>
+            </ScrollArea.Root>
             <div className="border-t border-line px-4 py-2 text-data text-sub flex items-center gap-3">
               <span>
                 <kbd className="font-mono">↑↓</kbd> navigate
@@ -191,7 +169,7 @@ export function Omnibar() {
                 <kbd className="font-mono">esc</kbd> close
               </span>
             </div>
-          </div>
+          </Autocomplete.Root>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

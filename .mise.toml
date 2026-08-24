@@ -1,6 +1,6 @@
 [tools]
 rust = "stable"
-node = "22"
+node = "latest"
 pnpm = "latest"
 just = "latest"
 "cargo:wasm-pack" = "latest"

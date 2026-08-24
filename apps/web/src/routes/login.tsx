@@ -5,7 +5,7 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import * as v from "valibot";
 import { setMediaAuth } from "@harmony/core";
-import { HOMESERVER_ORIGIN } from "@harmony/react";
+import { homeserverOrigin } from "@harmony/react";
 import { sessionStore } from "@/lib/session";
 
 const searchSchema = v.object({
@@ -40,14 +40,14 @@ function Login() {
     },
     onSubmit: async ({ value: { username, password } }) => {
       const result = await login.mutateAsync({
-        homeserver: HOMESERVER_ORIGIN,
+        homeserver: homeserverOrigin(),
         username,
         password,
       });
 
       if (result.ok) {
         await sessionStore.set(result.value);
-        setMediaAuth(result.value.accessToken, HOMESERVER_ORIGIN);
+        setMediaAuth(result.value.accessToken, homeserverOrigin());
         void navigate(invite ? { to: "/invite/$code", params: { code: invite } } : { to: "/" });
       }
     },

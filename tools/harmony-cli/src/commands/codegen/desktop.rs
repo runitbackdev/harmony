@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use super::entries::{EntryRow, group_by_kind, snapshot_map};
 
-const TAURI_DISPATCH_OUTPUT_PATH: &str = "packages/core/lib/transport/tauri/dispatch.generated.ts";
+const TAURI_DISPATCH_OUTPUT_PATH: &str = "apps/web/src/transport/tauri/dispatch.generated.ts";
 const HANDLERS_OUTPUT_PATH: &str = "packages/bindings/desktop/src/handlers.generated.rs";
 
 /// Run the desktop target: write the populated Tauri dispatch table
@@ -49,7 +49,7 @@ fn render_tauri_dispatch(entries: &[EntryRow]) -> String {
 
         import {{ invokeCommand, invokeRpc }} from "./invoke";
         import {{ subscribeViaTauri }} from "./subscribe";
-        import type {{ CommandMap, RpcMap, SubscriptionMap }} from "../../protocol/maps.generated";
+        import type {{ CommandMap, RpcMap, SubscriptionMap }} from "@harmony/core/protocol/maps.generated";
 
         export const tauriRpc: {{ [K in keyof RpcMap]: RpcMap[K] }} = {{
         {rpc_dispatch}

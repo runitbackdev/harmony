@@ -13,7 +13,7 @@ use super::entries::{EntryRow, group_by_kind, snapshot_map};
 const HARMONY_PROTOCOL_CRATE: &str = "packages/bindings/web";
 const WASM_OUT_DIR: &str = "packages/wasm";
 const WASM_DTS_PATH: &str = "packages/wasm/wasm.d.ts";
-const WEB_DISPATCH_OUTPUT_PATH: &str = "packages/core/lib/transport/web/dispatch.generated.ts";
+const WEB_DISPATCH_OUTPUT_PATH: &str = "apps/web/src/transport/web/dispatch.generated.ts";
 
 /// Run the full web target pipeline: build wasm, append wire types to
 /// `wasm.d.ts`, write the populated web dispatch table.
@@ -94,7 +94,7 @@ fn render_dispatch(entries: &[EntryRow]) -> String {
         /* eslint-disable */
 
         import * as wasm from "@harmony/harmony-bindings-web";
-        import type {{ RpcMap, CommandMap, SubscriptionMap }} from "../../protocol/maps.generated";
+        import type {{ RpcMap, CommandMap, SubscriptionMap }} from "@harmony/core/protocol/maps.generated";
 
         export const webRpc: {{ [K in keyof RpcMap]: RpcMap[K] }} = {{
         {rpc_dispatch}

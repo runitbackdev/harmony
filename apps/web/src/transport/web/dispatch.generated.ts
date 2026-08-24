@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import * as wasm from "@harmony/harmony-bindings-web";
-import type { RpcMap, CommandMap, SubscriptionMap } from "../../protocol/maps.generated";
+import type { RpcMap, CommandMap, SubscriptionMap } from "@harmony/core/protocol/maps.generated";
 
 export const webRpc: { [K in keyof RpcMap]: RpcMap[K] } = {
   "auth.login": wasm.authLogin as RpcMap["auth.login"],

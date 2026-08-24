@@ -2,7 +2,7 @@
 // Stub: mobile (native) transport not yet wired. Populate when the binding lands.
 /* eslint-disable */
 
-import type { RpcMap, CommandMap, SubscriptionMap } from "../../protocol/maps.generated";
+import type { RpcMap, CommandMap, SubscriptionMap } from "@harmony/core/protocol/maps.generated";
 
 export const nativeRpc: Partial<RpcMap> = {};
 export const nativeCommands: Partial<CommandMap> = {};

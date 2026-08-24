@@ -10,5 +10,5 @@ crate-type = ["rlib"]
 workspace = true
 
 [dependencies]
-harmony-protocol = { path = "../../harmony-protocol", features = ["desktop"] }
-tauri = "2"
+harmony-protocol = { workspace = true, features = ["desktop"] }
+tauri = { workspace = true }

@@ -5,8 +5,7 @@ use indoc::formatdoc;
 
 use super::entries::EntryRow;
 
-const NATIVE_DISPATCH_OUTPUT_PATH: &str =
-    "packages/core/lib/transport/native/dispatch.generated.ts";
+const NATIVE_DISPATCH_OUTPUT_PATH: &str = "apps/mobile/src/transport/native/dispatch.generated.ts";
 
 /// Run the mobile target. Currently emits a `Partial<...>` stub — real
 /// dispatch lands when the uniffi-backed `harmony-bindings-mobile` is
@@ -28,7 +27,7 @@ fn render_stub() -> String {
         // Stub: mobile (native) transport not yet wired. Populate when the binding lands.
         /* eslint-disable */
 
-        import type {{ RpcMap, CommandMap, SubscriptionMap }} from "../../protocol/maps.generated";
+        import type {{ RpcMap, CommandMap, SubscriptionMap }} from "@harmony/core/protocol/maps.generated";
 
         export const nativeRpc: Partial<RpcMap> = {{}};
         export const nativeCommands: Partial<CommandMap> = {{}};

@@ -1,4 +1,3 @@
-import HarmonyWorker from "./worker?sharedworker";
 import type {
   CommandInput,
   CommandName,
@@ -11,9 +10,6 @@ import type {
   SubscriptionName,
 } from "./protocol/types";
 import type { RpcResult, StreamHandle, Transport } from "./transport";
-import { TransportSharedWorker } from "./transport/shared-worker";
-import { TransportTauri } from "./transport/tauri";
-import { isNative } from "./platform";
 
 /**
  * Typed client over a {@link Transport}. The three methods cover every
@@ -62,29 +58,43 @@ export class HarmonyClient {
   }
 }
 
-function createDefaultClient(): HarmonyClient {
-  if (isNative()) return new HarmonyClient(new TransportTauri());
-  const worker = new HarmonyWorker({ name: "harmony-sync" });
-  return new HarmonyClient(new TransportSharedWorker(worker.port));
+let factory: (() => HarmonyClient) | null = null;
+let client: HarmonyClient | null = null;
+
+/**
+ * Install the host's client factory. Call once during bootstrap, before any
+ * `rpc`/`command`/`subscribe`. Deferred rather than constructed at module
+ * scope so core never reaches for a host transport on import — Hermes has no
+ * SharedWorker and a phone has no Tauri.
+ */
+export function configureHarmony(create: () => HarmonyClient) {
+  factory = create;
+  client = null;
 }
 
 // Module-private singleton; not exported. Apps call through the free
 // functions below so they never see (or depend on) the global handle.
-const client: HarmonyClient = createDefaultClient();
+function getClient() {
+  if (!factory) {
+    throw new Error("@harmony/core is not configured — call configureHarmony() during bootstrap");
+  }
+  client ??= factory();
+  return client;
+}
 
 /** Issue a typed request/response call. */
 export function rpc<K extends RpcName>(
   name: K,
   input: RpcInput<K>,
 ): Promise<RpcResult<RpcOutput<K>>> {
-  return client.rpc(name, input);
+  return getClient().rpc(name, input);
 }
 
 /** Issue a fire-and-forget command. Errors are logged in the worker
  *  and dropped; use {@link call} with an `Rpc<()>` return type if you
  *  need acknowledgement. */
 export function command<K extends CommandName>(name: K, input: CommandInput<K>): void {
-  client.command(name, input);
+  getClient().command(name, input);
 }
 
 /** Subscribe to a streaming export. Returns `{ initial, unsubscribe }`
@@ -98,5 +108,5 @@ export function subscribe<K extends SubscriptionName>(
   initial: Promise<RpcResult<SubscriptionInitial<K>>>;
   unsubscribe: () => void;
 } {
-  return client.subscribe(name, input, onChunk);
+  return getClient().subscribe(name, input, onChunk);
 }

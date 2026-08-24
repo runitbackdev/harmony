@@ -3,7 +3,7 @@ import { Hash, History } from "lucide-react";
 import { cn } from "@/ui";
 import type { Command, OmnibarItem } from "./types";
 
-type OmnibarRowProps = ComponentProps<"li"> & {
+type OmnibarRowProps = ComponentProps<"div"> & {
   item: OmnibarItem;
   query: string;
   showRecentHint: boolean;
@@ -11,7 +11,7 @@ type OmnibarRowProps = ComponentProps<"li"> & {
 
 export function OmnibarRow({ item, query, showRecentHint, className, ...rest }: OmnibarRowProps) {
   return (
-    <li
+    <div
       {...rest}
       className={cn(
         "flex items-center justify-between gap-3 px-4 py-2 cursor-pointer",
@@ -25,7 +25,7 @@ export function OmnibarRow({ item, query, showRecentHint, className, ...rest }: 
       ) : (
         <RoomContent item={item} showRecentHint={showRecentHint} />
       )}
-    </li>
+    </div>
   );
 }
 
