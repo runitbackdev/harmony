@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+include!("handlers.generated.rs");
+
 fn main() {
     use tracing_subscriber::EnvFilter;
     tracing_subscriber::fmt()
@@ -12,9 +14,9 @@ fn main() {
 
     tauri::Builder::default()
         .register_asynchronous_uri_scheme_protocol("media", |_ctx, request, responder| {
-            harmony_bindings_desktop::desktop::serve_media(&request, responder);
+            harmony_protocol::desktop::serve_media(&request, responder);
         })
-        .invoke_handler(harmony_bindings_desktop::harmony_handlers!())
+        .invoke_handler(harmony_handlers!())
         .run(tauri::generate_context!())
         .expect("error while running harmony desktop");
 }

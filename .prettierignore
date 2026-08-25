@@ -4,3 +4,6 @@
 
 # Tauri-generated permission schemas (regenerated minified on build)
 apps/desktop/gen/
+
+# Agent scratch worktrees
+.claude/

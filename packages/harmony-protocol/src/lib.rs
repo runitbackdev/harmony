@@ -3,9 +3,9 @@
 //!
 //! Pure logic + per-target ABI emissions. Each binding feature (`web`,
 //! `desktop`, `mobile`) pulls its toolchain-specific deps (wasm-bindgen,
-//! tauri, uniffi) and activates the matching macro emission. Binding
-//! wrapper crates (`harmony-bindings-{web,desktop,mobile}`) own
-//! crate-type + bootstrap.
+//! tauri, uniffi) and activates the matching ABI emission. The manifest
+//! carries `crate-type = ["cdylib", "rlib"]` so `wasm-pack` can build this
+//! crate directly.
 
 #![cfg_attr(target_arch = "wasm32", allow(clippy::future_not_send))]
 
@@ -13,6 +13,8 @@ extern crate self as harmony_protocol;
 
 mod error;
 mod shared;
+#[cfg(all(feature = "web", target_arch = "wasm32"))]
+mod wasm_init;
 mod wrappers;
 
 pub(crate) use shared::Shared;
@@ -34,6 +36,9 @@ pub mod timeline;
 pub use error::HarmonyError;
 pub use harmony_protocol_macros::{harmony, harmony_export};
 pub use wrappers::{Bytes, Command, Opaque, Rpc, Subscription};
+
+#[cfg(feature = "mobile")]
+uniffi::setup_scaffolding!();
 
 // --- Inventory entry types -------------------------------------------------
 

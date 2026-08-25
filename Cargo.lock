@@ -2078,33 +2078,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "harmony-bindings-desktop"
-version = "0.1.0"
-dependencies = [
- "harmony-protocol",
- "tauri",
-]
-
-[[package]]
-name = "harmony-bindings-mobile"
-version = "0.1.0"
-dependencies = [
- "harmony-protocol",
- "uniffi",
-]
-
-[[package]]
-name = "harmony-bindings-web"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "harmony-protocol",
- "tracing",
- "tracing-wasm",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "harmony-cli"
 version = "0.1.0"
 dependencies = [
@@ -2125,7 +2098,7 @@ dependencies = [
 name = "harmony-desktop"
 version = "0.0.0"
 dependencies = [
- "harmony-bindings-desktop",
+ "harmony-protocol",
  "tauri",
  "tauri-build",
  "tracing",
@@ -2136,6 +2109,7 @@ dependencies = [
 name = "harmony-protocol"
 version = "0.1.0"
 dependencies = [
+ "console_error_panic_hook",
  "dashmap",
  "dirs",
  "futures-channel",
@@ -2160,6 +2134,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "tracing-wasm",
  "uniffi",
  "uuid",
  "wasm-bindgen",

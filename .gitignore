@@ -13,3 +13,6 @@ node_modules
 
 **/docs
 !/docs
+
+# Agent scratch (worktrees, local config)
+.claude/

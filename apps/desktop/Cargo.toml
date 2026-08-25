@@ -10,7 +10,7 @@ workspace = true
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-harmony-bindings-desktop = { workspace = true }
+harmony-protocol = { workspace = true, features = ["desktop"] }
 tauri = { workspace = true, features = [] }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

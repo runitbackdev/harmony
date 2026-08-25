@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-crate-type = ["rlib"]
+crate-type = ["cdylib", "rlib"]
 
 [lints]
 workspace = true
@@ -20,6 +20,8 @@ web = [
   "dep:wasm-streams",
   "dep:getrandom",
   "dep:uuid",
+  "dep:console_error_panic_hook",
+  "dep:tracing-wasm",
 ]
 desktop = ["dep:tauri", "dep:dashmap", "dep:tokio"]
 mobile = ["dep:uniffi"]
@@ -51,6 +53,8 @@ js-sys = { version = "0.3", optional = true }
 wasm-streams = { version = "0.4", optional = true }
 getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
 uuid = { version = "1", features = ["js"], optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+tracing-wasm = { version = "0.2", optional = true }
 
 # Desktop binding deps — pulled in via `feature = "desktop"`.
 tauri = { workspace = true, optional = true }

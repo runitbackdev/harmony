@@ -8,7 +8,8 @@
 //! - `packages/core/lib/protocol/maps.generated.ts` — transport-agnostic
 //!   `Rpc/Command/Subscription` typing tables (shared).
 //! - Per-target dispatch + handler outputs, delegated to:
-//!   - [`web`] — wasm-pack build, `wasm.d.ts` extension, web dispatch.
+//!   - [`web`] — `cargo rustc` cdylib + `wasm-bindgen`, `wasm.d.ts`
+//!     extension, web dispatch.
 //!   - [`desktop`] — Tauri dispatch + handler list macro.
 //!   - [`mobile`] — placeholder dispatch stub.
 //!
@@ -16,6 +17,7 @@
 //! file paths and emission shape.
 
 mod desktop;
+mod dispatch;
 mod entries;
 mod maps;
 mod mobile;
