@@ -34,7 +34,7 @@ fn write_with_dirs(path: &Path, contents: String) -> Result<()> {
 /// Tauri dispatch table. Each wire entry routes to its
 /// `wire.replace('.', '_')` Tauri command through the hand-written
 /// `invokeRpc` / `invokeCommand` / `subscribeViaTauri` helpers.
-const TAURI_IMPORTS: &str = r#"import { invokeCommand, invokeRpc } from "./invoke";
+const TAURI_IMPORTS: &str = r#"import { invokeCommand, invokeRpc, invokeRpcBytesIn, invokeRpcBytesOut } from "./invoke";
 import { subscribeViaTauri } from "./subscribe";
 import type { CommandMap, RpcMap, SubscriptionMap } from "@harmony/core/protocol/maps.generated";"#;
 
@@ -49,7 +49,15 @@ const TAURI_TABLE: DispatchTable = DispatchTable {
 fn tauri_call(entry: &EntryRow, kind: EntryKind) -> String {
     let cmd = entry.wire.replace('.', "_");
     match kind {
-        EntryKind::Rpc => format!(r#"((input) => invokeRpc("{cmd}", input))"#),
+        EntryKind::Rpc => match (entry.bytes_in, entry.bytes_out) {
+            (Some(field), _) => {
+                format!(r#"((input) => invokeRpcBytesIn("{cmd}", input, "{field}"))"#)
+            }
+            (_, Some(field)) => {
+                format!(r#"((input) => invokeRpcBytesOut("{cmd}", input, "{field}"))"#)
+            }
+            _ => format!(r#"((input) => invokeRpc("{cmd}", input))"#),
+        },
         EntryKind::Command => format!(r#"((input) => invokeCommand("{cmd}", input))"#),
         EntryKind::Subscription => format!(r#"((input) => subscribeViaTauri("{cmd}", input))"#),
     }

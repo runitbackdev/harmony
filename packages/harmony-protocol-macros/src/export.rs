@@ -15,6 +15,8 @@ struct ExportArgs {
     action: Option<String>,
     js_name: Option<String>,
     snapshot_for: Option<String>,
+    bytes_in: Option<String>,
+    bytes_out: Option<String>,
 }
 
 impl Parse for ExportArgs {
@@ -47,11 +49,13 @@ impl Parse for ExportArgs {
                 "action" => args.action = Some(value),
                 "js_name" => args.js_name = Some(value),
                 "snapshot_for" => args.snapshot_for = Some(value),
+                "bytes_in" => args.bytes_in = Some(value),
+                "bytes_out" => args.bytes_out = Some(value),
                 other => {
                     return Err(syn::Error::new_spanned(
                         ident,
                         format!(
-                            "unknown attribute `{other}`; expected one of name, domain, action, js_name, snapshot_for"
+                            "unknown attribute `{other}`; expected one of name, domain, action, js_name, snapshot_for, bytes_in, bytes_out"
                         ),
                     ));
                 }
@@ -153,76 +157,6 @@ fn input_types(func: &ItemFn) -> Vec<Type> {
         .collect()
 }
 
-fn ts_ref(ty: &Type) -> String {
-    match ty {
-        Type::Tuple(t) if t.elems.is_empty() => "void".into(),
-        Type::Tuple(t) => {
-            let inner: Vec<String> = t.elems.iter().map(ts_ref).collect();
-            format!("[{}]", inner.join(", "))
-        }
-        Type::Reference(r) => ts_ref(&r.elem),
-        Type::Paren(p) => ts_ref(&p.elem),
-        Type::Group(g) => ts_ref(&g.elem),
-        Type::Slice(s) => format!("{}[]", ts_ref(&s.elem)),
-        Type::Array(a) => format!("{}[]", ts_ref(&a.elem)),
-        Type::Path(tp) => ts_ref_path(tp),
-        other => quote!(#other).to_string().split_whitespace().collect(),
-    }
-}
-
-fn ts_ref_path(tp: &syn::TypePath) -> String {
-    let Some(last) = tp.path.segments.last() else {
-        return quote!(#tp).to_string().split_whitespace().collect();
-    };
-    let name = last.ident.to_string();
-
-    if let Some(prim) = primitive(&name) {
-        return prim.into();
-    }
-
-    if let PathArguments::AngleBracketed(args) = &last.arguments {
-        let inner: Vec<String> = args
-            .args
-            .iter()
-            .filter_map(|a| match a {
-                GenericArgument::Type(t) => Some(ts_ref(t)),
-                _ => None,
-            })
-            .collect();
-        match (name.as_str(), inner.as_slice()) {
-            ("Vec" | "VecDeque", [t]) => return format!("{t}[]"),
-            ("Box" | "Rc" | "Arc", [t]) => return t.clone(),
-            ("Option", [t]) => return format!("{t} | null"),
-            ("Result", [ok, _]) => return ok.clone(),
-            ("HashMap" | "BTreeMap", [k, v]) => return format!("Record<{k}, {v}>"),
-            _ => return format!("{name}<{}>", inner.join(", ")),
-        }
-    }
-
-    name
-}
-
-fn primitive(name: &str) -> Option<&'static str> {
-    Some(match name {
-        "String" | "str" | "char" => "string",
-        "bool" => "boolean",
-        "i8" | "i16" | "i32" | "i64" | "isize" | "u8" | "u16" | "u32" | "u64" | "usize" | "f32"
-        | "f64" => "number",
-        _ => return None,
-    })
-}
-
-fn input_ts(types: &[Type]) -> String {
-    match types {
-        [] => "void".into(),
-        [single] => ts_ref(single),
-        many => {
-            let inner: Vec<String> = many.iter().map(ts_ref).collect();
-            format!("[{}]", inner.join(", "))
-        }
-    }
-}
-
 pub fn expand(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as ExportArgs);
     let func = parse_macro_input!(input as ItemFn);
@@ -253,20 +187,26 @@ fn expand_inner(args: ExportArgs, func: ItemFn) -> syn::Result<TokenStream2> {
     });
 
     let input_types = input_types(&func);
-    let input_ts_str = input_ts(&input_types);
+    if input_types.len() > 1 {
+        return Err(syn::Error::new_spanned(
+            &func.sig.inputs,
+            "#[harmony_export] functions take at most one argument",
+        ));
+    }
 
     let kind_ident = syn::Ident::new(kind.variant_ident(), fn_ident.span());
-
-    let in_register: TokenStream2 = input_types
-        .iter()
-        .filter(|t| !is_unit_type(t))
-        .map(|t| quote! { types.register_mut::<#t>(); })
-        .collect();
-
-    let kind_payload = build_kind_payload(&kind, &in_register, &input_ts_str);
+    let sig = build_signature(&kind, input_types.first());
 
     let snapshot_for = args
         .snapshot_for
+        .map_or_else(|| quote! { None }, |s| quote! { Some(#s) });
+    let bytes_in = args
+        .bytes_in
+        .as_ref()
+        .map_or_else(|| quote! { None }, |s| quote! { Some(#s) });
+    let bytes_out = args
+        .bytes_out
+        .as_ref()
         .map_or_else(|| quote! { None }, |s| quote! { Some(#s) });
 
     let mut emitted_fn = func;
@@ -278,7 +218,13 @@ fn expand_inner(args: ExportArgs, func: ItemFn) -> syn::Result<TokenStream2> {
     };
     emitted_fn.attrs.push(wasm_bindgen_attr);
 
-    let desktop_wrapper = build_desktop_wrapper(&emitted_fn, &kind, &wire);
+    let desktop_wrapper = build_desktop_wrapper(
+        &emitted_fn,
+        &kind,
+        &wire,
+        args.bytes_in.as_deref(),
+        args.bytes_out.as_deref(),
+    );
 
     Ok(quote! {
         #emitted_fn
@@ -292,69 +238,133 @@ fn expand_inner(args: ExportArgs, func: ItemFn) -> syn::Result<TokenStream2> {
                 module: ::core::module_path!(),
                 kind: ::harmony_protocol::EntryKind::#kind_ident,
                 snapshot_for: #snapshot_for,
-                types: #kind_payload,
+                bytes_in: #bytes_in,
+                bytes_out: #bytes_out,
+                sig: #sig,
             }
         }
     })
 }
 
-/// Build the `HarmonyTypes::{Rpc,Command,Subscription}` literal that
-/// populates the `types` field on an `inventory::submit!`'d
-/// `HarmonyEntry`. Each arm bakes in the per-kind TS reference strings
-/// and emits a `register` closure that walks every transitively
-/// referenced wire type into the specta `Types` collection.
-fn build_kind_payload(kind: &Kind, in_register: &TokenStream2, input_ts_str: &str) -> TokenStream2 {
-    match kind {
-        Kind::Rpc { output } => {
-            let out_ts = ts_ref(output);
-            let output_register = register_type(output);
-            quote! {
-                ::harmony_protocol::HarmonyTypes::Rpc {
-                    input_ts: #input_ts_str,
-                    output_ts: #out_ts,
-                    register: |types: &mut ::specta::Types| {
-                        #in_register
-                        #output_register
-                    },
-                }
-            }
-        }
-        Kind::Command => quote! {
-            ::harmony_protocol::HarmonyTypes::Command {
-                input_ts: #input_ts_str,
-                register: |types: &mut ::specta::Types| {
-                    #in_register
-                },
-            }
-        },
+/// Build the `sig` fn pointer for an entry. `Type::definition` both
+/// returns the `DataType` and registers every transitively referenced type
+/// into `Types`, so this replaces the old register-plus-string pair.
+fn build_signature(kind: &Kind, input: Option<&Type>) -> TokenStream2 {
+    let input = slot(input);
+    let (output, initial, chunk) = match kind {
+        Kind::Rpc { output } => (slot(Some(output)), quote!(None), quote!(None)),
+        Kind::Command => (quote!(None), quote!(None), quote!(None)),
         Kind::Subscription { initial, chunk } => {
-            let initial_ts = ts_ref(initial);
-            let chunk_ts = ts_ref(chunk);
-            let initial_register = register_type(initial);
-            let chunk_register = register_type(chunk);
-            quote! {
-                ::harmony_protocol::HarmonyTypes::Subscription {
-                    input_ts: #input_ts_str,
-                    initial_ts: #initial_ts,
-                    chunk_ts: #chunk_ts,
-                    register: |types: &mut ::specta::Types| {
-                        #in_register
-                        #initial_register
-                        #chunk_register
-                    },
+            (quote!(None), slot(Some(initial)), slot(Some(chunk)))
+        }
+    };
+
+    quote! {
+        |types: &mut ::specta::Types| ::harmony_protocol::Signature {
+            input: #input,
+            output: #output,
+            initial: #initial,
+            chunk: #chunk,
+        }
+    }
+}
+
+/// Unit types stay `None` — specta would otherwise emit a useless `null`
+/// alias, and the renderer already prints `None` as `void`.
+fn slot(ty: Option<&Type>) -> TokenStream2 {
+    match ty {
+        None => quote! { None },
+        Some(t) if is_unit_type(t) => quote! { None },
+        Some(t) => quote! { Some(<#t as ::specta::Type>::definition(types)) },
+    }
+}
+
+/// Byte-bearing RPC wrapper. Tauri's response body is `Json` XOR `Raw`, so
+/// bytes cannot ride the JSON envelope without degrading to a number array.
+/// The declared field is moved out and pushed down a `Channel<Response>` as
+/// raw bytes while the rest of the payload returns as normal JSON; the
+/// frontend reassembles the two. The field travels empty on the JSON lane,
+/// so the wire type is unchanged.
+#[allow(clippy::too_many_arguments)]
+fn build_bytes_out_wrapper(
+    fn_ident: &syn::Ident,
+    wrapper_ident: &syn::Ident,
+    asyncness: Option<&Token![async]>,
+    await_token: &TokenStream2,
+    input_param: &TokenStream2,
+    input_call: &TokenStream2,
+    output: &Type,
+    field: &str,
+) -> TokenStream2 {
+    let field = syn::Ident::new(field, wrapper_ident.span());
+    quote! {
+        #[cfg(feature = "desktop")]
+        #[::tauri::command]
+        pub #asyncness fn #wrapper_ident(
+            #input_param,
+            bytes: ::tauri::ipc::Channel<::tauri::ipc::Response>,
+        ) -> ::harmony_protocol::Rpc<#output> {
+            match #fn_ident(#input_call) #await_token .0 {
+                Ok(mut value) => {
+                    let raw = ::core::mem::take(&mut value.#field);
+                    let _ = bytes.send(::tauri::ipc::Response::new(raw.0));
+                    ::harmony_protocol::Rpc::ok(value)
                 }
+                Err(error) => ::harmony_protocol::Rpc::err(error),
             }
         }
     }
 }
 
-/// `types.register_mut::<#ty>();` (or empty for `()`). Skipping unit
-/// types avoids specta emitting a useless `null` alias.
-fn register_type(ty: &Type) -> TokenStream2 {
-    if is_unit_type(ty) {
-        quote! {}
-    } else {
-        quote! { types.register_mut::<#ty>(); }
+/// Byte-bearing RPC input. Tauri's request body is `Json` XOR `Raw`, so the
+/// bytes ride the raw body while the rest of the input arrives as JSON in an
+/// `x-harmony-input` header. The declared field travels empty in that header
+/// and is overwritten from the body, mirroring the outbound wrapper — so the
+/// wire type is unchanged in both directions.
+fn build_bytes_in_wrapper(
+    fn_ident: &syn::Ident,
+    wrapper_ident: &syn::Ident,
+    asyncness: Option<&Token![async]>,
+    await_token: &TokenStream2,
+    input_ty: &Type,
+    output: &Type,
+    field: &str,
+) -> TokenStream2 {
+    let field = syn::Ident::new(field, wrapper_ident.span());
+    quote! {
+        #[cfg(feature = "desktop")]
+        #[::tauri::command]
+        pub #asyncness fn #wrapper_ident(
+            request: ::tauri::ipc::Request<'_>,
+        ) -> ::core::result::Result<
+            ::harmony_protocol::Rpc<#output>,
+            ::harmony_protocol::HarmonyError,
+        > {
+            let ::tauri::ipc::InvokeBody::Raw(raw) = request.body() else {
+                return Ok(::harmony_protocol::Rpc::err(
+                    ::harmony_protocol::HarmonyError::SerializationFailed {
+                        message: "expected a raw request body".to_owned(),
+                    },
+                ));
+            };
+            let meta = request
+                .headers()
+                .get("x-harmony-input")
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("{}");
+            let mut input: #input_ty = match ::serde_json::from_str(meta) {
+                Ok(input) => input,
+                Err(error) => {
+                    return Ok(::harmony_protocol::Rpc::err(
+                        ::harmony_protocol::HarmonyError::SerializationFailed {
+                            message: error.to_string(),
+                        },
+                    ));
+                }
+            };
+            input.#field = ::harmony_protocol::Bytes(raw.clone());
+            Ok(#fn_ident(input) #await_token)
+        }
     }
 }
 
@@ -371,7 +381,13 @@ fn register_type(ty: &Type) -> TokenStream2 {
 /// `channel: Channel<StreamEvent<Chunk>>`, register the pump's
 /// `AbortHandle` in `harmony_protocol::desktop::REGISTRY`, and return
 /// `Rpc<Initial>`. Cancel flows back via `harmony_unsubscribe`.
-fn build_desktop_wrapper(func: &ItemFn, kind: &Kind, wire: &str) -> TokenStream2 {
+fn build_desktop_wrapper(
+    func: &ItemFn,
+    kind: &Kind,
+    wire: &str,
+    bytes_in: Option<&str>,
+    bytes_out: Option<&str>,
+) -> TokenStream2 {
     let fn_ident = &func.sig.ident;
     let wrapper_name = wire.replace('.', "_");
     let wrapper_ident = syn::Ident::new(&wrapper_name, fn_ident.span());
@@ -391,6 +407,31 @@ fn build_desktop_wrapper(func: &ItemFn, kind: &Kind, wire: &str) -> TokenStream2
         || (quote! {}, quote! {}),
         |ty| (quote! { input: #ty }, quote! { input }),
     );
+
+    if let (Some(field), Kind::Rpc { output }) = (bytes_out, kind) {
+        return build_bytes_out_wrapper(
+            fn_ident,
+            &wrapper_ident,
+            asyncness.as_ref(),
+            &await_token,
+            &input_param,
+            &input_call,
+            output,
+            field,
+        );
+    }
+
+    if let (Some(field), Kind::Rpc { output }, Some(ty)) = (bytes_in, kind, input_ty) {
+        return build_bytes_in_wrapper(
+            fn_ident,
+            &wrapper_ident,
+            asyncness.as_ref(),
+            &await_token,
+            ty,
+            output,
+            field,
+        );
+    }
 
     match kind {
         Kind::Rpc { .. } | Kind::Command => {

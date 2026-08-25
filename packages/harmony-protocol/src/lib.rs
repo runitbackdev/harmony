@@ -55,7 +55,15 @@ pub struct HarmonyEntry {
     pub module: &'static str,
     pub kind: EntryKind,
     pub snapshot_for: Option<&'static str>,
-    pub types: HarmonyTypes,
+    /// Fields carrying `Bytes`, declared via `#[harmony_export(bytes_in
+    /// = "...")]` / `bytes_out`. On desktop these leave the JSON lane: the
+    /// inbound field rides the raw request body, the outbound one a
+    /// `Channel<Response>`.
+    pub bytes_in: Option<&'static str>,
+    pub bytes_out: Option<&'static str>,
+    /// Builds the entry's wire types, registering every transitively
+    /// referenced type into `Types` as a side effect.
+    pub sig: fn(&mut specta::Types) -> Signature,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -65,28 +73,14 @@ pub enum EntryKind {
     Subscription,
 }
 
-/// Per-kind type metadata for a Harmony entry.
-///
-/// `register` walks the `specta::Types` collection so all transitive types
-/// end up in the generated `.ts` file; the `*_ts` fields are the printable
-/// TypeScript references used when emitting the `maps.generated.ts`
-/// dispatcher table.
-pub enum HarmonyTypes {
-    Rpc {
-        input_ts: &'static str,
-        output_ts: &'static str,
-        register: fn(&mut specta::Types),
-    },
-    Command {
-        input_ts: &'static str,
-        register: fn(&mut specta::Types),
-    },
-    Subscription {
-        input_ts: &'static str,
-        initial_ts: &'static str,
-        chunk_ts: &'static str,
-        register: fn(&mut specta::Types),
-    },
+/// Resolved wire types for one entry. A `None` slot renders as `void`:
+/// an absent argument, a `Command`'s missing output, or a unit type.
+#[derive(Default)]
+pub struct Signature {
+    pub input: Option<specta::datatype::DataType>,
+    pub output: Option<specta::datatype::DataType>,
+    pub initial: Option<specta::datatype::DataType>,
+    pub chunk: Option<specta::datatype::DataType>,
 }
 
 inventory::collect!(HarmonyEntry);

@@ -15,7 +15,7 @@ pub struct MediaUploaded {
     pub mx_url: String,
 }
 
-#[harmony_export(domain = "media", action = "upload")]
+#[harmony_export(domain = "media", action = "upload", bytes_in = "data")]
 pub async fn upload(input: MediaUploadInput) -> Rpc<MediaUploaded> {
     upload_impl(input.data.0, input.content_type)
         .await
@@ -47,7 +47,7 @@ pub struct MediaContent {
     pub content_type: String,
 }
 
-#[harmony_export(domain = "media", action = "fetch")]
+#[harmony_export(domain = "media", action = "fetch", bytes_out = "bytes")]
 pub async fn fetch(input: MediaFetchInput) -> Rpc<MediaContent> {
     fetch_impl(input.file.0, input.content_type).await.into()
 }

@@ -16,6 +16,7 @@
 //! The orchestrator owns nothing per-target; each submodule owns its
 //! file paths and emission shape.
 
+mod bytes;
 mod desktop;
 mod dispatch;
 mod entries;
@@ -24,7 +25,7 @@ mod mobile;
 mod web;
 
 use anyhow::{Context, Result, anyhow};
-use harmony_protocol::{HarmonyEntry, HarmonyError, HarmonyTypes};
+use harmony_protocol::{HarmonyEntry, HarmonyError};
 use specta::Types;
 use specta_typescript::Typescript;
 
@@ -41,20 +42,21 @@ pub fn run(release: bool) -> Result<()> {
     //    serde impl, so seed it explicitly.
     let mut types = Types::default();
     types.register_mut::<HarmonyError>();
-    for entry in inventory::iter::<HarmonyEntry> {
-        let register = match &entry.types {
-            HarmonyTypes::Rpc { register, .. }
-            | HarmonyTypes::Command { register, .. }
-            | HarmonyTypes::Subscription { register, .. } => register,
-        };
-        register(&mut types);
-    }
+    let bytes_dt = <harmony_protocol::Bytes as specta::Type>::definition(&mut types);
+    let sigs: Vec<_> = inventory::iter::<HarmonyEntry>
+        .into_iter()
+        .map(|entry| {
+            let sig = (entry.sig)(&mut types);
+            (entry, sig)
+        })
+        .collect();
 
     // 2. Apply serde rules (rename_all, tag/content, etc.) and resolve
     //    into a printable TypeScript module.
     let resolved =
         specta_serde::apply(types).map_err(|e| anyhow!("specta-serde apply failed: {e}"))?;
-    let types_source = Typescript::default()
+    let ts = Typescript::default();
+    let types_source = ts
         .export(&resolved)
         .map_err(|e| anyhow!("specta-typescript export failed: {e}"))?;
 
@@ -69,8 +71,9 @@ pub fn run(release: bool) -> Result<()> {
     std::fs::write(&types_path, &types_source)
         .with_context(|| format!("writing {}", types_path.display()))?;
 
-    let entries = entries::collect_entries();
-    std::fs::write(&maps_path, maps::render(&entries))
+    bytes::verify(&sigs, &bytes_dt, &resolved)?;
+    let (entries, references) = entries::collect_entries(sigs, &ts, &resolved)?;
+    std::fs::write(&maps_path, maps::render(&entries, &references))
         .with_context(|| format!("writing {}", maps_path.display()))?;
 
     // 4. Per-target outputs. Each target owns its file paths + emission

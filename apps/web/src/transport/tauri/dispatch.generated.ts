@@ -2,7 +2,7 @@
 // Regenerate: harmony codegen
 /* eslint-disable */
 
-import { invokeCommand, invokeRpc } from "./invoke";
+import { invokeCommand, invokeRpc, invokeRpcBytesIn, invokeRpcBytesOut } from "./invoke";
 import { subscribeViaTauri } from "./subscribe";
 import type { CommandMap, RpcMap, SubscriptionMap } from "@harmony/core/protocol/maps.generated";
 
@@ -11,8 +11,8 @@ export const tauriRpc: { [K in keyof RpcMap]: RpcMap[K] } = {
   "auth.restore": ((input) => invokeRpc("auth_restore", input)) as RpcMap["auth.restore"],
   "diagnostics.ping": ((input) => invokeRpc("diagnostics_ping", input)) as RpcMap["diagnostics.ping"],
   "lifecycle.warm": ((input) => invokeRpc("lifecycle_warm", input)) as RpcMap["lifecycle.warm"],
-  "media.fetch": ((input) => invokeRpc("media_fetch", input)) as RpcMap["media.fetch"],
-  "media.upload": ((input) => invokeRpc("media_upload", input)) as RpcMap["media.upload"],
+  "media.fetch": ((input) => invokeRpcBytesOut("media_fetch", input, "bytes")) as RpcMap["media.fetch"],
+  "media.upload": ((input) => invokeRpcBytesIn("media_upload", input, "data")) as RpcMap["media.upload"],
   "members.get": ((input) => invokeRpc("members_get", input)) as RpcMap["members.get"],
   "rooms.get_all": ((input) => invokeRpc("rooms_get_all", input)) as RpcMap["rooms.get_all"],
   "spaces.create": ((input) => invokeRpc("spaces_create", input)) as RpcMap["spaces.create"],

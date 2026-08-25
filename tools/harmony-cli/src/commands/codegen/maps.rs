@@ -9,13 +9,13 @@ use super::entries::{EntryRow, group_by_kind, snapshot_map};
 /// Emit the transport-agnostic `maps.generated.ts` — wire-name → typed
 /// `Rpc/Command/Subscription` fn signatures, name arrays, snapshot map.
 /// Consumed by every per-target dispatch module.
-pub(super) fn render(entries: &[EntryRow]) -> String {
+pub(super) fn render(entries: &[EntryRow], references: &BTreeSet<String>) -> String {
     let by_kind = group_by_kind(entries);
     let rpc = &by_kind[&EntryKind::Rpc];
     let cmd = &by_kind[&EntryKind::Command];
     let sub = &by_kind[&EntryKind::Subscription];
 
-    let imports = rpc_map_imports(entries);
+    let imports = rpc_map_imports(references);
     let rpc_map = rpc_map_body(rpc);
     let command_map = command_map_body(cmd);
     let subscription_map = subscription_map_body(sub);
@@ -72,59 +72,15 @@ pub(super) fn render(entries: &[EntryRow]) -> String {
     "#}
 }
 
-/// Walk each entry's TS strings and pull out the bare named types
-/// referenced (e.g. `LoginRequest`, `RoomData[]` → `RoomData`). Filters
-/// TS primitives so the import list only includes user-defined wire
-/// types from `./types.generated`.
-fn collect_map_referenced_names(entries: &[EntryRow]) -> BTreeSet<String> {
-    let mut names = BTreeSet::new();
-    names.insert("HarmonyError".to_string());
-    for entry in entries {
-        for s in [
-            Some(entry.input_ts),
-            entry.output_ts,
-            entry.initial_ts,
-            entry.chunk_ts,
-        ]
-        .into_iter()
-        .flatten()
-        {
-            for ident in extract_idents(s) {
-                names.insert(ident);
-            }
-        }
-    }
-    names
-}
-
-fn extract_idents(ts: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut current = String::new();
-    for c in ts.chars() {
-        if c.is_ascii_alphanumeric() || c == '_' {
-            current.push(c);
-        } else if !current.is_empty() {
-            if is_named_type(&current) {
-                out.push(std::mem::take(&mut current));
-            } else {
-                current.clear();
-            }
-        }
-    }
-    if !current.is_empty() && is_named_type(&current) {
-        out.push(current);
-    }
-    out
-}
-
-fn is_named_type(name: &str) -> bool {
-    // Skip TS primitives + lowercase keywords. Named user types start
-    // with ASCII uppercase.
-    name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
-}
-
-fn rpc_map_imports(entries: &[EntryRow]) -> String {
-    collect_map_referenced_names(entries)
+/// `HarmonyError` is referenced by the hand-written `RpcFn`/`CommandFn`
+/// aliases in the template rather than by any entry signature, so it is
+/// seeded rather than collected.
+fn rpc_map_imports(references: &BTreeSet<String>) -> String {
+    references
+        .iter()
+        .map(String::as_str)
+        .chain(std::iter::once("HarmonyError"))
+        .collect::<BTreeSet<_>>()
         .iter()
         .map(|n| format!("  {n},"))
         .join("\n")
@@ -132,14 +88,7 @@ fn rpc_map_imports(entries: &[EntryRow]) -> String {
 
 fn rpc_map_body(rpc: &[&EntryRow]) -> String {
     rpc.iter()
-        .map(|e| {
-            format!(
-                r#"  "{}": RpcFn<{}, {}>;"#,
-                e.wire,
-                e.input_ts,
-                e.output_ts.unwrap_or("void"),
-            )
-        })
+        .map(|e| format!(r#"  "{}": RpcFn<{}, {}>;"#, e.wire, e.input_ts, e.output_ts))
         .join("\n")
 }
 
@@ -154,10 +103,7 @@ fn subscription_map_body(sub: &[&EntryRow]) -> String {
         .map(|e| {
             format!(
                 r#"  "{}": SubscriptionEntry<SubscriptionFn<{}, {}, {}>>;"#,
-                e.wire,
-                e.input_ts,
-                e.initial_ts.unwrap_or("unknown"),
-                e.chunk_ts.unwrap_or("unknown"),
+                e.wire, e.input_ts, e.initial_ts, e.chunk_ts,
             )
         })
         .join("\n")

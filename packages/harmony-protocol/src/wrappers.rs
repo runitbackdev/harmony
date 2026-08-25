@@ -265,7 +265,7 @@ impl<T> specta::Type for Opaque<T> {
 /// byte into a `number[]`. The TS type is `Uint8Array<ArrayBuffer>` — the
 /// non-shared buffer the DOM's `BufferSource` (e.g. `Blob`) requires, so
 /// consumers pass it straight through without a cast.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(transparent)]
 pub struct Bytes(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
