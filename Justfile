@@ -1,4 +1,5 @@
 compose := if `command -v docker >/dev/null 2>&1 && echo yes || echo no` == "yes" { "docker compose" } else { "podman compose" }
+harmony := "cargo run --bin harmony"
 
 # Frontend only — hosted homeserver by default (override via VITE_HOMESERVER_URL).
 web host="http://localhost:8008":
@@ -49,7 +50,7 @@ setup:
     pnpm exec lefthook install
 
 gen-rpc:
-    harmony codegen
+    {{ harmony }} codegen
 
 self-update:
     cargo install --path tools/harmony-cli --force
