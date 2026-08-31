@@ -57,7 +57,7 @@ jobs:
 
       - name: Build web application
         run: |
-          cargo run --bin harmony -- codegen --release
+          cargo run -p harmony-cli --bin harmony -- codegen --release
           pnpm --filter web build
 
       - name: Set up Docker Buildx
