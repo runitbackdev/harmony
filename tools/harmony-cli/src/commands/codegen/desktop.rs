@@ -66,17 +66,19 @@ fn tauri_call(entry: &EntryRow, kind: EntryKind) -> String {
 /// Desktop handler list. Each `#[harmony_export]` gets a
 /// `#[tauri::command]` wrapper fn in its source module (see
 /// `harmony-protocol-macros::export::build_desktop_wrapper`).
-/// Subscriptions additionally take `subscription_id` +
-/// `Channel<StreamEvent<C>>`. The builtin `harmony_unsubscribe` cancels
-/// a subscription pump by id.
+/// Subscriptions additionally take `subscription_id`, registering their
+/// stream for consumer-driven polling. The builtins `harmony_poll` and
+/// `harmony_unsubscribe` drive and cancel a subscription by id.
 ///
 /// The generated macro expands to `::tauri::generate_handler![...]` over
 /// every wrapper plus the builtin. The file is `include!`d by the Tauri
 /// shell, so the macro is defined in the crate that calls it and every
 /// path is absolute into `harmony-protocol`.
 fn render_handlers(entries: &[EntryRow]) -> String {
-    let mut lines: Vec<String> =
-        vec!["        ::harmony_protocol::desktop::harmony_unsubscribe,".into()];
+    let mut lines: Vec<String> = vec![
+        "        ::harmony_protocol::desktop::harmony_poll,".into(),
+        "        ::harmony_protocol::desktop::harmony_unsubscribe,".into(),
+    ];
     lines.extend(
         entries
             .iter()

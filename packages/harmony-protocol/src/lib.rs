@@ -28,6 +28,8 @@ pub mod diff;
 pub mod internal_error;
 pub mod lifecycle;
 pub mod media;
+#[cfg(feature = "mobile")]
+pub mod mobile;
 pub mod rooms;
 pub mod spaces;
 pub mod sync;
@@ -38,7 +40,40 @@ pub use harmony_protocol_macros::{harmony, harmony_export};
 pub use wrappers::{Bytes, Command, Opaque, Rpc, Subscription};
 
 #[cfg(feature = "mobile")]
-uniffi::setup_scaffolding!();
+uniffi::setup_scaffolding!("harmony");
+
+/// uniffi is nominal and has no generics, so the two wire-opaque wrappers
+/// are declared per concrete instantiation. `Bytes` crosses as a real byte
+/// array; `Opaque<T>` degrades to a JSON string rather than mirroring the
+/// foreign type it wraps. Codegen can't emit these — `Opaque<T>` erases to
+/// an opaque reference in the specta graph, so the concrete `T` is not
+/// recoverable there.
+#[cfg(feature = "mobile")]
+mod mobile_abi {
+    use crate::{Bytes, Opaque};
+
+    pub type OpaqueEncryptedFile = Opaque<matrix_sdk::ruma::events::room::EncryptedFile>;
+
+    uniffi::custom_newtype!(Bytes, Vec<u8>);
+
+    // One alias per concrete chunk type. `ListDiff<TimelineEventData>` is
+    // needed even without a subscription wrapper, since it is reached through
+    // `TimelineStreamMessage::Diffs`.
+    crate::list_diff_uniffi!(SpaceDataListDiff, SpaceDataDiff, crate::spaces::SpaceData);
+    crate::list_diff_uniffi!(RoomDataListDiff, RoomDataDiff, crate::rooms::RoomData);
+    crate::list_diff_uniffi!(MemberDataListDiff, MemberDataDiff, crate::rooms::MemberData);
+    crate::list_diff_uniffi!(
+        TimelineEventDataListDiff,
+        TimelineEventDataDiff,
+        crate::timeline::TimelineEventData
+    );
+
+    uniffi::custom_type!(OpaqueEncryptedFile, String, {
+        remote,
+        lower: |value| serde_json::to_string(&value.0).unwrap_or_default(),
+        try_lift: |raw| Ok(Opaque(serde_json::from_str(&raw)?)),
+    });
+}
 
 // --- Inventory entry types -------------------------------------------------
 

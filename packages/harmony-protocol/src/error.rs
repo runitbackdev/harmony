@@ -4,7 +4,7 @@ use crate::harmony;
 
 /// Universal error type carried by `Rpc<T>` and `Command` across the
 /// Harmony bridge. Serialized as a `{ code, ... }` discriminated union.
-#[harmony]
+#[harmony(error)]
 #[serde(tag = "code")]
 #[derive(Error, Debug, Clone)]
 pub enum HarmonyError {

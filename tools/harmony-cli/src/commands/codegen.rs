@@ -24,7 +24,7 @@ mod maps;
 mod mobile;
 mod web;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use harmony_protocol::{HarmonyEntry, HarmonyError};
 use specta::Types;
 use specta_typescript::Typescript;
@@ -71,6 +71,7 @@ pub fn run(release: bool) -> Result<()> {
     std::fs::write(&types_path, &types_source)
         .with_context(|| format!("writing {}", types_path.display()))?;
 
+    assert_unique_wrapper_names(&sigs)?;
     bytes::verify(&sigs, &bytes_dt, &resolved)?;
     let (entries, references) = entries::collect_entries(sigs, &ts, &resolved)?;
     std::fs::write(&maps_path, maps::render(&entries, &references))
@@ -87,5 +88,28 @@ pub fn run(release: bool) -> Result<()> {
         types = types_path.display(),
         maps = maps_path.display(),
     );
+    Ok(())
+}
+
+/// uniffi metadata symbols are `UNIFFI_META_{CRATE}_{KIND}_{NAME}`, uppercased
+/// and blind to module paths, so two exports whose wrapper names differ only
+/// by case would collide at link time with a confusing duplicate-symbol error.
+/// Wrapper names are `wire.replace('.', "_")`, so catch it here instead.
+fn assert_unique_wrapper_names(
+    sigs: &[(&'static HarmonyEntry, harmony_protocol::Signature)],
+) -> Result<()> {
+    let mut seen: std::collections::HashMap<String, &'static str> =
+        std::collections::HashMap::new();
+    for (entry, _) in sigs {
+        let symbol = entry.wire.replace('.', "_").to_uppercase();
+        if let Some(other) = seen.insert(symbol, entry.wire) {
+            bail!(
+                "`{}` and `{}` produce the same uniffi metadata symbol; wrapper names must be \
+                 unique case-insensitively",
+                other,
+                entry.wire
+            );
+        }
+    }
     Ok(())
 }

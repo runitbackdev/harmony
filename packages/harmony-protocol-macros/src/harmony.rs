@@ -3,15 +3,16 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{DeriveInput, parse_macro_input};
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn expand(args: &TokenStream, input: TokenStream) -> TokenStream {
+    let is_error = args.to_string().trim() == "error";
     let item = parse_macro_input!(input as DeriveInput);
-    match expand_inner(&item) {
+    match expand_inner(&item, is_error) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }
 }
 
-fn expand_inner(item: &DeriveInput) -> syn::Result<TokenStream2> {
+fn expand_inner(item: &DeriveInput, is_error: bool) -> syn::Result<TokenStream2> {
     if !item.generics.params.is_empty() {
         return Err(syn::Error::new_spanned(
             &item.generics,
@@ -29,8 +30,19 @@ fn expand_inner(item: &DeriveInput) -> syn::Result<TokenStream2> {
         quote! { #[serde(rename_all = "camelCase")] }
     };
 
+    // uniffi is nominal: an error enum must derive `Error`, not `Enum`, or
+    // the native `Result<T, HarmonyError>` shape will not compile.
+    let uniffi_derive = if is_error {
+        quote! { #[cfg_attr(feature = "mobile", derive(::uniffi::Error))] }
+    } else if matches!(item.data, syn::Data::Enum(_)) {
+        quote! { #[cfg_attr(feature = "mobile", derive(::uniffi::Enum))] }
+    } else {
+        quote! { #[cfg_attr(feature = "mobile", derive(::uniffi::Record))] }
+    };
+
     Ok(quote! {
         #[derive(::serde::Serialize, ::serde::Deserialize, ::specta::Type)]
+        #uniffi_derive
         #default_rename
         #item
 

@@ -24,7 +24,7 @@ web = [
   "dep:tracing-wasm",
 ]
 desktop = ["dep:tauri", "dep:dashmap", "dep:tokio"]
-mobile = ["dep:uniffi"]
+mobile = ["dep:uniffi", "dep:tokio", "dep:async-trait"]
 
 [dependencies]
 harmony-protocol-macros = { workspace = true }
@@ -59,10 +59,12 @@ tracing-wasm = { version = "0.2", optional = true }
 # Desktop binding deps — pulled in via `feature = "desktop"`.
 tauri = { workspace = true, optional = true }
 dashmap = { version = "6", optional = true }
-tokio = { workspace = true, features = ["rt", "macros"], optional = true }
+tokio = { workspace = true, features = ["rt", "macros", "sync"], optional = true }
 
 # Mobile binding deps — pulled in via `feature = "mobile"`.
-uniffi = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true, features = ["tokio"] }
+# uniffi's async foreign traits expand to `::async_trait::async_trait`.
+async-trait = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }

@@ -4,6 +4,7 @@
 macro_rules! harmony_handlers {
     () => {
         ::tauri::generate_handler![
+        ::harmony_protocol::desktop::harmony_poll,
         ::harmony_protocol::desktop::harmony_unsubscribe,
         ::harmony_protocol::auth::auth_login,
         ::harmony_protocol::auth::auth_logout,

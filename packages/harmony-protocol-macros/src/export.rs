@@ -225,11 +225,14 @@ fn expand_inner(args: ExportArgs, func: ItemFn) -> syn::Result<TokenStream2> {
         args.bytes_in.as_deref(),
         args.bytes_out.as_deref(),
     );
+    let mobile_wrapper = build_mobile_wrapper(&emitted_fn, &kind, &wire);
 
     Ok(quote! {
         #emitted_fn
 
         #desktop_wrapper
+
+        #mobile_wrapper
 
         ::inventory::submit! {
             ::harmony_protocol::HarmonyEntry {
@@ -316,6 +319,142 @@ fn build_bytes_out_wrapper(
     }
 }
 
+/// Emit a `#[uniffi::export]` wrapper under `feature = "mobile"`.
+///
+/// uniffi has no generics, so `Rpc<T>` cannot cross as-is. The macro knows
+/// the concrete `T` at the export site, so it monomorphizes to a native
+/// `Result<T, HarmonyError>` — which uniffi lowers to Kotlin `@Throws` and
+/// Swift `throws`. Going native rather than mirroring the `{ok, value,
+/// error}` envelope also sidesteps uniffi's lack of `Lower`/`Lift` for
+/// `()` in field position, which an `Option<()>` envelope field would hit.
+///
+/// Subscriptions emit nothing: they need a per-kind async callback sink,
+/// which is a separate step.
+fn build_mobile_wrapper(func: &ItemFn, kind: &Kind, wire: &str) -> TokenStream2 {
+    let fn_ident = &func.sig.ident;
+    let wrapper_ident = syn::Ident::new(&wire.replace('.', "_"), fn_ident.span());
+
+    let asyncness = &func.sig.asyncness;
+    let await_token = asyncness.map(|_| quote!(.await)).unwrap_or_default();
+
+    let input_ty: Option<&Type> = func.sig.inputs.iter().find_map(|arg| match arg {
+        FnArg::Typed(pat) => Some(pat.ty.as_ref()),
+        FnArg::Receiver(_) => None,
+    });
+    let (input_param, input_call) = input_ty.map_or_else(
+        || (quote! {}, quote! {}),
+        |ty| (quote! { input: #ty }, quote! { input }),
+    );
+
+    if let Kind::Subscription { initial, chunk } = kind {
+        return build_mobile_subscription(
+            fn_ident,
+            &wrapper_ident,
+            wire,
+            &input_param,
+            &input_call,
+            initial,
+            chunk,
+            input_ty.is_some(),
+        );
+    }
+
+    let output = match kind {
+        Kind::Rpc { output } => quote! { #output },
+        Kind::Command => quote! { () },
+        Kind::Subscription { .. } => unreachable!("handled above"),
+    };
+
+    quote! {
+        #[cfg(feature = "mobile")]
+        #[::uniffi::export]
+        pub #asyncness fn #wrapper_ident(#input_param)
+            -> ::core::result::Result<#output, ::harmony_protocol::HarmonyError>
+        {
+            #fn_ident(#input_call) #await_token .0
+        }
+    }
+}
+
+/// Mobile subscription wrapper.
+///
+/// uniffi has no generics, so `Subscription<I, C>` is monomorphized into a
+/// per-export `{initial, handle}` record plus a foreign async sink trait for
+/// the chunk type. Because `chunk` is `async`, the pump awaits each delivery
+/// — a slow foreign consumer paces the producer rather than letting it buffer
+/// without bound.
+///
+/// A unit initial drops the field entirely: uniffi has no `Lower`/`Lift` for
+/// `()` in field position.
+#[allow(clippy::too_many_arguments)]
+fn build_mobile_subscription(
+    fn_ident: &syn::Ident,
+    wrapper_ident: &syn::Ident,
+    wire: &str,
+    input_param: &TokenStream2,
+    input_call: &TokenStream2,
+    initial: &Type,
+    chunk: &Type,
+    has_input: bool,
+) -> TokenStream2 {
+    use heck::ToUpperCamelCase;
+
+    let base = wire.replace('.', "_").to_upper_camel_case();
+    let sink_ident = syn::Ident::new(&format!("{base}Sink"), fn_ident.span());
+    let record_ident = syn::Ident::new(&format!("{base}Subscription"), fn_ident.span());
+
+    let input_prefix = if has_input {
+        quote! { #input_param, }
+    } else {
+        quote! {}
+    };
+
+    let (initial_field, initial_init) = if is_unit_type(initial) {
+        (quote! {}, quote! {})
+    } else {
+        (quote! { pub initial: #initial, }, quote! { initial, })
+    };
+
+    quote! {
+        #[cfg(feature = "mobile")]
+        #[::uniffi::export(with_foreign)]
+        #[::async_trait::async_trait]
+        pub trait #sink_ident: Send + Sync {
+            async fn chunk(&self, chunk: #chunk);
+            async fn end(&self);
+        }
+
+        #[cfg(feature = "mobile")]
+        #[derive(::uniffi::Record)]
+        pub struct #record_ident {
+            #initial_field
+            pub handle: ::std::sync::Arc<::harmony_protocol::mobile::TaskHandle>,
+        }
+
+        #[cfg(feature = "mobile")]
+        #[::uniffi::export(async_runtime = "tokio")]
+        pub async fn #wrapper_ident(
+            #input_prefix
+            sink: ::std::sync::Arc<dyn #sink_ident>,
+        ) -> ::core::result::Result<#record_ident, ::harmony_protocol::HarmonyError> {
+            let (initial, mut stream) = #fn_ident(#input_call).await.into_parts()?;
+            let task = ::tokio::spawn(async move {
+                while let Some(chunk) = ::futures_util::StreamExt::next(&mut stream).await {
+                    sink.chunk(chunk).await;
+                }
+                sink.end().await;
+            });
+            let _ = &initial;
+            Ok(#record_ident {
+                #initial_init
+                handle: ::std::sync::Arc::new(
+                    ::harmony_protocol::mobile::TaskHandle::new(task.abort_handle()),
+                ),
+            })
+        }
+    }
+}
+
 /// Byte-bearing RPC input. Tauri's request body is `Json` XOR `Raw`, so the
 /// bytes ride the raw body while the rest of the input arrives as JSON in an
 /// `x-harmony-input` header. The declared field travels empty in that header
@@ -377,10 +516,10 @@ fn build_bytes_in_wrapper(
 /// `{ input, ... }` — frontend dispatch doesn't need per-name arg-name
 /// plumbing.
 ///
-/// Subscription wrappers additionally accept `subscription_id` and
-/// `channel: Channel<StreamEvent<Chunk>>`, register the pump's
-/// `AbortHandle` in `harmony_protocol::desktop::REGISTRY`, and return
-/// `Rpc<Initial>`. Cancel flows back via `harmony_unsubscribe`.
+/// Subscription wrappers additionally accept `subscription_id`, register
+/// the stream for consumer-driven polling, and return `Rpc<Initial>`.
+/// The frontend drives it with `harmony_poll` and cancels with
+/// `harmony_unsubscribe`.
 fn build_desktop_wrapper(
     func: &ItemFn,
     kind: &Kind,
@@ -450,7 +589,7 @@ fn build_desktop_wrapper(
                 }
             }
         }
-        Kind::Subscription { initial, chunk } => {
+        Kind::Subscription { initial, .. } => {
             let input_prefix = if input_ty.is_some() {
                 quote! { #input_param, }
             } else {
@@ -462,17 +601,13 @@ fn build_desktop_wrapper(
                 pub async fn #wrapper_ident(
                     #input_prefix
                     subscription_id: String,
-                    channel: ::tauri::ipc::Channel<
-                        ::harmony_protocol::desktop::StreamEvent<#chunk>
-                    >,
                 ) -> ::harmony_protocol::Rpc<#initial> {
                     let sub = #fn_ident(#input_call) #await_token;
                     match sub.into_parts() {
                         Ok((initial, stream)) => {
-                            ::harmony_protocol::desktop::spawn_pump(
+                            ::harmony_protocol::desktop::register_pull(
                                 subscription_id,
                                 stream,
-                                channel,
                             );
                             ::harmony_protocol::Rpc::ok(initial)
                         }

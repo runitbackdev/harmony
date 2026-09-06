@@ -65,3 +65,74 @@ pub fn convert_diffs<T, U>(
         })
         .collect()
 }
+
+/// Declare a uniffi identity for one `ListDiff<T>` instantiation. uniffi has
+/// no generics, so each concrete chunk type needs a named mirror enum; the
+/// `custom_type!` bridge converts between the generic original and it, which
+/// is what gets the foreign side a real sealed class rather than a JSON
+/// string.
+#[cfg(feature = "mobile")]
+#[macro_export]
+macro_rules! list_diff_uniffi {
+    ($alias:ident, $mirror:ident, $t:ty) => {
+        pub type $alias = $crate::diff::ListDiff<$t>;
+
+        #[derive(uniffi::Enum)]
+        pub enum $mirror {
+            Append { values: Vec<$t> },
+            Clear,
+            PushFront { value: $t },
+            PushBack { value: $t },
+            PopFront,
+            PopBack,
+            Insert { index: u32, value: $t },
+            Set { index: u32, value: $t },
+            Remove { index: u32 },
+            Truncate { length: u32 },
+            Reset { values: Vec<$t> },
+        }
+
+        impl From<$alias> for $mirror {
+            fn from(value: $alias) -> Self {
+                use $crate::diff::ListDiff as D;
+                match value {
+                    D::Append { values } => Self::Append { values },
+                    D::Clear {} => Self::Clear,
+                    D::PushFront { value } => Self::PushFront { value },
+                    D::PushBack { value } => Self::PushBack { value },
+                    D::PopFront {} => Self::PopFront,
+                    D::PopBack {} => Self::PopBack,
+                    D::Insert { index, value } => Self::Insert { index, value },
+                    D::Set { index, value } => Self::Set { index, value },
+                    D::Remove { index } => Self::Remove { index },
+                    D::Truncate { length } => Self::Truncate { length },
+                    D::Reset { values } => Self::Reset { values },
+                }
+            }
+        }
+
+        impl From<$mirror> for $alias {
+            fn from(value: $mirror) -> Self {
+                match value {
+                    $mirror::Append { values } => Self::Append { values },
+                    $mirror::Clear => Self::Clear {},
+                    $mirror::PushFront { value } => Self::PushFront { value },
+                    $mirror::PushBack { value } => Self::PushBack { value },
+                    $mirror::PopFront => Self::PopFront {},
+                    $mirror::PopBack => Self::PopBack {},
+                    $mirror::Insert { index, value } => Self::Insert { index, value },
+                    $mirror::Set { index, value } => Self::Set { index, value },
+                    $mirror::Remove { index } => Self::Remove { index },
+                    $mirror::Truncate { length } => Self::Truncate { length },
+                    $mirror::Reset { values } => Self::Reset { values },
+                }
+            }
+        }
+
+        uniffi::custom_type!($alias, $mirror, {
+            remote,
+            lower: |value| $mirror::from(value),
+            try_lift: |value| Ok($alias::from(value)),
+        });
+    };
+}

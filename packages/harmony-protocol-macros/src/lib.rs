@@ -26,5 +26,5 @@ pub fn harmony_export(args: TokenStream, input: TokenStream) -> TokenStream {
 /// references the wire type by its original Rust name.
 #[proc_macro_attribute]
 pub fn harmony(args: TokenStream, input: TokenStream) -> TokenStream {
-    harmony::expand(args, input)
+    harmony::expand(&args, input)
 }

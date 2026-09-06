@@ -93,9 +93,9 @@ export class TransportTauri implements Transport {
     this.readers.clear();
   }
 
-  // Drains a subscription's stream into onChunk. Stream-level errors (the
-  // reserved `error` StreamEvent) reject `read()` — swallowed, since the Rust
-  // ABI never emits them yet.
+  // Drains a subscription's stream into onChunk. A failed `harmony_poll`
+  // errors the stream and rejects `read()` — swallowed here, since the
+  // transport has no channel to report mid-stream failures on.
   private async pump(
     reader: ReadableStreamDefaultReader<unknown>,
     onChunk: (chunk: unknown) => void,

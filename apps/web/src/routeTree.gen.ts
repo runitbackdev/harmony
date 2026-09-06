@@ -9,38 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root";
-import { Route as LoginRouteImport } from "./routes/login";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
-import { Route as InviteCodeRouteImport } from "./routes/invite/$code";
-import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
+import { Route as LoginRouteImport } from "./routes/login";
 import { Route as AuthenticatedChatRouteImport } from "./routes/_authenticated/_chat";
+import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
+import { Route as InviteCodeRouteImport } from "./routes/invite/$code";
 import { Route as AuthenticatedChatIndexRouteImport } from "./routes/_authenticated/_chat/index";
 import { Route as AuthenticatedChatSpaceIdRouteRouteImport } from "./routes/_authenticated/_chat/$spaceId/route";
 import { Route as AuthenticatedChatSpaceIdIndexRouteImport } from "./routes/_authenticated/_chat/$spaceId/index";
 import { Route as AuthenticatedChatSpaceIdRoomIdRouteImport } from "./routes/_authenticated/_chat/$spaceId/$roomId";
 
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: "/_authenticated",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
   path: "/login",
   getParentRoute: () => rootRouteImport,
 } as any);
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: "/_authenticated",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const InviteCodeRoute = InviteCodeRouteImport.update({
-  id: "/invite/$code",
-  path: "/invite/$code",
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
+  id: "/_chat",
+  getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: "/settings",
   path: "/settings",
   getParentRoute: () => AuthenticatedRoute,
 } as any);
-const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
-  id: "/_chat",
-  getParentRoute: () => AuthenticatedRoute,
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: "/invite/$code",
+  path: "/invite/$code",
+  getParentRoute: () => rootRouteImport,
 } as any);
 const AuthenticatedChatIndexRoute = AuthenticatedChatIndexRouteImport.update({
   id: "/",
@@ -134,13 +134,6 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/login": {
-      id: "/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LoginRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
     "/_authenticated": {
       id: "/_authenticated";
       path: "";
@@ -148,12 +141,19 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedRouteImport;
       parentRoute: typeof rootRouteImport;
     };
-    "/invite/$code": {
-      id: "/invite/$code";
-      path: "/invite/$code";
-      fullPath: "/invite/$code";
-      preLoaderRoute: typeof InviteCodeRouteImport;
+    "/login": {
+      id: "/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof LoginRouteImport;
       parentRoute: typeof rootRouteImport;
+    };
+    "/_authenticated/_chat": {
+      id: "/_authenticated/_chat";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof AuthenticatedChatRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
     };
     "/_authenticated/settings": {
       id: "/_authenticated/settings";
@@ -162,12 +162,12 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
-    "/_authenticated/_chat": {
-      id: "/_authenticated/_chat";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof AuthenticatedChatRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
+    "/invite/$code": {
+      id: "/invite/$code";
+      path: "/invite/$code";
+      fullPath: "/invite/$code";
+      preLoaderRoute: typeof InviteCodeRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     "/_authenticated/_chat/": {
       id: "/_authenticated/_chat/";
