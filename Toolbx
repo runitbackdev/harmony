@@ -1,0 +1,8 @@
+FROM registry.fedoraproject.org/fedora-toolbox:44
+
+RUN dnf install -y \
+      clang gcc-c++ pkgconf-pkg-config curl file \
+      openssl-devel dbus-devel sqlite-devel \
+      gtk3-devel webkit2gtk4.1-devel librsvg2-devel \
+      libayatana-appindicator-gtk3-devel libxdo-devel \
+    && dnf clean all
