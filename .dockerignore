@@ -1,9 +1,11 @@
-node_modules
-target
 .git
-apps/web
-packages
+.github
 .docker
+**/node_modules
+**/target
+**/dist
+packages/wasm
+docs
 *.md
 .env*
-dist
+**/.env*
